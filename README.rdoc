@@ -1,0 +1,32 @@
+= gmrw-ssh2-server : Ruby SSH2 Server
+
+ *現在、開発中です*
+
+== Description
+
+gmrw-ssh2-server は Ruby 実装の SSH2 サーバです。
+
+Ruby による SSH プロトコルのプロトタイピングを開発の目的とします。
+
+== System Requirement 
+
+Ruby 1.8.7 以降、もしくは Ruby 1.9.x で動作します。
+
+ActiveSupport があれば使用します。ただし、なくても動作します。
+
+== Quick Start
+
+サーバは以下のようにして起動できます。
+起動するとサーバは localhost の TCP ポート 50022 を Listen します。
+
+  $ cd bin/
+  $ ruby ssh2-server.rb
+
+このスクリプトの起動オプションは、以下のようにして表示できます。
+
+  $ ruby ssh2-server.rb --help
+
+== LICENSE
+
+本家 Ruby と同じライセンスで配布します。
+- http://www.ruby-lang.org/ja/LICENSE.txt
