@@ -37,7 +37,7 @@ module GMRW::Extension
     end
 
     def mapping(*names)
-      (parse(yield) || []).mapping(*names)
+      (parsed = parse(yield)) and parsed.mapping(*names)
     end
   end
 end
