@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 # -*- coding: UTF-8 -*-
 
-require 'gmrw/alternative/compatibility'
+require 'gmrw/extension/extension'
 
-module GMRW::Alternative  #:nodoc:
+module GMRW::Extension  #:nodoc:
   compatibility Object do
     def presence  #:nodoc:
       present? ? self : nil
