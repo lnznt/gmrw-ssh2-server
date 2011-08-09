@@ -13,6 +13,15 @@ module GMRW
 
       to.send(:include, mod)
     end
+
+    def compatibility(to, &block) #:nodoc:
+      mod = Module.new(&block)
+
+      dups = to.instance_methods & mod.instance_methods
+      dups.each {|name| mod.send(:undef_method, name) }
+
+      to.send(:include, mod)
+    end
   end
 end
 
