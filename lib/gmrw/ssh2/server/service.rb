@@ -19,18 +19,17 @@ class GMRW::SSH2::Server::Service
   end
 
   def start
-    log(:info) { "SSH service start" }
+    info { "SSH service start" }
 
   rescue => e
-    log(:fatal) { "#{e.class}: #{e}" }
-    log:debug ; e.backtrace.each {|bt| log{ bt >> 2 } }
+    fatal { "#{e.class}: #{e}" }
+    debug ; e.backtrace.each {|bt| log { bt >> 2 } }
 
   ensure
     connection.shutdown rescue nil
     connection.close    rescue nil
-    log(:info) { "SSH service terminated" }
+    info { "SSH service terminated" }
   end
-
 end
 
 # vim:set ts=2 sw=2 et fenc=UTF-8:
