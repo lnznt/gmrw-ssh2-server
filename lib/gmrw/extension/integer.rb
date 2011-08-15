@@ -13,6 +13,14 @@ module GMRW::Extension
       (self + (n - 1)).div(n) * n
     end
 
+    def maximum(n)
+      self > n ? n : self
+    end
+
+    def minimum(n)
+      self < n ? n : self
+    end
+
     def positive?
       self > 0
     end
