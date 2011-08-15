@@ -7,6 +7,7 @@
 
 require 'gmrw/extension/extension'
 require 'gmrw/extension/array'
+require 'gmrw/alternative/active_support'
 
 module GMRW::Extension
   mixin String do
@@ -35,6 +36,12 @@ module GMRW::Extension
     def qq
       wrap('"')
     end
+
+    def divide(n)
+      [first(n), last(length - n)]
+    end
+
+    alias / divide
 
     def parse(pattern)
       (match(pattern) || [])[1..-1]
