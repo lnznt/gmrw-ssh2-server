@@ -1,5 +1,9 @@
-#!/usr/bin/env ruby
-# -*- coding :UTF-8 -*-
+# -*- coding: UTF-8 -*-
+#
+# Author:: lnznt
+# Copyright:: (C) 2011 lnznt.
+# License:: Ruby's
+#
 
 require 'gmrw/extension/extension'
 
@@ -8,14 +12,6 @@ module GMRW::Extension
     private
     def null
       @null ||= Class.new{ def method_missing(*) ; end }.new
-    end
-  end
-end
-
-if __FILE__ == $0
-  class C
-    def a
-      null << "like a 'null' device"
     end
   end
 end

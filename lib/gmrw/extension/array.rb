@@ -1,5 +1,9 @@
-#!/usr/bin/env ruby
 # -*- coding: UTF-8 -*-
+#
+# Author:: lnznt
+# Copyright:: (C) 2011 lnznt.
+# License:: Ruby's
+#
 
 require 'gmrw/extension/extension'
 
@@ -21,13 +25,6 @@ module GMRW::Extension
       (0...count).zip(self).to_hash
     end
   end
-end
-
-if __FILE__ == $0
-  p ["Taro",20].mapping(:name, :age, :address)
-  p ["Taro",20].mapping(:name, :age)
-  p ["Taro",20].mapping(:name)
-  p ["Taro",20].mapping
 end
 
 # vim:set ts=2 sw=2 et fenc=UTF-8:

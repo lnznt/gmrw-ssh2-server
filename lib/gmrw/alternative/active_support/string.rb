@@ -1,5 +1,9 @@
-#!/usr/bin/env ruby
 # -*- coding: UTF-8 -*-
+#
+# Author:: lnznt
+# Copyright:: (C) 2011 lnznt.
+# License:: Ruby's
+#
 
 class String  #:nodoc:
   def at(pos)

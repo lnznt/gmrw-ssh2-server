@@ -1,5 +1,9 @@
-#!/usr/bin/env ruby
-# -*- coding : UTF-8 -*-
+# -*- coding: UTF-8 -*-
+#
+# Author:: lnznt
+# Copyright:: (C) 2011 lnznt.
+# License:: Ruby's
+#
 
 require 'gmrw/ssh2/server/constants'
 require 'gmrw/ssh2/server/service'

@@ -1,5 +1,9 @@
-#!/usr/bin/env ruby
 # -*- coding: UTF-8 -*-
+#
+# Author:: lnznt
+# Copyright:: (C) 2011 lnznt.
+# License:: Ruby's
+#
 
 require 'gmrw/extension/extension'
 require 'gmrw/extension/array'
@@ -40,13 +44,6 @@ module GMRW::Extension
       (parsed = parse(yield)) and parsed.mapping(*names)
     end
   end
-end
-
-if __FILE__ == $0
-  p "abc".q
-  p "SSH-2.0-Ruby/SSHServer".mapping(:ssh_ver, :prog_name) {/\A(SSH-.+?)-(.+)/}
-  p "SSH-2.0-Ruby/SSHServer".mapping(:ssh_ver, :prog_name) {/\ASSH-.+?-.+/}
-  p "SSH-2.0-Ruby/SSHServer".mapping(:ssh_ver, :prog_name) {/\A(FTP-.+?)-(.+)/}
 end
 
 # vim:set ts=2 sw=2 et fenc=UTF-8:

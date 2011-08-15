@@ -1,5 +1,9 @@
-#!/usr/bin/env ruby
 # -*- coding: UTF-8 -*-
+#
+# Author:: lnznt
+# Copyright:: (C) 2011 lnznt.
+# License:: Ruby's
+#
 
 require 'gmrw/extension/string'
 require 'gmrw/utils/loggable'
@@ -14,21 +18,31 @@ class GMRW::SSH2::Server::Service
 
   attr_reader :connection
 
+  def id
+    connection.object_id
+  end
+
   def logger=(*)
-    super.tap {|l| l.format {|s| "[#{connection.object_id}] #{s}" } }
+    super.tap do |l|
+      l.format {|*s| "[#{id}] #{s.map(&:to_s).join(': ')}" }
+    end
   end
 
   def start
-    info { "SSH service start" }
+    info( "SSH service start" )
+
+    #
+    # TODO : サービスの実装
+    #
 
   rescue => e
-    fatal { "#{e.class}: #{e}" }
-    debug ; e.backtrace.each {|bt| log { bt >> 2 } }
+    fatal( "#{e.class}: #{e}" )
+    debug {|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
 
   ensure
     connection.shutdown rescue nil
     connection.close    rescue nil
-    info { "SSH service terminated" }
+    info( "SSH service terminated" )
   end
 end
 

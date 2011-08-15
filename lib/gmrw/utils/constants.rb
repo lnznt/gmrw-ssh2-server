@@ -6,11 +6,7 @@
 #
 
 module GMRW
-  module SSH2
-    module Server
-      DEFAULT_PORT = 50022
-    end
-  end
+  module Utils ; end
 end
 
 # vim:set ts=2 sw=2 et fenc=UTF-8:

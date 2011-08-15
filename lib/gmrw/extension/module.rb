@@ -1,5 +1,9 @@
-#!/usr/bin/env ruby
 # -*- coding: UTF-8 -*-
+#
+# Author:: lnznt
+# Copyright:: (C) 2011 lnznt.
+# License:: Ruby's
+#
 
 require 'gmrw/extension/extension'
 
@@ -33,32 +37,6 @@ module GMRW::Extension
 
     alias property property_rwa
   end
-end
-
-if __FILE__ == $0
-  class C
-    property :foo, 10
-#    property :foo, :bar
-#    attr_accessor :bar
-
-#    def initialize
-#      foo(10000)
-#    end
-  end
-
-  c = C.new
-#  c.bar = 100
-#  c.bar = 200
-#  c.foo
-#  c.bar = 300
-
-  p c.foo
-  p c.foo = 20
-  p c.foo
-  p c.foo(399)
-  p c.foo
-  p c.foo {|s| "hello, #{s}" }
-  p c.foo.call("world")
 end
 
 # vim:set ts=2 sw=2 et fenc=UTF-8:
