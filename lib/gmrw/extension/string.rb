@@ -7,6 +7,7 @@
 
 require 'gmrw/extension/extension'
 require 'gmrw/extension/array'
+require 'gmrw/extension/integer'
 require 'gmrw/alternative/active_support'
 
 module GMRW::Extension
@@ -37,8 +38,8 @@ module GMRW::Extension
       wrap('"')
     end
 
-    def divide(n)
-      [first(n), last(length - n)]
+    def divide(n=1)
+      [self[0, n], self[n..-1]]
     end
 
     alias / divide
