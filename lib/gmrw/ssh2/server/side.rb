@@ -12,7 +12,7 @@ require 'gmrw/ssh2/server/constants'
 class GMRW::SSH2::Server::Side
   include GMRW::Utils::Loggable
 
-  EOS = "\r\n"
+  EOL = "\r\n"
 
   def initialize(conn)
     @connection = conn
@@ -22,12 +22,12 @@ class GMRW::SSH2::Server::Side
   attr_reader :connection
 
   def puts(s)
-    connection.write s + EOS
+    connection.write s + EOL
     s
   end
 
   def gets
-    (connection.gets || "") - /#{EOS}\Z/
+    (connection.gets || "") - /#{EOL}\Z/
   end
 end
 
