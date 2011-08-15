@@ -6,13 +6,16 @@
 #
 
 require 'gmrw/extension/extension'
+require 'gmrw/extension/module'
 
 module GMRW::Extension
   mixin Object do
-    private
-    def null
-      @null ||= Class.new{ def method_missing(*) ; end }.new
+    def evaluate(&block)
+      block.arity > 0 ? yield(self) : instance_eval(&block)
     end
+
+    private
+    property_ro :null, 'Class.new{ def method_missing(*) ; end }.new'
   end
 end
 
