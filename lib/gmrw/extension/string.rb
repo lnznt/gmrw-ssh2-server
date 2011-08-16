@@ -39,7 +39,7 @@ module GMRW::Extension
     end
 
     def divide(n=1)
-      [self[0, n], self[n..-1]]
+      [self[0, n.minimum(0)], self[n.minimum(0)..-1]]
     end
 
     alias / divide
