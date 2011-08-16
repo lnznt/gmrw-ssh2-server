@@ -8,7 +8,9 @@
 require 'gmrw/ssh2/server/constants'
 
 module GMRW::SSH2::Server
-  class UnexpectedVersionError < StandardError ; end
+  class PeerVersionError   < StandardError ; end
+  class PayloadLengthError < StandardError ; end
+  class PacketLengthError  < StandardError ; end
 end
 
 # vim:set ts=2 sw=2 et fenc=UTF-8:

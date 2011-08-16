@@ -33,8 +33,8 @@ class GMRW::SSH2::Server::Service
     end
   end
 
-  property_ro :reader, 'GMRW::SSH2::Server::Reader.new(connection)'
-  property_ro :writer, 'GMRW::SSH2::Server::Writer.new(connection)'
+  property_ro :reader, 'GMRW::SSH2::Server::Reader.new(self)'
+  property_ro :writer, 'GMRW::SSH2::Server::Writer.new(self)'
 
   property_ro :peer,   :reader
   property_ro :local,  :writer
@@ -46,6 +46,8 @@ class GMRW::SSH2::Server::Service
     info( "SSH service start" )
 
     version_exchange
+
+    reader.poll_message
 
     #
     # TODO : SSH プロトコルの実装
@@ -64,7 +66,7 @@ class GMRW::SSH2::Server::Service
   private
   def version_exchange
     local.version.compatible?(peer.version) or
-      raise Server::UnexpectedVersionError, peer.version.q
+      raise Server::PeerVersionError, peer.version.q
 
     info( "server version: #{server.version}" )
     info( "client version: #{client.version}" )
