@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -15,10 +15,12 @@ class GMRW::Utils::Command < Array
   end
 
   def call(*a, &b)
-    each {|cmd| cmd.call(*a, &b) }
+    each {|cmd| cmd[*a, &b] }
   end
 
-  alias [] call
+  def [](*a, &b)
+    call(*a, &b)
+  end
 
   def to_proc
     method(:call).to_proc
@@ -49,8 +51,9 @@ if __FILE__ == $0
 #  command.call("world")
 
   command2 = command + [proc { puts "0!!" }, proc { puts "A" }]
-  command2.call("world")
+  #command2.call("world")
+  command2["world"]
 end
 =end
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:

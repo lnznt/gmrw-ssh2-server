@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -8,8 +8,8 @@
 require 'gmrw/utils/command'
 
 class GMRW::Utils::Filter < GMRW::Utils::Command
-  def call(x)
-    all? {|f| f[x] }
+  def call(*a, &b)
+    all? {|f| f[*a, &b] }
   end
 end
 
@@ -23,6 +23,7 @@ if __FILE__ == $0
 
   p filter.call(10)  # => false
   p filter.call(12)  # => true
+  p filter[12]  # => true
 
   p (0..24).select(&filter) #=> [12,18,24]
 
@@ -32,4 +33,4 @@ if __FILE__ == $0
 end
 =end
 
-# vi:set ts=2 sw=2 et fenc=UTF-8:
+# vi:set ts=2 sw=2 et fenc=utf-8:
