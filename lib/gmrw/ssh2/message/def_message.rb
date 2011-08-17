@@ -20,7 +20,7 @@ module GMRW::SSH2::Message
     create(tag, payload)
   end
 
-  def create(tag, data=nil)
+  def create(tag, data={})
     classes.fetch(tag).new(data)
   end
 
@@ -38,9 +38,7 @@ module GMRW::SSH2::Message
         Fields.validate!(field_type(fname), val) and super
       end
 
-      def initialize(data=nil)
-        data ||= {:type => field_default(:type)}
-
+      def initialize(data={})
         fields.each do |ftype, fname, fval,|
           self[fname] = case data
             when String
@@ -51,6 +49,8 @@ module GMRW::SSH2::Message
               !fval.nil?        ? fval        : Fields.default(ftype)
           end
         end
+
+        self[:type] ||= field_default(:type)
       end
 
       def dump
