@@ -5,12 +5,11 @@
 # License:: Ruby's
 #
 
-require 'gmrw/extension/module'
+require 'gmrw/extension/all'
 require 'gmrw/alternative/active_support'
-require 'gmrw/ssh2/message/constants'
 require 'gmrw/ssh2/message/fields'
 
-module GMRW::SSH2::Message
+module GMRW; module SSH2; module Message
   extend self
   property_ro :classes, '{}'
 
@@ -61,6 +60,6 @@ module GMRW::SSH2::Message
     classes[tag].define_singleton_method(:number)   { fields[0][2]                }
     classes[tag].define_singleton_method(:category) { options[:category] || true  }
   end
-end
+end; end; end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

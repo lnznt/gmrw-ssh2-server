@@ -5,11 +5,12 @@
 # License:: Ruby's
 #
 
-require 'gmrw/extension/string'
+require 'gmrw/extension/all'
 require 'gmrw/utils/filter'
-require 'gmrw/ssh2/message/constants'
 
-module GMRW::SSH2::Message::Fields
+module GMRW; module SSH2; module Message; module Fields
+  include GMRW
+
   extend self
   def bytes?(ftype)
     ftype.kind_of?(Integer) && (ftype > 0)
@@ -27,19 +28,29 @@ module GMRW::SSH2::Message::Fields
   end
 
   def validate(ftype, val)
-    is_boolean  = GMRW::Utils::Filter.new.add {|x| x == true || x == false }
-    is_integer  = GMRW::Utils::Filter.new.add {|x| x.kind_of?(Integer) }
-    is_string   = GMRW::Utils::Filter.new.add {|x| x.kind_of?(String ) }
-    is_array    = GMRW::Utils::Filter.new.add {|x| x.kind_of?(Array)}
+    is_boolean  = Utils::Filter.new.add {|x| x == true || x == false }
+    is_integer  = Utils::Filter.new.add {|x| x.kind_of?(Integer) }
+    is_string   = Utils::Filter.new.add {|x| x.kind_of?(String ) }
+    is_array    = Utils::Filter.new.add {|x| x.kind_of?(Array)}
 
     is_byte     = is_integer + proc {|n| (0...(1<< 8)).include?(n) }
     is_uint32   = is_integer + proc {|n| (0...(1<<32)).include?(n) }
     is_uint64   = is_integer + proc {|n| (0...(1<<64)).include?(n) }
     is_mpint    = is_integer
 
-    is_bytes    = is_array  + proc {|a| a.all? {|b| is_byte[b] } }
+    is_bytes    = is_array   + proc {|a| a.all? {|b| is_byte[b] } }
 
-    is_name     = is_string + proc {|s| !s.empty? && s !~ /,/ }
+    # RFC 4250 (4.6.1) (意訳)
+    #   名前は、表示可能な US-ASCII (21h-7eh) で 64 バイト以下。
+    #   カンマ(,) とアットマーク(@) を含んではならない。
+    #   ただし、ローカル拡張の名前に関しては以下のようにしてよい。
+    #
+    #     名前 @ ローカルドメイン名 (「@」は区切りに使われる 1 つのみ)
+    #
+    is_name     = is_string + proc {|s| s =~ /\A[[:graph:]]{1,64}\z/ &&
+                                        s !~ /,/                     &&
+                                        s =~ /\A[^@]+(@[^@]+)?\z/     }
+
     is_namelist = is_array  + proc {|a| a.all? {|s| is_name[s] } }
 
     case ftype
@@ -118,6 +129,6 @@ module GMRW::SSH2::Message::Fields
 
     b
   end
-end
+end; end; end; end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:
