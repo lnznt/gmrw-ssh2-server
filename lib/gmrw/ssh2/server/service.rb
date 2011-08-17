@@ -8,8 +8,10 @@
 require 'gmrw/extension/string'
 require 'gmrw/extension/module'
 require 'gmrw/utils/loggable'
+require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/server/constants'
 require 'gmrw/ssh2/server/exception'
+require 'gmrw/ssh2/server/state'
 require 'gmrw/ssh2/server/reader'
 require 'gmrw/ssh2/server/writer'
 
@@ -33,8 +35,11 @@ class GMRW::SSH2::Server::Service
     end
   end
 
+  property_ro :state,  'GMRW::SSH2::Server::State.new(self)'
   property_ro :reader, 'GMRW::SSH2::Server::Reader.new(self)'
   property_ro :writer, 'GMRW::SSH2::Server::Writer.new(self)'
+
+  delegate :recv_message, :poll_message, :to => :reader
 
   property_ro :peer,   :reader
   property_ro :local,  :writer
@@ -47,11 +52,11 @@ class GMRW::SSH2::Server::Service
 
     version_exchange
 
-    reader.poll_message
 
     #
     # TODO : SSH プロトコルの実装
     #
+    recv_message :kexinit
     fatal( "Quit! Not implement yet." )
 
   rescue => e

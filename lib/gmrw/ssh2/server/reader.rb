@@ -10,21 +10,12 @@ require 'gmrw/extension/string'
 require 'gmrw/ssh2/server/side'
 require 'gmrw/ssh2/server/exception'
 require 'gmrw/ssh2/server/version_string'
+require 'gmrw/ssh2/message'
 
 class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
   include GMRW::SSH2
 
   property_ro :version, 'Server::VersionString.new(gets)'
-
-  def poll_message
-    debug( "poll_message ...." )
-
-    message = recv_message
-
-    #debug( "received: #{message[:type]}" )
-
-    #self[message[:type]] = message
-  end
 
   def recv_message(tag)
     debug( "expected message: #{tag}, waiting..." )
@@ -34,29 +25,41 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
     self[tag]
   end
 
-  private
-  def recv_message
-    payload
+  def poll_message
+    info( "poll_message ...." )
+
+    #
+    # TODO: 実装。(とりあえず KEXINIT 決め打ち)
+    #
+    message = Message.build(:kexinit, payload)
+
+    info( "--> received: #{message.tag}" )
+    ###debug( "#{message.inspect}" )
+
+    notify_observers(:recv_message, message)
+
+    self[message.tag] = message
   end
 
+  private
   def payload
-    packet_length   = read_packet_length
-    padding_length  = read_padding_length
-    payload         = buffered_read(packet_length.num       -
-                                      padding_length.length -
-                                      padding_length.num    )
-    padding         = buffered_read(padding_length.num)
+    packet_length       = read_packet_length
+    padding_length      = read_padding_length
+    compressed_payload  = buffered_read(packet_length.num       -
+                                          padding_length.length -
+                                          padding_length.num    )
+    padding             = buffered_read(padding_length.num)
 
-    debug( "packet_length.length : #{packet_length.length}" )
-    debug( "packet_length        : #{packet_length.num}"    )
-    debug( "padding_length.length: #{padding_length.length}")
-    debug( "padding_length       : #{padding_length.num}"   )
-    debug( "payload.length       : #{payload.length}"       )
-    debug( "padding.length       : #{padding.length}"       )
+    debug( "packet_length.length      : #{packet_length.length}"     )
+    debug( "packet_length             : #{packet_length.num}"        )
+    debug( "padding_length.length     : #{padding_length.length}"    )
+    debug( "padding_length            : #{padding_length.num}"       )
+    debug( "compressed_payload.length : #{compressed_payload.length}")
+    debug( "padding.length            : #{padding.length}"           )
 
-    verify!(packet_length, padding_length, payload, padding)
+    verify!(packet_length, padding_length, compressed_payload, padding)
 
-    payload
+    compressed_payload
   end
 
   def verify!(packet_length, padding_length, payload, padding)

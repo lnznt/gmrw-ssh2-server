@@ -47,7 +47,7 @@ class GMRW::SSH2::Server::GServer < ::GServer
     private
     def write(logger, *msgs)
       out.debug = (logger.severity == :debug)
-      out.send(:log, "{#logger.severity}: " + logger.format[*msgs])
+      out.send(:log, "#{logger.severity}: " + logger.format[*msgs])
     end
   end
 end

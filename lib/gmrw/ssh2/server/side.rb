@@ -7,21 +7,22 @@
 
 require 'gmrw/extension/string'
 require 'gmrw/utils/loggable'
+require 'gmrw/utils/observable'
 require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/server/constants'
 
 class GMRW::SSH2::Server::Side < Hash
   include GMRW::Utils::Loggable
+  include GMRW::Utils::Observable
 
   EOL = "\r\n"
 
   def initialize(service)
-    @connection = service.connection
-    @logger     = service.logger
+    @service = service
   end
 
   private
-  attr_reader :connection
+  delegate :connection, :logger, :to => :@service
 
   def gets
     (connection.gets || "") - /#{EOL}\Z/
