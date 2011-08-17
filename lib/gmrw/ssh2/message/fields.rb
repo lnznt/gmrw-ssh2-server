@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -11,7 +11,6 @@ require 'gmrw/ssh2/message/constants'
 
 module GMRW::SSH2::Message::Fields
   extend self
-
   def bytes?(ftype)
     ftype.kind_of?(Integer) && (ftype > 0)
   end
@@ -38,10 +37,10 @@ module GMRW::SSH2::Message::Fields
     is_uint64   = is_integer + proc {|n| (0...(1<<64)).include?(n) }
     is_mpint    = is_integer
 
+    is_bytes    = is_array  + proc {|a| a.all? {|b| is_byte[b] } }
+
     is_name     = is_string + proc {|s| !s.empty? && s !~ /,/ }
     is_namelist = is_array  + proc {|a| a.all? {|s| is_name[s] } }
-
-    is_bytes    = is_array  + proc {|a| a.all? {|b| is_byte[b] } }
 
     case ftype
       when :boolean       ; is_boolean  [val]
@@ -56,31 +55,37 @@ module GMRW::SSH2::Message::Fields
     end
   end
 
+  def validate!(ftype, val)
+    validate(ftype, val) or raise TypeError, "<#{ftype}>:'#{val}'"
+  end
+
   def decode(ftype, str)
     case ftype
-      when :boolean       ; b, s  = decode(:byte, str)   ; b && [b != 0, s] 
-      when :byte          ; b, s  = str.unpack("Ca*")    ; b && [b, s]
-      when :uint32        ; n, s  = str.unpack("Na*")    ; n && [n, s]
+      when :byte          ; b, s  = str.unpack("Ca*")    ; b && [b,       s]
+      when :uint32        ; n, s  = str.unpack("Na*")    ; n && [n,       s]
       when :uint64        ; n,m,s = str.unpack("NNa*")   ; m && [n<<32|m, s]
-      when :mpint         ; b, s  = decode(:string, str) ; b && [b2n(b.unpack("C*")), s]
+      when :boolean       ; b, s  = decode(:byte, str)   ; b && [b != 0,  s] 
+
       when :string        ; n, s  = decode(:uint32, str) ; s/n if n && s.length >= n
-      when :namelist      ; l, s  = decode(:string, str) ; l && [l.split(","),s]
-      else; bytes?(ftype) ? ((b,s = str / ftype) and (b && s && [b.unpack("C*"), s]))
-                          : nil
+      when :mpint         ; b, s  = decode(:string, str) ; b && [b2n(b.unpack("C*")), s]
+      when :namelist      ; l, s  = decode(:string, str) ; l && [l.split(","),        s]
+
+      else; bytes?(ftype) ? ((b,s = str / ftype) and (b && s && [b.unpack("C*"), s])) : nil
     end
   end
 
   def encode(ftype, val)
     case ftype
-      when :boolean       ; encode(:byte, val ? 1 : 0)
-      when :byte          ; [val].pack("C")
-      when :uint32        ; [val].pack("N")
-      when :uint64        ; [val>>32,val&0xffffffff].pack("NN")
+      when :byte          ; [val                    ].pack("C")
+      when :uint32        ; [val                    ].pack("N")
+      when :uint64        ; [val>>32, val&0xffffffff].pack("NN")
+      when :string        ; [val.length, val        ].pack("Na*")
+
+      when :boolean       ; encode(:byte,   val ? 1 : 0        )
       when :mpint         ; encode(:string, n2b(val).pack("C*"))
-      when :string        ; [val.length, val].pack("Na*")
-      when :namelist      ; encode(:string, val.join(","))
-      else; bytes?(ftype) ? val.pack("C*")
-                          : nil
+      when :namelist      ; encode(:string, val.join(",")      )
+
+      else; bytes?(ftype) ? val.pack("C*") : nil
     end
   end
 
@@ -115,4 +120,4 @@ module GMRW::SSH2::Message::Fields
   end
 end
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:
