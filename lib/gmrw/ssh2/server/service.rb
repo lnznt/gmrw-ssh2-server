@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -52,6 +52,7 @@ class GMRW::SSH2::Server::Service
     #
     # TODO : SSH プロトコルの実装
     #
+    fatal( "Quit! Not implement yet." )
 
   rescue => e
     fatal( "#{e.class}: #{e}" )
@@ -73,4 +74,4 @@ class GMRW::SSH2::Server::Service
   end
 end
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:

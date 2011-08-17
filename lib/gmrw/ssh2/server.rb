@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -9,4 +9,4 @@ require 'gmrw/ssh2/server/constants'
 require 'gmrw/ssh2/server/service'
 require 'gmrw/ssh2/server/gserver'
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:

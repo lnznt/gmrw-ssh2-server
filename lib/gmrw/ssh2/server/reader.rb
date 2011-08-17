@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -17,10 +17,28 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
   property_ro :version, 'Server::VersionString.new(gets)'
 
   def poll_message
-    payload
+    debug( "poll_message ...." )
+
+    message = recv_message
+
+    #debug( "received: #{message[:type]}" )
+
+    #self[message[:type]] = message
+  end
+
+  def recv_message(tag)
+    debug( "expected message: #{tag}, waiting..." )
+
+    poll_message until self[tag]
+
+    self[tag]
   end
 
   private
+  def recv_message
+    payload
+  end
+
   def payload
     packet_length   = read_packet_length
     padding_length  = read_padding_length
@@ -71,4 +89,4 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
   end
 end
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:
