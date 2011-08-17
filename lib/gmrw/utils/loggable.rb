@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -19,20 +19,16 @@ class GMRW::Utils::Logger < Array
   end
 
   property :out
-
   property :threshold, ':info'
   property :severity, :threshold
-
   property :format, 'proc {|*msgs| msgs.map(&:to_s) * ": " }'
 
-  def log(sev=nil, *messages)
-    return if (index(severity(sev||severity))||-1) < (index(threshold)||length)
+  def log(sev=nil, *messages, &block)
+    severity(sev) if sev ; return unless active?
 
-    if block_given?
-      yield(self, *messages)
-    else
-      write(threshold, severity, format[*messages]) if messages.present?
-    end
+    (block             ? block          :
+     messages.present? ? method(:write) :
+                         proc {|*|}     )[self, *messages]
   end
 
   def <<(message)
@@ -40,12 +36,16 @@ class GMRW::Utils::Logger < Array
   end
 
   private
-  def write(thr, sev, msg)
-    out.puts "#{sev}: #{msg}"
+  def active?
+    (index(severity) || -1) >= (index(threshold) || length)
   end
 
   def method_missing(name, *a, &b)
     include?(name) ? log(name, *a, &b) : super
+  end
+
+  def write(logger, *msgs)
+    out.puts "#{logger.severity}: #{logger.format[*msgs]}"
   end
 end
 
@@ -55,4 +55,4 @@ module GMRW::Utils::Loggable
   delegate *GMRW::Utils::Logger::LEVELS, :to => :logger
 end
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:

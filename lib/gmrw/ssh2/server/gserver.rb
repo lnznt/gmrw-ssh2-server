@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -7,6 +7,7 @@
 
 require 'gserver'
 require 'gmrw/extension/module'
+require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/server/constants'
 require 'gmrw/ssh2/server/service'
 
@@ -41,11 +42,11 @@ class GMRW::SSH2::Server::GServer < ::GServer
 
   class Logger < ::GMRW::Utils::Logger
     private
-    def write(thr, sev, msg)
-      out.debug = (thr == :debug)
-      out.send(:log, "#{sev}: #{msg}")
+    def write(logger, *msgs)
+      out.debug = (logger.severity == :debug)
+      out.send(:log, logger.severity + ": " + logger.format[*msgs])
     end
   end
 end
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:
