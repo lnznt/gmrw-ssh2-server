@@ -31,8 +31,7 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
     message = Message.build(payload) { message_catalog }
 
     info( "--> received: #{message.tag}" )
-
-    ###debug( "#{message.inspect}" )
+    debug( "#{message.inspect}" )
 
     notify_observers(:recv_message, message)
 

@@ -5,6 +5,7 @@
 # License:: Ruby's
 #
 
+require 'gmrw/extension/module'
 require 'gmrw/extension/string'
 require 'gmrw/extension/integer'
 require 'gmrw/utils/loggable'
@@ -20,23 +21,17 @@ class GMRW::SSH2::Server::Side < Hash
 
   def initialize(service)
     @service = service
+
+    add_observer(:recv_message) { count(count.next % 0xffff_ffff) }
+    add_observer(:send_message) { count(count.next % 0xffff_ffff) }
   end
 
   private
   delegate :connection, :logger, :message_catalog, :to => :@service
-
-  def gets
-    (connection.gets || "") - /#{EOL}\Z/
-  end
+  property :count, '0'
 
   def puts(s)
     write(s + EOL) ; s
-  end
-
-  def read(n)
-    return "" if n <= 0
-
-    connection.read(n)
   end
 
   def write(data)
@@ -47,12 +42,22 @@ class GMRW::SSH2::Server::Side < Hash
     connection.flush if connection.respond_to?(:flush)
   end
 
-  def block_size
-    8
+  def gets
+    (connection.gets || "") - /#{EOL}\Z/
+  end
+
+  def read(n)
+    return "" if n <= 0
+
+    connection.read(n)
   end
 
   def read_blocks(bytes)
     read(bytes.align(block_size))
+  end
+
+  def block_size
+    8
   end
 end
 
