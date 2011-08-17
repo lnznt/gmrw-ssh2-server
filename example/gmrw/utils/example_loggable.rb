@@ -59,5 +59,15 @@ c.debug("N: message #14")        # => no output (:debug) <  :info
 c.error { p "Yes" }       # => do it    (:error) >= :info
 c.debug { p "No"  }       # => don't it (:debug) <  :info
 
+#
+# formatter : How to use of other cases. 
+#
+logger.threshold = :info
+
+logger.format = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sta"]
+logger.info(2)     # output "info: Tue"
+
+logger.format = {:foo => "message foo", :bar => "message bar"}
+logger.info(:bar)  # output "info: message bar"
 
 # vim:set ts=2 sw=2 et fenc=utf-8:
