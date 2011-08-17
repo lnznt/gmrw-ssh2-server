@@ -6,6 +6,7 @@
 #
 
 require 'gmrw/extension/string'
+require 'gmrw/extension/integer'
 require 'gmrw/utils/loggable'
 require 'gmrw/utils/observable'
 require 'gmrw/alternative/active_support'
@@ -22,7 +23,7 @@ class GMRW::SSH2::Server::Side < Hash
   end
 
   private
-  delegate :connection, :logger, :to => :@service
+  delegate :connection, :logger, :message_catalog, :to => :@service
 
   def gets
     (connection.gets || "") - /#{EOL}\Z/
@@ -50,9 +51,9 @@ class GMRW::SSH2::Server::Side < Hash
     8
   end
 
-  property_ro :lengths, %-
-    Struct.new(:packet_length).new(:packet_length => 4)
-  -
+  def read_blocks(bytes)
+    read(bytes.align(block_size))
+  end
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

@@ -5,12 +5,16 @@
 # License:: Ruby's
 #
 
+require 'gmrw/extension/module'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
+require 'gmrw/ssh2/message/catalog'
 require 'gmrw/ssh2/server/constants'
 
 class GMRW::SSH2::Server::State < Hash
   include GMRW::Utils::Loggable
+
+  property_ro :message_catalog, 'GMRW::SSH2::Message::Catalog.new'
 
   delegate :logger, :reader, :to => :@service
 
@@ -21,7 +25,7 @@ class GMRW::SSH2::Server::State < Hash
   end
 
   def message_received(message)
-    debug( "message received!" ) # DUMMY
+    # TODO : 実装
   end
 end
 

@@ -18,7 +18,7 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
   property_ro :version, 'Server::VersionString.new(gets)'
 
   def recv_message(tag)
-    debug( "expected message: #{tag}, waiting..." )
+    debug( "waiting for: #{tag} ..." )
 
     poll_message until self[tag]
 
@@ -28,12 +28,10 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
   def poll_message
     info( "poll_message ...." )
 
-    #
-    # TODO: 実装。(とりあえず KEXINIT 決め打ち)
-    #
-    message = Message.build(:kexinit, payload)
+    message = Message.build(payload) { message_catalog }
 
     info( "--> received: #{message.tag}" )
+
     ###debug( "#{message.inspect}" )
 
     notify_observers(:recv_message, message)
@@ -50,12 +48,14 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
                                           padding_length.num    )
     padding             = buffered_read(padding_length.num)
 
+=begin
     debug( "packet_length.length      : #{packet_length.length}"     )
     debug( "packet_length             : #{packet_length.num}"        )
     debug( "padding_length.length     : #{padding_length.length}"    )
     debug( "padding_length            : #{padding_length.num}"       )
     debug( "compressed_payload.length : #{compressed_payload.length}")
     debug( "padding.length            : #{padding.length}"           )
+=end
 
     verify!(packet_length, padding_length, compressed_payload, padding)
 
@@ -84,7 +84,8 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
 
   def buffered_read(bytes)
     s0, rem0 = (@buffer ||= "") / bytes
-    s1       = read((bytes - s0.length).align(block_size))
+    #s1       = read((bytes - s0.length).align(block_size))
+    s1       = read_blocks(bytes - s0.length)
     s,  rem1 = (s0 + s1) / bytes
 
     @buffer = rem0 || rem1 || ""

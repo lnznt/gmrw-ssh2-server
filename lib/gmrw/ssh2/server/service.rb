@@ -40,6 +40,7 @@ class GMRW::SSH2::Server::Service
   property_ro :writer, 'GMRW::SSH2::Server::Writer.new(self)'
 
   delegate :recv_message, :poll_message, :to => :reader
+  delegate :message_catalog,             :to => :state
 
   property_ro :peer,   :reader
   property_ro :local,  :writer
@@ -52,12 +53,11 @@ class GMRW::SSH2::Server::Service
 
     version_exchange
 
-
     #
     # TODO : SSH プロトコルの実装
     #
     recv_message :kexinit
-    fatal( "Quit! Not implement yet." )
+    fatal( "SORRY! Not implement yet. quit." )
 
   rescue => e
     fatal( "#{e.class}: #{e}" )

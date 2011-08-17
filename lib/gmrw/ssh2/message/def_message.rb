@@ -13,14 +13,19 @@ require 'gmrw/ssh2/message/fields'
 module GMRW::SSH2::Message
   extend self
   property_ro :classes, '{}'
-  delegate :[], :to => :classes
 
-  def build(tag, data=nil)
+  def build(payload)
+    number = payload.unpack("C")[0]
+    tag    = yield.search(number)
+    create(tag, payload)
+  end
+
+  def create(tag, data=nil)
     classes.fetch(tag).new(data)
   end
 
   private
-  def def_message(tag, fields)
+  def def_message(tag, fields, options={})
     const_set(tag.to_s.camelize + 'Message', classes[tag] = Class.new(Hash) {
       define_method(:tag)    { tag           }
       define_method(:fields) { fields.freeze }
@@ -52,6 +57,9 @@ module GMRW::SSH2::Message
         fields.map {|ftype, fname,| Fields.encode(ftype, self[fname]) }.join
       end
     })
+
+    classes[tag].define_singleton_method(:number)   { fields[0][2]                }
+    classes[tag].define_singleton_method(:category) { options[:category] || true  }
   end
 end
 
