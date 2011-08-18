@@ -25,7 +25,7 @@ module GMRW; module SSH2; module Message
 
   private
   def def_message(tag, fields, options={})
-    const_set(tag.to_s.camelize + 'Message', classes[tag] = Class.new(Hash) {
+    classes[tag] = Class.new(Hash) {
       define_method(:tag)    { tag           }
       define_method(:fields) { fields.freeze }
 
@@ -57,7 +57,7 @@ module GMRW; module SSH2; module Message
       def dump
         fields.map {|ftype, fname,| Fields.encode(ftype, self[fname]) }.join
       end
-    })
+    }
 
     classes[tag].define_singleton_method(:number)   { fields[0][2]                }
     classes[tag].define_singleton_method(:category) { options[:category] || true  }

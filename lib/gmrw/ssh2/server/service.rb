@@ -6,11 +6,9 @@
 #
 
 require 'openssl'
-require 'gmrw/extension/string'
-require 'gmrw/extension/module'
+require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
-require 'gmrw/ssh2/server/constants'
 require 'gmrw/ssh2/server/state'
 require 'gmrw/ssh2/server/reader'
 require 'gmrw/ssh2/server/writer'
