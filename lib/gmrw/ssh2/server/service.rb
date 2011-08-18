@@ -10,7 +10,6 @@ require 'gmrw/extension/module'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/server/constants'
-require 'gmrw/ssh2/server/exception'
 require 'gmrw/ssh2/server/state'
 require 'gmrw/ssh2/server/reader'
 require 'gmrw/ssh2/server/writer'
@@ -57,6 +56,7 @@ class GMRW::SSH2::Server::Service
     # TODO : SSH プロトコルの実装
     #
     recv_message :kexinit
+#    m = recv_message :kexinit ; debug( "!!#{m}!!" )
     fatal( "SORRY! Not implement yet. quit." )
 
   rescue => e
@@ -72,7 +72,7 @@ class GMRW::SSH2::Server::Service
   private
   def version_exchange
     local.version.compatible?(peer.version) or
-      raise Server::PeerVersionError, peer.version.q
+      raise "SSH Version uncompatible: #{peer.version.q}"
 
     info( "server version: #{server.version}" )
     info( "client version: #{client.version}" )
