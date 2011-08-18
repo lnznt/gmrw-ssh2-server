@@ -21,6 +21,7 @@ module GMRW::Extension
       self < n ? n : self
     end
 
+=begin
     def positive?
       self > 0
     end
@@ -45,6 +46,7 @@ module GMRW::Extension
     def negate
       self * -1
     end
+=end
   end
 end
 

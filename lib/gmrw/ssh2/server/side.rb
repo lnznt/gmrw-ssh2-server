@@ -18,6 +18,8 @@ module GMRW; module SSH2; module Server
     end
 
     private
+    delegate :connection, :logger, :message_catalog, :to => :@service
+
     property :count,      '0'
     property :block_size, '8'
     property :decrypt,    'proc {|x| x }'
@@ -25,10 +27,6 @@ module GMRW; module SSH2; module Server
     property :compress,   'proc {|x| x }'
     property :decompress, 'proc {|x| x }'
     property :hmac,       'proc {|x| "" }'
-
-    property_ro :message_catalog, 'GMRW::SSH2::Message::Catalog.new'
-
-    delegate :connection, :logger, :to => :@service
 
     EOL         = "\r\n"
     MASK_BIT32  = 0xffff_ffff
@@ -51,6 +49,12 @@ module GMRW; module SSH2; module Server
       connection.read(n)
     end
 
+=begin
+    def forget(*tags)
+      tags.each {|tag| delete(tag) }
+    end
+=end
+
     def received(message)
       info( "--> received: #{message.tag}" )
       debug( "#{message}" )
@@ -62,14 +66,11 @@ module GMRW; module SSH2; module Server
 
     def sent(message)
       info( "sent -->: #{message.tag}" )
+      debug( "#{message}" )
 
       count(count.next % MASK_BIT32)
 
       self[message.tag] = message
-    end
-
-    def forget(*tags)
-      tags.each {|tag| delete(tag) }
     end
 
     def compute_mac(packet)

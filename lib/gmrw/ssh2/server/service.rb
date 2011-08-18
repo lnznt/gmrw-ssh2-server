@@ -11,10 +11,10 @@ require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/server/reader'
 require 'gmrw/ssh2/server/writer'
+require 'gmrw/ssh2/message/catalog'
 
 class GMRW::SSH2::Server::Service
   include GMRW::Utils::Loggable
-  include GMRW::SSH2
 
   def initialize(conn)
     @connection = conn
@@ -28,17 +28,19 @@ class GMRW::SSH2::Server::Service
     end
   end
 
+  property_ro :message_catalog, 'GMRW::SSH2::Message::Catalog.new'
+
   property_ro :reader, 'GMRW::SSH2::Server::Reader.new(self)'
   property_ro :writer, 'GMRW::SSH2::Server::Writer.new(self)'
-
-  delegate :recv_message, :poll_message, :to => :reader
-  delegate :send_message,                :to => :writer
 
   property_ro :peer,   :reader
   property_ro :local,  :writer
 
   property_ro :client, :peer
   property_ro :server, :local
+
+  delegate :poll_message, :to => :reader
+  delegate :send_message, :to => :writer
 
   def start
     info( "SSH service start" )
@@ -54,7 +56,7 @@ class GMRW::SSH2::Server::Service
 
   rescue => e
     fatal( "#{e.class}: #{e}" )
-    debug {|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
+    debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
 
   ensure
     connection.shutdown rescue nil
@@ -65,7 +67,7 @@ class GMRW::SSH2::Server::Service
   private
   def version_exchange
     local.version.compatible?(peer.version) or
-        raise "SSH Version uncompatible: '#{peer.version}'"
+        raise "SSH Version uncompatible: #{peer.version}"
 
     info( "server version: #{server.version}" )
     info( "client version: #{client.version}" )
@@ -76,9 +78,9 @@ class GMRW::SSH2::Server::Service
 
     negotiate_algorithms
     
-#    send_message :kexinit
-#    recv_message :kexinit
-#    m = recv_message :kexinit ; debug( "!!#{m}!!" )
+    #
+    # TODO: 実装続き
+    #
   end
 
   def negotiate_algorithms
