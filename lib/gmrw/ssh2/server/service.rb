@@ -9,7 +9,6 @@ require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
-require 'gmrw/ssh2/server/state'
 require 'gmrw/ssh2/server/reader'
 require 'gmrw/ssh2/server/writer'
 
@@ -23,23 +22,17 @@ class GMRW::SSH2::Server::Service
 
   attr_reader :connection
 
-  def id
-    connection.object_id
-  end
-
   def logger=(*)
     super.tap do |l|
-      l.format {|*s| "[#{id}] #{s.map(&:to_s).join(': ')}" }
+      l.format {|*s| "[#{connection.object_id}] #{s.map(&:to_s).join(': ')}" }
     end
   end
 
-  property_ro :state,  'GMRW::SSH2::Server::State.new(self)'
   property_ro :reader, 'GMRW::SSH2::Server::Reader.new(self)'
   property_ro :writer, 'GMRW::SSH2::Server::Writer.new(self)'
 
   delegate :recv_message, :poll_message, :to => :reader
   delegate :send_message,                :to => :writer
-  delegate :message_catalog,             :to => :state
 
   property_ro :peer,   :reader
   property_ro :local,  :writer

@@ -31,7 +31,8 @@ module GMRW; module SSH2; module Message
 
       def []=(fname, val) 
         ftype = (fields.rassoc(fname) || [])[0]
-        Fields.validate!(ftype, val) and super
+        Fields.validate(ftype, val) or raise TypeError, "#{fname}:#{val}"
+        super
       end
 
       def initialize(data={})

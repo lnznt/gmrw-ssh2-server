@@ -9,11 +9,13 @@ require 'gmrw/extension/all'
 require 'gmrw/ssh2/server/side'
 require 'gmrw/ssh2/server/version_string'
 require 'gmrw/ssh2/message'
+require 'gmrw/ssh2/message/catalog'
 
 class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
   include GMRW::SSH2
 
   property_ro :version, 'Server::VersionString.new(gets)'
+  property_ro :message_catalog, 'GMRW::SSH2::Message::Catalog.new'
 
   def recv_message(tag)
     forget(tag) ; message(tag)

@@ -180,17 +180,6 @@ class TestFields < Test::Unit::TestCase
     ]
   end
 
-  def test_validate!
-    assert_raise(TypeError) do 
-      Fields.validate!(3, [0x00, 0x00])
-    end
-
-    assert_nothing_raised do 
-      assert_equal(true, Fields.validate!(2, [0x00, 0x00]))
-    end
-  end
-
-
   def test_decode__byte
     try_assert_equal [
       { Fields.decode(:byte, "\x00")     => [0x00, ""]    },

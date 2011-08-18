@@ -6,11 +6,8 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/utils/filter'
 
 module GMRW; module SSH2; module Message; module Fields
-  include GMRW
-
   extend self
   def bytes?(ftype)
     ftype.kind_of?(Integer) && (ftype > 0)
@@ -27,19 +24,7 @@ module GMRW; module SSH2; module Message; module Fields
     end
   end
 
-  def validate(ftype, val)
-    is_boolean  = Utils::Filter.new.add {|x| x == true || x == false }
-    is_integer  = Utils::Filter.new.add {|x| x.kind_of?(Integer) }
-    is_string   = Utils::Filter.new.add {|x| x.kind_of?(String ) }
-    is_array    = Utils::Filter.new.add {|x| x.kind_of?(Array)}
-
-    is_byte     = is_integer + proc {|n| (0...(1<< 8)).include?(n) }
-    is_uint32   = is_integer + proc {|n| (0...(1<<32)).include?(n) }
-    is_uint64   = is_integer + proc {|n| (0...(1<<64)).include?(n) }
-    is_mpint    = is_integer
-
-    is_bytes    = is_array   + proc {|a| a.all? {|b| is_byte[b] } }
-
+  def validate(ftype, x)
     # RFC 4250 (4.6.1) (意訳)
     #   名前は、表示可能な US-ASCII (21h-7eh) で 64 バイト以下。
     #   カンマ(,) とアットマーク(@) を含んではならない。
@@ -47,27 +32,26 @@ module GMRW; module SSH2; module Message; module Fields
     #
     #     名前 @ ローカルドメイン名 (「@」は区切りに使われる 1 つのみ)
     #
-    is_name     = is_string + proc {|s| s =~ /\A[[:graph:]]{1,64}\z/ &&
-                                        s !~ /,/                     &&
-                                        s =~ /\A[^@]+(@[^@]+)?\z/     }
+    is_name = proc {|s| s.kind_of?(String)           &&
+                        s =~ /\A[[:graph:]]{1,64}\z/ &&
+                        s !~ /,/                     &&
+                        s =~ /\A[^@]+(@[^@]+)?\z/     }
 
-    is_namelist = is_array  + proc {|a| a.all? {|s| is_name[s] } }
+    check = proc {|x, *tests| tests.all? {|t| t === x }}
 
     case ftype
-      when :boolean       ; is_boolean  [val]
-      when :byte          ; is_byte     [val]
-      when :uint32        ; is_uint32   [val]
-      when :uint64        ; is_uint64   [val]
-      when :mpint         ; is_mpint    [val]
-      when :string        ; is_string   [val]
-      when :namelist      ; is_namelist [val]
-      else; bytes?(ftype) ? is_bytes    [val] && (val.length == ftype)
+      when :boolean       ; x == true || x == false
+      when :byte          ; check[x, Integer, 0...(1<< 8)]
+      when :uint32        ; check[x, Integer, 0...(1<<32)]
+      when :uint64        ; check[x, Integer, 0...(1<<64)]
+      when :mpint         ; check[x, Integer]
+      when :string        ; check[x, String ]
+      when :namelist      ; check[x, Array] && x.all? {|s| is_name[s] }
+      else; bytes?(ftype) ? check[x, Array] &&
+                                x.all? {|b| validate(:byte, b) } &&
+                                x.length == ftype
                           : false
     end
-  end
-
-  def validate!(ftype, val)
-    validate(ftype, val) or raise TypeError, "<#{ftype}>:'#{val}'"
   end
 
   def decode(ftype, str)

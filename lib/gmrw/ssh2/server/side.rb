@@ -7,16 +7,11 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/utils/observable'
 require 'gmrw/alternative/active_support'
 
 module GMRW; module SSH2; module Server
   class Side < Hash
     include GMRW::Utils::Loggable
-    include GMRW::Utils::Observable
-
-    EOL         = "\r\n"
-    MASK_BIT32  = 0xffff_ffff
 
     def initialize(service)
       @service = service
@@ -31,7 +26,12 @@ module GMRW; module SSH2; module Server
     property :decompress, 'proc {|x| x }'
     property :hmac,       'proc {|x| "" }'
 
-    delegate :connection, :logger, :message_catalog, :to => :@service
+    property_ro :message_catalog, 'GMRW::SSH2::Message::Catalog.new'
+
+    delegate :connection, :logger, :to => :@service
+
+    EOL         = "\r\n"
+    MASK_BIT32  = 0xffff_ffff
 
     def puts(s)
       write(s + EOL) ; s
@@ -53,22 +53,17 @@ module GMRW; module SSH2; module Server
 
     def received(message)
       info( "--> received: #{message.tag}" )
-      debug( "#{message.inspect}" )
+      debug( "#{message}" )
 
       count(count.next % MASK_BIT32)
-
-      #notify_observers(:recv_message, message) # 要らないかも
 
       self[message.tag] = message
     end
 
     def sent(message)
       info( "sent -->: #{message.tag}" )
-      #debug( "#{message.inspect}" )
 
       count(count.next % MASK_BIT32)
-
-      #notify_observers(:send_message, message) # 要らないかも
 
       self[message.tag] = message
     end

@@ -5,7 +5,7 @@
 # License:: Ruby's
 #
 
-require 'gmrw/extension/string'
+require 'gmrw/extension/all'
 require 'gmrw/ssh2/server/constants'
 
 class GMRW::SSH2::Server::VersionString < String
