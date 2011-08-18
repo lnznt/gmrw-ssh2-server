@@ -29,12 +29,9 @@ module GMRW; module SSH2; module Message
       define_method(:tag)    { tag           }
       define_method(:fields) { fields.freeze }
 
-      def field_search(fname) ; fields.rassoc(fname) || [] ; end
-      def field_type(fname)   ; field_search(fname)[0]     ; end
-      def field_default(fname); field_search(fname)[2]     ; end
-
       def []=(fname, val) 
-        Fields.validate!(field_type(fname), val) and super
+        ftype = (fields.rassoc(fname) || [])[0]
+        Fields.validate!(ftype, val) and super
       end
 
       def initialize(data={})
@@ -50,8 +47,6 @@ module GMRW; module SSH2; module Message
                                         Fields.default(ftype)
           end
         end
-
-        self[:type] ||= field_default(:type)
       end
 
       def dump
