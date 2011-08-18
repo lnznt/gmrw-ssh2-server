@@ -20,13 +20,10 @@ module GMRW; module SSH2; module Server
 
     def initialize(service)
       @service = service
-
-      add_observer(:send_message) { count(count.next % MASK_BIT32) }
     end
 
     private
     property :count,      '0'
-
     property :block_size, '8'
     property :decrypt,    'proc {|x| x }'
     property :encrypt,    'proc {|x| x }'
@@ -60,9 +57,24 @@ module GMRW; module SSH2; module Server
 
       count(count.next % MASK_BIT32)
 
-      notify_observers(:recv_message, message)
+      #notify_observers(:recv_message, message) # 要らないかも
 
       self[message.tag] = message
+    end
+
+    def sent(message)
+      info( "sent -->: #{message.tag}" )
+      #debug( "#{message.inspect}" )
+
+      count(count.next % MASK_BIT32)
+
+      #notify_observers(:send_message, message) # 要らないかも
+
+      self[message.tag] = message
+    end
+
+    def forget(*tags)
+      tags.each {|tag| delete(tag) }
     end
 
     def compute_mac(packet)

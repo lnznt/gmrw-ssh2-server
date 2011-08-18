@@ -16,6 +16,10 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
   property_ro :version, 'Server::VersionString.new(gets)'
 
   def recv_message(tag)
+    forget(tag) ; message(tag)
+  end
+
+  def message(tag)
     poll_message until self[tag] ; self[tag]
   end
 

@@ -44,8 +44,10 @@ module GMRW; module SSH2; module Message
               val, data = Fields.decode(ftype, data)
               val
             else
-              !data[fname].nil? ? data[fname] :
-              !fval.nil?        ? fval        : Fields.default(ftype)
+              !data[fname].nil?       ? data[fname]     :
+              fval.respond_to?(:call) ? fval.call(self) :
+              !fval.nil?              ? fval            :
+                                        Fields.default(ftype)
           end
         end
 
