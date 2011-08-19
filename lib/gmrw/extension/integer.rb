@@ -21,6 +21,10 @@ module GMRW::Extension
       self < n ? n : self
     end
 
+    def count_bit(bit=1)
+      sprintf("%b", self).count(bit.to_s)
+    end
+
 =begin
     def positive?
       self > 0

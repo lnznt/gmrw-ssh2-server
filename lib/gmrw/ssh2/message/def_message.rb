@@ -21,6 +21,8 @@ module GMRW; module SSH2; module Message
 
   def create(tag, data={})
     classes.fetch(tag).new(data)
+  rescue KeyError
+    null
   end
 
   private
@@ -55,8 +57,8 @@ module GMRW; module SSH2; module Message
       end
     }
 
-    classes[tag].define_singleton_method(:number)   { fields[0][2]                }
-    classes[tag].define_singleton_method(:category) { options[:category] || true  }
+    classes[tag].define_singleton_method(:number)   { fields[0][2]                 }
+    classes[tag].define_singleton_method(:category) { options[:category] || [true] }
   end
 end; end; end
 

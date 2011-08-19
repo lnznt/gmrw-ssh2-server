@@ -5,7 +5,6 @@
 # License:: Ruby's
 #
 
-require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
@@ -15,6 +14,7 @@ require 'gmrw/ssh2/message/catalog'
 
 class GMRW::SSH2::Server::Service
   include GMRW::Utils::Loggable
+  include GMRW::SSH2
 
   def initialize(conn)
     @connection = conn
@@ -28,13 +28,14 @@ class GMRW::SSH2::Server::Service
     end
   end
 
-  property_ro :message_catalog, 'GMRW::SSH2::Message::Catalog.new'
+  property_ro :message_catalog, 'Message::Catalog.new {|ct| ct.logger = logger }'
+  property_ro :algorithm, 'Struct.new(:kex, :host_key).new'
 
-  property_ro :reader, 'GMRW::SSH2::Server::Reader.new(self)'
-  property_ro :writer, 'GMRW::SSH2::Server::Writer.new(self)'
+  property_ro :reader, 'Server::Reader.new(self)'
+  property_ro :writer, 'Server::Writer.new(self)'
 
-  property_ro :peer,   :reader
-  property_ro :local,  :writer
+  property_ro :peer,  :reader
+  property_ro :local, :writer
 
   property_ro :client, :peer
   property_ro :server, :local
@@ -46,6 +47,8 @@ class GMRW::SSH2::Server::Service
     info( "SSH service start" )
 
     version_exchange
+
+    message_catalog.permit { true } # TODO: 取りあえず全部許可
 
     key_exchange
 
@@ -67,43 +70,48 @@ class GMRW::SSH2::Server::Service
   private
   def version_exchange
     local.version.compatible?(peer.version) or
-        raise "SSH Version uncompatible: #{peer.version}"
+        raise "unexpected SSH Version: #{peer.version}"
 
-    info( "server version: #{server.version}" )
-    info( "client version: #{client.version}" )
+    info( "local version: #{local.version}" )
+    info( "peer  version: #{peer. version}" )
   end
 
   def key_exchange
-    send_message :kexinit
+    local.message(:kexinit)
 
     negotiate_algorithms
-    
+
     #
     # TODO: 実装続き
     #
+    poll_message  # DUMMY
   end
 
   def negotiate_algorithms
-    [ :kex_algorithms                           ,
-      :server_host_key_algorithms               ,
-      :encryption_algorithms_client_to_server   ,
-      :encryption_algorithms_server_to_client   ,
-      :mac_algorithms_client_to_server          ,
-      :mac_algorithms_server_to_client          ,
-      :compression_algorithms_client_to_server  ,
-      :compression_algorithms_server_to_client  ].each do |name|
-        info( "#{name}: #{negotiate(name)}" )
-    end
+    algorithm.kex               = negotiate(:kex_algorithms)
+    algorithm.host_key          = negotiate(:server_host_key_algorithms)
+    client.algorithm.cipher     = negotiate(:encryption_algorithms_client_to_server)
+    server.algorithm.cipher     = negotiate(:encryption_algorithms_server_to_client)
+    client.algorithm.hmac       = negotiate(:mac_algorithms_client_to_server)
+    server.algorithm.hmac       = negotiate(:mac_algorithms_server_to_client)
+    client.algorithm.compressor = negotiate(:compression_algorithms_client_to_server)
+    server.algorithm.compressor = negotiate(:compression_algorithms_server_to_client)
 
-    #
-    # TODO: 実装続き
-    #
+    debug( "kex               : #{algorithm.kex}"               )
+    debug( "host_key          : #{algorithm.host_key}"          )
+    debug( "client.cipher     : #{client.algorithm.cipher}"     )
+    debug( "server.cipher     : #{server.algorithm.cipher}"     )
+    debug( "client.hmac       : #{client.algorithm.hmac}"       )
+    debug( "server.hmac       : #{server.algorithm.hmac}"       )
+    debug( "client.compressor : #{client.algorithm.compressor}" )
+    debug( "server.compressor : #{server.algorithm.compressor}" )
 
+    message_catalog.change_algorithm :kex => algorithm.kex
   end
-  
+
   def negotiate(name)
-    peer. message(:kexinit)[name].find   {|a|
-    local.message(:kexinit)[name].include?(a)}
+    client.message(:kexinit)[name].find   {|a|
+    server.message(:kexinit)[name].include?(a)}
   end
 end
 

@@ -4,7 +4,6 @@
 # Copyright:: (C) 2011 lnznt.
 # License:: Ruby's
 #
-
 require 'gmrw/extension/all'
 
 module GMRW; module SSH2; module Message; module Fields
@@ -19,12 +18,15 @@ module GMRW; module SSH2; module Message; module Fields
       when :byte,:uint32,:uint64,:mpint ; 0
       when :string                      ; ""
       when :namelist                    ; []
-      else; bytes?(ftype)               ? Array.new(ftype, 0)
-                                        : nil
+      else 
+        bytes?(ftype) ? [0] * ftype : nil
     end
   end
 
   def validate(ftype, x)
+    check = proc {|val, *ts| ts.all? {|t| t === val }}
+    all   = proc {|a, t| a.all? {|e| t[e] } }
+
     # RFC 4250 (4.6.1) (意訳)
     #   名前は、表示可能な US-ASCII (21h-7eh) で 64 バイト以下。
     #   カンマ(,) とアットマーク(@) を含んではならない。
@@ -37,7 +39,8 @@ module GMRW; module SSH2; module Message; module Fields
                         s !~ /,/                     &&
                         s =~ /\A[^@]+(@[^@]+)?\z/     }
 
-    check = proc {|x, *tests| tests.all? {|t| t === x }}
+    #is_byte = proc {|b| validate(:byte, b) }
+    is_byte = method(:validate).to_proc << :byte
 
     case ftype
       when :boolean       ; x == true || x == false
@@ -46,11 +49,9 @@ module GMRW; module SSH2; module Message; module Fields
       when :uint64        ; check[x, Integer, 0...(1<<64)]
       when :mpint         ; check[x, Integer]
       when :string        ; check[x, String ]
-      when :namelist      ; check[x, Array] && x.all? {|s| is_name[s] }
-      else; bytes?(ftype) ? check[x, Array] &&
-                                x.all? {|b| validate(:byte, b) } &&
-                                x.length == ftype
-                          : false
+      when :namelist      ; check[x, Array  ] && all[x, is_name]
+      else
+        bytes?(ftype) ? check[x, Array] && all[x, is_byte] && x.count == ftype : false
     end
   end
 
@@ -60,12 +61,11 @@ module GMRW; module SSH2; module Message; module Fields
       when :uint32        ; n, s  = str.unpack("Na*")    ; n && [n,       s]
       when :uint64        ; n,m,s = str.unpack("NNa*")   ; m && [n<<32|m, s]
       when :boolean       ; b, s  = decode(:byte, str)   ; b && [b != 0,  s] 
-
       when :string        ; n, s  = decode(:uint32, str) ; s/n if n && s.length >= n
       when :mpint         ; b, s  = decode(:string, str) ; b && [b2n(b.unpack("C*")), s]
       when :namelist      ; l, s  = decode(:string, str) ; l && [l.split(","),        s]
-
-      else; bytes?(ftype) ? ((b,s = str / ftype) and (b && s && [b.unpack("C*"), s])) : nil
+      else
+        bytes?(ftype) ? ((b,s = str / ftype) and (b && s && [b.unpack("C*"), s])) : nil
     end
   end
 
@@ -75,13 +75,16 @@ module GMRW; module SSH2; module Message; module Fields
       when :uint32        ; [val                    ].pack("N")
       when :uint64        ; [val>>32, val&0xffffffff].pack("NN")
       when :string        ; [val.length, val        ].pack("Na*")
-
-      when :boolean       ; encode(:byte,   val ? 1 : 0        )
       when :mpint         ; encode(:string, n2b(val).pack("C*"))
-      when :namelist      ; encode(:string, val.join(",")      )
-
-      else; bytes?(ftype) ? val.pack("C*") : nil
+      when :namelist      ; encode(:string, val.join(","))
+      when :boolean       ; encode(:byte,   val ? 1 : 0)
+      else
+        bytes?(ftype) ? val.pack("C*") : nil
     end
+  end
+
+  def pack(*fields)
+    fields.map {|ftype, val| encode(ftype, val) }.join
   end
 
   private

@@ -13,6 +13,8 @@ module GMRW; module SSH2; module Server
   class Side < Hash
     include GMRW::Utils::Loggable
 
+    property_ro :algorithm, 'Struct.new(:cipher, :hmac, :compressor).new'
+
     def initialize(service)
       @service = service
     end
@@ -56,7 +58,7 @@ module GMRW; module SSH2; module Server
 =end
 
     def received(message)
-      info( "--> received: #{message.tag}" )
+      info( "--> received[#{count}]: #{message.tag}" )
       debug( "#{message}" )
 
       count(count.next % MASK_BIT32)
@@ -65,7 +67,7 @@ module GMRW; module SSH2; module Server
     end
 
     def sent(message)
-      info( "sent -->: #{message.tag}" )
+      info( "sent[#{count}] -->: #{message.tag}" )
       debug( "#{message}" )
 
       count(count.next % MASK_BIT32)

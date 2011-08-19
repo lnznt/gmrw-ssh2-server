@@ -40,6 +40,7 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
       padding     = buffered_read(padd_len.n),
     ].join
 
+    debug( "packet.length          : #{packet.length}"      )
     debug( "packet_length.length   : #{pack_len.length}"    )
     debug( "packet_length          : #{pack_len.n}"         )
     debug( "padding_length.length  : #{padd_len.length}"    )
@@ -50,6 +51,8 @@ class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
     mac0 = compute_mac(packet)
     mac1 = read(mac0.length)
     mac0 == mac1 or raise "MAC error: #{mac0} <=> #{mac1}"
+
+    debug( "MAC                    : #{mac0.unpack('C*')}"     )
 
     decompress[ zipped_data ]
   end
