@@ -4,9 +4,10 @@
 # Copyright:: (C) 2011 lnznt.
 # License:: Ruby's
 #
+require 'openssl'
 require 'gmrw/extension/all'
 
-module GMRW; module SSH2; module Message; module Fields
+module GMRW; module SSH2; module Message; module Field
   extend self
   def bytes?(ftype)
     ftype.kind_of?(Integer) && (ftype > 0)
@@ -15,7 +16,9 @@ module GMRW; module SSH2; module Message; module Fields
   def default(ftype)
     case ftype
       when :boolean                     ; false
-      when :byte,:uint32,:uint64,:mpint ; 0
+      #when :byte,:uint32,:uint64,:mpint ; 0
+      when :byte,:uint32,:uint64        ; 0
+      when :mpint                       ; 0.to_bignum
       when :string                      ; ""
       when :namelist                    ; []
       else 
@@ -47,7 +50,8 @@ module GMRW; module SSH2; module Message; module Fields
       when :byte          ; check[x, Integer, 0...(1<< 8)]
       when :uint32        ; check[x, Integer, 0...(1<<32)]
       when :uint64        ; check[x, Integer, 0...(1<<64)]
-      when :mpint         ; check[x, Integer]
+      #when :mpint         ; check[x, Integer]
+      when :mpint         ; check[x, OpenSSL::BN]
       when :string        ; check[x, String ]
       when :namelist      ; check[x, Array  ] && all[x, is_name]
       else
@@ -62,7 +66,8 @@ module GMRW; module SSH2; module Message; module Fields
       when :uint64        ; n,m,s = str.unpack("NNa*")   ; m && [n<<32|m, s]
       when :boolean       ; b, s  = decode(:byte, str)   ; b && [b != 0,  s] 
       when :string        ; n, s  = decode(:uint32, str) ; s/n if n && s.length >= n
-      when :mpint         ; b, s  = decode(:string, str) ; b && [b2n(b.unpack("C*")), s]
+      #when :mpint         ; b, s  = decode(:string, str) ; b && [b2n(b.unpack("C*")), s]
+      when :mpint         ; b, s  = decode(:string, str) ; b && [b2n(b.unpack("C*")).to_bignum, s]
       when :namelist      ; l, s  = decode(:string, str) ; l && [l.split(","),        s]
       else
         bytes?(ftype) ? ((b,s = str / ftype) and (b && s && [b.unpack("C*"), s])) : nil
@@ -75,7 +80,8 @@ module GMRW; module SSH2; module Message; module Fields
       when :uint32        ; [val                    ].pack("N")
       when :uint64        ; [val>>32, val&0xffffffff].pack("NN")
       when :string        ; [val.length, val        ].pack("Na*")
-      when :mpint         ; encode(:string, n2b(val).pack("C*"))
+      #when :mpint         ; encode(:string, n2b(val).pack("C*"))
+      when :mpint         ; encode(:string, n2b(val.to_i).pack("C*"))
       when :namelist      ; encode(:string, val.join(","))
       when :boolean       ; encode(:byte,   val ? 1 : 0)
       else

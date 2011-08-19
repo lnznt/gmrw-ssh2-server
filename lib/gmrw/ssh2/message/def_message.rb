@@ -7,7 +7,7 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/alternative/active_support'
-require 'gmrw/ssh2/message/fields'
+require 'gmrw/ssh2/message/field'
 
 module GMRW; module SSH2; module Message
   extend self
@@ -25,15 +25,14 @@ module GMRW; module SSH2; module Message
     null
   end
 
-  private
-  def def_message(tag, fields, options={})
-    classes[tag] = Class.new(Hash) {
+  def def_format(tag, fields)
+    Class.new(Hash) {
       define_method(:tag)    { tag           }
       define_method(:fields) { fields.freeze }
 
       def []=(fname, val) 
         ftype = (fields.rassoc(fname) || [])[0]
-        Fields.validate(ftype, val) or raise TypeError, "#{fname}:#{val}"
+        Field.validate(ftype, val) or raise TypeError, "#{fname}:#{val}"
         super
       end
 
@@ -41,22 +40,25 @@ module GMRW; module SSH2; module Message
         fields.each do |ftype, fname, fval,|
           self[fname] = case data
             when String
-              val, data = Fields.decode(ftype, data)
+              val, data = Field.decode(ftype, data)
               val
             else
               !data[fname].nil?       ? data[fname]     :
               fval.respond_to?(:call) ? fval.call(self) :
               !fval.nil?              ? fval            :
-                                        Fields.default(ftype)
+                                        Field.default(ftype)
           end
         end
       end
 
       def dump
-        fields.map {|ftype, fname,| Fields.encode(ftype, self[fname]) }.join
+        fields.map {|ftype, fname,| Field.encode(ftype, self[fname]) }.join
       end
     }
+  end
 
+  def def_message(tag, fields, options={})
+    classes[tag] = def_format(tag, fields)
     classes[tag].define_singleton_method(:number)   { fields[0][2]                 }
     classes[tag].define_singleton_method(:category) { options[:category] || [true] }
   end

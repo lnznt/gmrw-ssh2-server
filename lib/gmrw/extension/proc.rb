@@ -45,21 +45,29 @@ module GMRW::Extension
   end
 
   mixin Proc do
-    def *(other)
+    def compose(other)
       proc {|*a| call( Proc.convert(other).call(*a) )}
     end
 
-    def +(other)
+    alias * compose
+
+    def rcompose(other)
       proc {|*a| Proc.convert(other).call( call(*a) )}
     end
 
-    def <<(*x)
+    alias | rcompose
+
+    def first_arg(*x)
       proc {|*a| call( *(x + a) )}
     end
 
-    def >>(*x)
+    alias << first_arg
+
+    def last_arg(*x)
       proc {|*a| call( *(a + x) )}
     end
+
+    alias >> last_arg
 
     def tee(pr)
       proc {|*a| call(*a).tap{|result| Proc.convert(pr).call(result) }}

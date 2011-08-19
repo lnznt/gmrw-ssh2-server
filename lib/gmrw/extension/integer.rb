@@ -5,6 +5,7 @@
 # License:: Ruby's
 #
 
+require 'openssl'
 require 'gmrw/extension/extension'
 
 module GMRW::Extension
@@ -23,6 +24,10 @@ module GMRW::Extension
 
     def count_bit(bit=1)
       sprintf("%b", self).count(bit.to_s)
+    end
+
+    def to_bignum
+      OpenSSL::BN.new(to_s)
     end
 
 =begin
