@@ -7,13 +7,13 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/ssh2/server/side'
-require 'gmrw/ssh2/server/version_string'
+require 'gmrw/ssh2/protocol/version_string'
 require 'gmrw/ssh2/message'
 
 class GMRW::SSH2::Server::Reader < GMRW::SSH2::Server::Side
   include GMRW::SSH2
 
-  property_ro :version, 'Server::VersionString.new(gets)'
+  property_ro :version, 'Protocol::VersionString.new(gets)'
 
 =begin
   def recv_message(tag)

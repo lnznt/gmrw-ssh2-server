@@ -11,6 +11,7 @@ require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/server/reader'
 require 'gmrw/ssh2/server/writer'
 require 'gmrw/ssh2/message/catalog'
+require 'gmrw/ssh2/server/config'
 
 class GMRW::SSH2::Server::Service
   include GMRW::Utils::Loggable
@@ -39,6 +40,8 @@ class GMRW::SSH2::Server::Service
 
   property_ro :client, :peer
   property_ro :server, :local
+
+  property_ro :config, 'Server::Config'
 
   delegate :poll_message, :to => :reader
   delegate :send_message, :to => :writer
@@ -77,7 +80,17 @@ class GMRW::SSH2::Server::Service
   end
 
   def key_exchange
-    local.message(:kexinit)
+    send_message :kexinit, [
+        :kex_algorithms,
+        :server_host_key_algorithms,
+        :encryption_algorithms_client_to_server,
+        :encryption_algorithms_server_to_client,
+        :mac_algorithms_client_to_server,
+        :mac_algorithms_server_to_client,
+        :compression_algorithms_client_to_server,
+        :compression_algorithms_server_to_client  ].map {|name|
+            [name, config.algorithms[name.to_s] ]
+        }.to_hash
 
     negotiate_algorithms
 

@@ -20,7 +20,7 @@ module GMRW; module SSH2; module Server
     end
 
     private
-    delegate :connection, :logger, :message_catalog, :to => :@service
+    delegate :connection, :logger, :config, :message_catalog, :to => :@service
 
     property :count,      '0'
     property :block_size, '8'

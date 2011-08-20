@@ -5,11 +5,9 @@
 # License:: Ruby's
 #
 
-module GMRW; module SSH2; module Config
-  module Default
-    extend self
-
-    def algorithms
+module GMRW; module SSH2; module Algorithm
+  extend self
+  def algorithms
       {
         "kex_algorithms" => %w[ diffie-hellman-group-exchange-sha256
                                 diffie-hellman-group-exchange-sha1
@@ -17,7 +15,7 @@ module GMRW; module SSH2; module Config
                                 diffie-hellman-group1-sha1 ],
 
         "server_host_key_algorithms" => %w[ ssh-rsa ssh-dss ],
-        
+
         "encryption_algorithms_client_to_server" => %w[ aes128-cbc
                                                         aes256-cbc
                                                         aes192-cbc
@@ -41,11 +39,10 @@ module GMRW; module SSH2; module Config
                                                  hmac-sha1-96
                                                  hmac-md5
                                                  hmac-md5-96 ],
-        
+
         "compression_algorithms_client_to_server" => %w[none zlib],
         "compression_algorithms_server_to_client" => %w[none zlib],
       }
-    end
   end
 end; end; end
 

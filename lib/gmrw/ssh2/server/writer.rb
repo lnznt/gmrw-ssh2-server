@@ -8,13 +8,16 @@
 require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/ssh2/server/side'
-require 'gmrw/ssh2/server/version_string'
+require 'gmrw/ssh2/protocol/version_string'
 require 'gmrw/ssh2/message'
 
 class GMRW::SSH2::Server::Writer < GMRW::SSH2::Server::Side
   include GMRW::SSH2
 
-  property_ro :version, 'puts Server::VersionString.new(Server::SSH_VERSION)'
+  property_ro :version, %-
+    puts Protocol::VersionString.new(:software_version => config.software_version,
+                                     :commnet          => config.version_comment)
+  -
 
   def message(tag, params={})
     self[tag] || send_message(tag, params)

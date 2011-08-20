@@ -6,19 +6,19 @@
 #
 
 require 'openssl'
-require 'gmrw/ssh2/config'
+require 'gmrw/ssh2/algorithm'
 require 'gmrw/ssh2/message/def_message'
 
 module GMRW::SSH2::Message
   rnd = proc { OpenSSL::Random.random_bytes(16).unpack("C*") }
-  kex = GMRW::SSH2::Config.algorithms['kex_algorithms']
-  shk = GMRW::SSH2::Config.algorithms['server_host_key_algorithms']
-  ecs = GMRW::SSH2::Config.algorithms['encryption_algorithms_client_to_server']
-  esc = GMRW::SSH2::Config.algorithms['encryption_algorithms_server_to_client']
-  mcs = GMRW::SSH2::Config.algorithms['mac_algorithms_client_to_server']
-  msc = GMRW::SSH2::Config.algorithms['mac_algorithms_server_to_client']
-  ccs = GMRW::SSH2::Config.algorithms['compression_algorithms_client_to_server']
-  csc = GMRW::SSH2::Config.algorithms['compression_algorithms_server_to_client']
+  kex = GMRW::SSH2::Algorithm.algorithms['kex_algorithms']
+  shk = GMRW::SSH2::Algorithm.algorithms['server_host_key_algorithms']
+  ecs = GMRW::SSH2::Algorithm.algorithms['encryption_algorithms_client_to_server']
+  esc = GMRW::SSH2::Algorithm.algorithms['encryption_algorithms_server_to_client']
+  mcs = GMRW::SSH2::Algorithm.algorithms['mac_algorithms_client_to_server']
+  msc = GMRW::SSH2::Algorithm.algorithms['mac_algorithms_server_to_client']
+  ccs = GMRW::SSH2::Algorithm.algorithms['compression_algorithms_client_to_server']
+  csc = GMRW::SSH2::Algorithm.algorithms['compression_algorithms_server_to_client']
 
   def_message :kexinit, [
     [ :byte,      :type                                    , 20 ],
