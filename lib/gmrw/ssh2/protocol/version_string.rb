@@ -10,12 +10,13 @@ require 'gmrw/extension/all'
 module GMRW; module SSH2; module Protocol
   class VersionString < String
     def initialize(data={})
-      case data
-        when String ; super
-        else        ; super 'SSH-' + (data[:protocol_version] || '2.0') +
-                               '-' + (data[:software_version] || '___') +
-                                     (data[:comment] ? " #{data[:comment]}" : "")
-      end
+      return super if data.kind_of?(String)
+
+      pv = data[:protocol_version] || '2.0'
+      sv = data[:software_version] || '___'
+      cm = data[:comment]
+
+      super "SSH-#{pv}-#{sv}" + (cm ? cm >> 1 : "")
     end
 
     COMPONENTS = [:ssh_version, :protocol_version, :software_version, :comment]

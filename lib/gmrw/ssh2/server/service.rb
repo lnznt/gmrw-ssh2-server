@@ -34,7 +34,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     permit(:kexinit) { false }
 
     #*************************************
-      DUMMY
+    #  DUMMY
     #*************************************
 
     #poll_message # DUMMY

@@ -47,7 +47,7 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :message_catalog,
                 'SSH2::Message::Catalog.new {|ct| ct.logger = logger }'
 
-  delegate :permit, :to => :message_catalog
+  delegate :permit, :change_algorithm, :to => :message_catalog
 
   property_ro :algorithm, 'Struct.new(:kex, :host_key).new'
 
@@ -108,7 +108,7 @@ class GMRW::SSH2::Protocol::Transport
     debug( "client.compressor : #{client.algorithm.compressor}" )
     debug( "server.compressor : #{server.algorithm.compressor}" )
 
-    message_catalog.change_algorithm :kex => algorithm.kex
+    change_algorithm :kex => algorithm.kex
   end
 
   def negotiate(name)
