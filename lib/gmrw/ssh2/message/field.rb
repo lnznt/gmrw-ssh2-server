@@ -9,20 +9,14 @@ require 'gmrw/extension/all'
 
 module GMRW; module SSH2; module Message; module Field
   extend self
-  def bytes?(ftype)
-    ftype.kind_of?(Integer) && (ftype > 0)
-  end
-
   def default(ftype)
     case ftype
-      when :boolean                     ; false
-      #when :byte,:uint32,:uint64,:mpint ; 0
-      when :byte,:uint32,:uint64        ; 0
-      when :mpint                       ; 0.to_bignum
-      when :string                      ; ""
-      when :namelist                    ; []
-      else 
-        bytes?(ftype) ? [0] * ftype : nil
+      when :boolean              ; false
+      when :byte,:uint32,:uint64 ; 0
+      when :mpint                ; 0.to_bignum
+      when :string               ; ""
+      when :namelist             ; []
+      when Integer               ; [0] * ftype 
     end
   end
 
@@ -30,62 +24,50 @@ module GMRW; module SSH2; module Message; module Field
     check = proc {|val, *ts| ts.all? {|t| t === val }}
     all   = proc {|a, t| a.all? {|e| t[e] } }
 
-    # RFC 4250 (4.6.1) (意訳)
-    #   名前は、表示可能な US-ASCII (21h-7eh) で 64 バイト以下。
-    #   カンマ(,) とアットマーク(@) を含んではならない。
-    #   ただし、ローカル拡張の名前に関しては以下のようにしてよい。
-    #
-    #     名前 @ ローカルドメイン名 (「@」は区切りに使われる 1 つのみ)
-    #
+    # see RFC4250 (4.6.1) for details
     is_name = proc {|s| s.kind_of?(String)           &&
                         s =~ /\A[[:graph:]]{1,64}\z/ &&
                         s !~ /,/                     &&
                         s =~ /\A[^@]+(@[^@]+)?\z/     }
 
-    #is_byte = proc {|b| validate(:byte, b) }
-    is_byte = method(:validate).to_proc << :byte
+    is_byte = proc {|b| validate(:byte, b) }
 
     case ftype
-      when :boolean       ; x == true || x == false
-      when :byte          ; check[x, Integer, 0...(1<< 8)]
-      when :uint32        ; check[x, Integer, 0...(1<<32)]
-      when :uint64        ; check[x, Integer, 0...(1<<64)]
-      #when :mpint         ; check[x, Integer]
-      when :mpint         ; check[x, OpenSSL::BN]
-      when :string        ; check[x, String ]
-      when :namelist      ; check[x, Array  ] && all[x, is_name]
-      else
-        bytes?(ftype) ? check[x, Array] && all[x, is_byte] && x.count == ftype : false
+      when :boolean  ; x == true || x == false
+      when :byte     ; check[x, Integer, 0...(1<< 8)]
+      when :uint32   ; check[x, Integer, 0...(1<<32)]
+      when :uint64   ; check[x, Integer, 0...(1<<64)]
+      when :mpint    ; check[x, OpenSSL::BN]
+      when :string   ; check[x, String ]
+      when :namelist ; check[x, Array  ] && all[x, is_name]
+      when Integer   ; check[x, Array  ] && all[x, is_byte] && x.count == ftype
+      else           ; false
     end
   end
 
   def decode(ftype, str)
     case ftype
-      when :byte          ; b, s  = str.unpack("Ca*")    ; b && [b,       s]
-      when :uint32        ; n, s  = str.unpack("Na*")    ; n && [n,       s]
-      when :uint64        ; n,m,s = str.unpack("NNa*")   ; m && [n<<32|m, s]
-      when :boolean       ; b, s  = decode(:byte, str)   ; b && [b != 0,  s] 
-      when :string        ; n, s  = decode(:uint32, str) ; s/n if n && s.length >= n
-      #when :mpint         ; b, s  = decode(:string, str) ; b && [b2n(b.unpack("C*")), s]
-      when :mpint         ; b, s  = decode(:string, str) ; b && [b2n(b.unpack("C*")).to_bignum, s]
-      when :namelist      ; l, s  = decode(:string, str) ; l && [l.split(","),        s]
-      else
-        bytes?(ftype) ? ((b,s = str / ftype) and (b && s && [b.unpack("C*"), s])) : nil
+      when :byte     ; b, s  = str.unpack("Ca*")    ; b && [b,       s]
+      when :uint32   ; n, s  = str.unpack("Na*")    ; n && [n,       s]
+      when :uint64   ; n,m,s = str.unpack("NNa*")   ; m && [n<<32|m, s]
+      when :boolean  ; b, s  = decode(:byte, str)   ; b && [b != 0,  s] 
+      when :string   ; n, s  = decode(:uint32, str) ; s/n if n && s.length >= n
+      when :mpint    ; b, s  = decode(:string, str) ; b && [b2n(b),         s]
+      when :namelist ; l, s  = decode(:string, str) ; l && [l.split(","),   s]
+      when Integer   ; ((b,s = str / ftype) and (b && s && [b.unpack("C*"), s]))
     end
   end
 
   def encode(ftype, val)
     case ftype
-      when :byte          ; [val                    ].pack("C")
-      when :uint32        ; [val                    ].pack("N")
-      when :uint64        ; [val>>32, val&0xffffffff].pack("NN")
-      when :string        ; [val.length, val        ].pack("Na*")
-      #when :mpint         ; encode(:string, n2b(val).pack("C*"))
-      when :mpint         ; encode(:string, n2b(val.to_i).pack("C*"))
-      when :namelist      ; encode(:string, val.join(","))
-      when :boolean       ; encode(:byte,   val ? 1 : 0)
-      else
-        bytes?(ftype) ? val.pack("C*") : nil
+      when :byte     ; [val                    ].pack("C")
+      when :uint32   ; [val                    ].pack("N")
+      when :uint64   ; [val>>32, val&0xffffffff].pack("NN")
+      when :string   ; [val.length, val        ].pack("Na*")
+      when :mpint    ; encode(:string, n2b(val).pack("C*"))
+      when :namelist ; encode(:string, val.join(","))
+      when :boolean  ; encode(:byte,   val ? 1 : 0)
+      when Integer   ; val.pack("C*")
     end
   end
 
@@ -97,6 +79,8 @@ module GMRW; module SSH2; module Message; module Field
   MSB = 7
 
   def b2n(b)
+    b = b.unpack("C*")
+
     zero     = b.empty?
     negative = !zero && (b[0][MSB] == 1)
 
@@ -104,7 +88,7 @@ module GMRW; module SSH2; module Message; module Field
     n = b.inject(0) {|sum, n| sum << 8 | n }
     n = -(n + 1)              if negative
 
-    n
+    n.to_bignum
   end
 
   def n2b(n)

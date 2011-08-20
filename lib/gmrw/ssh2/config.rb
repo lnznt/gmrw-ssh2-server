@@ -13,6 +13,8 @@ require 'gmrw/ssh2/config/default'
 module GMRW; module SSH2;
   module Config
     extend self
+    property_ro :port, '50022'
+
     property_ro :algorithms, %-
       YAML.load open('../etc/algorithms.yaml'){|f| f.read } rescue Default.algorithms
     -

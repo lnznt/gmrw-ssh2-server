@@ -9,7 +9,7 @@
 require 'gmrw/extension/extension'
 
 module GMRW::Extension
-  Proc.extend Module.new do
+  Module.new do
     def convert(x)
       compat = x.respond_to?(:each_pair) ? cond(x)    :
                x.respond_to?(:each)      ? cat(x)     :
@@ -20,16 +20,18 @@ module GMRW::Extension
       x.respond_to?(:call) ? x : proc {|*| x }
     end
 
+    alias [] convert
+
     def cat(procs, &block)
-      procs.empty? ? n : procs.map{|pr| convert(pr, &block)}.reduce(&:+)
+      procs.empty? ? n : procs.map{|pr| convert(pr, &block)}.reduce(&:rcompose)
     end
 
     def cond(procs, &block)
       to_selector = proc {|x, c| c ? c : proc {|*a| x === a.first } }
 
       proc do |*a|
-        procs.select{|s, | convert(s, &to_selector).call(*a) }.take(1).
-              map   {|_,x| convert(x, &block      ).call(*a) }.first
+        procs.select{|s, | convert(s, &to_selector)[*a] }.take(1).
+              map   {|_,x| convert(x, &block      )[*a] }.first
       end
     end
 
@@ -40,34 +42,44 @@ module GMRW::Extension
     def otherwise ; t ; end
 
     def as_is
-      proc {|*a| a.first }
+      proc {|a| a }
     end
+    Proc.extend self
   end
 
   mixin Proc do
-    def compose(other)
-      proc {|*a| call( Proc.convert(other).call(*a) )}
+    def compose(other)    # f(x) * g(x) ==> f(g(x))
+      proc {|*a| call( Proc[other][*a] ) }
     end
 
-    alias * compose
-
-    def rcompose(other)
-      proc {|*a| Proc.convert(other).call( call(*a) )}
+    def scompose(other)   # f(x) << g(x) ==> f(*g(x))
+      proc {|*a| call( *Array(Proc[other][*a]) ) }
     end
 
-    alias | rcompose
+    def rcompose(other)   # f(x) % g(x) ==> g(f(x))
+      proc {|*a| Proc[other][call(*a)] }
+    end
+
+    def srcompose(other)  # f(x) >> g(x) ==> g(*f(x))
+     proc {|*a| Proc[other][*Array(call(*a))] }
+    end
+
+    alias *  compose        # f(x) * g(x) ==> f(g(x))
+    alias %  rcompose       # f(x) % g(x) ==> g(f(x))
+
+    alias << scompose       # f(x) << g(x) ==> f(*g(x))
+    alias >> srcompose      # f(x) >> g(x) ==> g(*f(x))
 
     def first_arg(*x)
       proc {|*a| call( *(x + a) )}
     end
 
-    alias << first_arg
-
     def last_arg(*x)
       proc {|*a| call( *(a + x) )}
     end
 
-    alias >> last_arg
+    alias + first_arg
+    alias - last_arg
 
     def tee(pr)
       proc {|*a| call(*a).tap{|result| Proc.convert(pr).call(result) }}

@@ -7,7 +7,7 @@
 
 require 'test/unit'
 require 'gmrw/extension/all'
-require 'gmrw/ssh2/message/fields'
+require 'gmrw/ssh2/message/field'
 
 class TestField < Test::Unit::TestCase
   include GMRW::SSH2::Message
