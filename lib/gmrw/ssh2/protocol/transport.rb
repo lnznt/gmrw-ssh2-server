@@ -54,9 +54,12 @@ class GMRW::SSH2::Protocol::Transport
   def start
     info( "SSH service start" )
 
-    version_exchange
+    local.version.compatible?(peer.version) or
+        die :PROTOCOL_VERSION_NOT_SUPPORTED, "#{peer.version}"
+    info( "local version: #{local.version}" )
+    info( "peer  version: #{peer. version}" )
 
-    serve
+    serve # SSH service
 
   rescue => e
     fatal( "#{e.class}: #{e}" )
@@ -71,14 +74,6 @@ class GMRW::SSH2::Protocol::Transport
 
   private
   def serve ; raise NotImplementedError, 'serve' ; end
-
-  def version_exchange
-    local.version.compatible?(peer.version) or
-        die :PROTOCOL_VERSION_NOT_SUPPORTED, "#{peer.version}"
-
-    info( "local version: #{local.version}" )
-    info( "peer  version: #{peer. version}" )
-  end
 
   def send_kexinit
     send_message :kexinit, [
