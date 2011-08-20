@@ -10,11 +10,13 @@ require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
+require 'gmrw/ssh2/protocol/exception'
 require 'gmrw/ssh2/message/catalog'
 
 class GMRW::SSH2::Protocol::Transport
   include GMRW
   include Utils::Loggable
+  include SSH2::Protocol::ErrorHandling
 
   def initialize(conn)
     @connection = conn
@@ -25,9 +27,7 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :id, 'connection.object_id'
 
   def logger=(*)
-    super.tap do |l|
-      l.format {|*s| "[#{id}] #{s.map(&:to_s).join(': ')}" }
-    end
+    super.tap {|l| l.format {|*s| "[#{id}] #{s.map(&:to_s) * ': '}" }}
   end
 
   property_ro :reader, 'SSH2::Protocol::Reader.new(self)'
@@ -61,6 +61,7 @@ class GMRW::SSH2::Protocol::Transport
   rescue => e
     fatal( "#{e.class}: #{e}" )
     debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
+    e.call(self) if e.respond_to?(:call)
 
   ensure
     connection.shutdown rescue nil
@@ -73,7 +74,7 @@ class GMRW::SSH2::Protocol::Transport
 
   def version_exchange
     local.version.compatible?(peer.version) or
-        raise "unexpected SSH Version: #{peer.version}"
+        die :PROTOCOL_VERSION_NOT_SUPPORTED, "#{peer.version}"
 
     info( "local version: #{local.version}" )
     info( "peer  version: #{peer. version}" )

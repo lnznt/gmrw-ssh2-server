@@ -27,7 +27,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     # TODO :
     #
   ensure
-    fatal( "SORRY!! Not implement yet. quit." )
+    die :BY_APPLICATION, "SORRY!! Not implement yet."
   end
 end
 

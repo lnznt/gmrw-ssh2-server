@@ -11,26 +11,18 @@ require 'gmrw/ssh2/message/def_message'
 
 module GMRW::SSH2::Message
   rnd = proc { OpenSSL::Random.random_bytes(16).unpack("C*") }
-  kex = GMRW::SSH2::Algorithm.algorithms['kex_algorithms']
-  shk = GMRW::SSH2::Algorithm.algorithms['server_host_key_algorithms']
-  ecs = GMRW::SSH2::Algorithm.algorithms['encryption_algorithms_client_to_server']
-  esc = GMRW::SSH2::Algorithm.algorithms['encryption_algorithms_server_to_client']
-  mcs = GMRW::SSH2::Algorithm.algorithms['mac_algorithms_client_to_server']
-  msc = GMRW::SSH2::Algorithm.algorithms['mac_algorithms_server_to_client']
-  ccs = GMRW::SSH2::Algorithm.algorithms['compression_algorithms_client_to_server']
-  csc = GMRW::SSH2::Algorithm.algorithms['compression_algorithms_server_to_client']
 
   def_message :kexinit, [
     [ :byte,      :type                                    , 20 ],
     [ 16,         :cookie                                  ,rnd ],
-    [ :namelist,  :kex_algorithms                          ,kex ],
-    [ :namelist,  :server_host_key_algorithms              ,shk ],
-    [ :namelist,  :encryption_algorithms_client_to_server  ,ecs ],
-    [ :namelist,  :encryption_algorithms_server_to_client  ,esc ],
-    [ :namelist,  :mac_algorithms_client_to_server         ,mcs ],
-    [ :namelist,  :mac_algorithms_server_to_client         ,msc ],
-    [ :namelist,  :compression_algorithms_client_to_server ,ccs ],
-    [ :namelist,  :compression_algorithms_server_to_client ,csc ],
+    [ :namelist,  :kex_algorithms                               ],
+    [ :namelist,  :server_host_key_algorithms                   ],
+    [ :namelist,  :encryption_algorithms_client_to_server       ],
+    [ :namelist,  :encryption_algorithms_server_to_client       ],
+    [ :namelist,  :mac_algorithms_client_to_server              ],
+    [ :namelist,  :mac_algorithms_server_to_client              ],
+    [ :namelist,  :compression_algorithms_client_to_server      ],
+    [ :namelist,  :compression_algorithms_server_to_client      ],
     [ :namelist,  :languages_client_to_server                   ],
     [ :namelist,  :languages_server_to_client                   ],
     [ :boolean,   :first_kex_packet_follows                     ],

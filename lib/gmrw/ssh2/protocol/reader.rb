@@ -50,7 +50,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
 
     mac0 = compute_mac(packet)
     mac1 = read(mac0.length)
-    mac0 == mac1 or raise "MAC error: #{mac0} <=> #{mac1}"
+    mac0 == mac1 or die :MAC_ERROR, "#{mac0} <=> #{mac1}"
 
     debug( "MAC                    : #{mac0.unpack('C*')}"     )
 

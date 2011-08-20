@@ -14,6 +14,29 @@ module GMRW::SSH2::Message
     [ :string, :description     ],
     [ :string, :language_tag    ],
   ]
+
+  def self.DisconnectReason(tag, *msgs)
+    {
+      :reason_code => {
+          :HOST_NOT_ALLOWED_TO_CONNECT    =>   1,
+          :PROTOCOL_ERROR                 =>   2,
+          :KEY_EXCHANGE_FAILED            =>   3,
+          :RESERVED                       =>   4,
+          :MAC_ERROR                      =>   5,
+          :COMPRESSION_ERROR              =>   6,
+          :SERVICE_NOT_AVAILABLE          =>   7,
+          :PROTOCOL_VERSION_NOT_SUPPORTED =>   8,
+          :HOST_KEY_NOT_VERIFIABLE        =>   9,
+          :CONNECTION_LOST                =>  10,
+          :BY_APPLICATION                 =>  11,
+          :TOO_MANY_CONNECTIONS           =>  12,
+          :AUTH_CANCELLED_BY_USER         =>  13,
+          :NO_MORE_AUTH_METHODS_AVAILABLE =>  14,
+          :ILLEGAL_USER_NAME              =>  15,
+      }[tag] || 11,
+      :description => [tag.to_s.gsub('_',' '), msgs.map(&:to_s) * ','] * ': '
+    }
+  end
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

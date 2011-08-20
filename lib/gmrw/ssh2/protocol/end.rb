@@ -8,10 +8,13 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
+require 'gmrw/ssh2/protocol/exception'
 
 module GMRW; module SSH2; module Protocol
   class End < Hash
-    include GMRW::Utils::Loggable
+    include GMRW
+    include Utils::Loggable
+    include SSH2::Protocol::ErrorHandling
 
     property_ro :algorithm, 'Struct.new(:cipher, :hmac, :compressor).new'
 
