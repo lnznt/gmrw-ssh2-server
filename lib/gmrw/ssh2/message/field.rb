@@ -64,7 +64,7 @@ module GMRW; module SSH2; module Message; module Field
       when :uint32   ; [val                    ].pack("N")
       when :uint64   ; [val>>32, val&0xffffffff].pack("NN")
       when :string   ; [val.length, val        ].pack("Na*")
-      when :mpint    ; encode(:string, n2b(val).pack("C*"))
+      when :mpint    ; encode(:string, n2b(val.to_i).pack("C*"))
       when :namelist ; encode(:string, val.join(","))
       when :boolean  ; encode(:byte,   val ? 1 : 0)
       when Integer   ; val.pack("C*")

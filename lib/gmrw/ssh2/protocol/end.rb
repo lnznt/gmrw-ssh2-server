@@ -8,13 +8,11 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
-require 'gmrw/ssh2/protocol/exception'
 
 module GMRW; module SSH2; module Protocol
   class End < Hash
     include GMRW
     include Utils::Loggable
-    include SSH2::Protocol::ErrorHandling
 
     property_ro :algorithm, 'Struct.new(:cipher, :hmac, :compressor).new'
 
@@ -26,10 +24,12 @@ module GMRW; module SSH2; module Protocol
     delegate  :connection,
               :config,
               :logger,
+              :die,
               :send_message,
               :message_catalog, :to => :@service
 
-    property :sequence_number,      '0'
+    property :sequence_number, '0'
+
     property :block_size, '8'
     property :decrypt,    'proc {|x| x }'
     property :encrypt,    'proc {|x| x }'
@@ -37,8 +37,9 @@ module GMRW; module SSH2; module Protocol
     property :decompress, 'proc {|x| x }'
     property :hmac,       'proc {|x| "" }'
 
-    EOL         = "\r\n"
-    MASK_BIT32  = 0xffff_ffff
+    EOL             = "\r\n"
+    MASK_BIT32      = 0xffff_ffff
+    READ_LEN_LIMIT  = 35000
 
     def puts(s)
       write(s + EOL) ; s
@@ -55,14 +56,14 @@ module GMRW; module SSH2; module Protocol
     def read(n)
       return "" if n <= 0
 
+      n <= READ_LEN_LIMIT or die :PROTOCOL_ERROR, "read len = #{n}"
+
       connection.read(n)
     end
 
-=begin
     def forget(*tags)
       tags.each {|tag| delete(tag) }
     end
-=end
 
     def received(message)
       info( "--> received[#{sequence_number}]: #{message.tag}" )

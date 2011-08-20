@@ -15,11 +15,9 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
 
   property_ro :version, 'SSH2::Protocol::VersionString.new(gets)'
 
-=begin
   def recv_message(tag)
     forget(tag) ; message(tag)
   end
-=end
 
   def message(tag)
     poll_message until self[tag] ; self[tag]

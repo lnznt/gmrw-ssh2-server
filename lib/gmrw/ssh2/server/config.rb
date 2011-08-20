@@ -17,19 +17,15 @@ module GMRW; module SSH2; module Server;
 
     property_ro :port, '50022'
 
-    property_ro :software_version,  '"ruby/gmrw_ssh2_server(v0.00a)"'
+    property_ro :software_version,  '"ruby/gmrw_ssh2_server:v0.00a"'
     property_ro :version_comment,   '""'
 
     property_ro :algorithms, %-
       YAML.load open('#{conf_dir}/algorithms.yaml') {|f| f.read } rescue GMRW::SSH2::Algorithm.algorithms
     -
 
-    property_ro :rsa_pubkey, %-
-      OpenSSL::PKey::RSA.new open('#{conf_dir}/rsa_pubkey.pem')
-    -
-
-    property_ro :rsa_privkey, %-
-      OpenSSL::PKey::RSA.new open('#{conf_dir}/rsa_privkey.pem')
+    property_ro :rsa_key, %-
+      OpenSSL::PKey::RSA.new open('#{conf_dir}/rsa_key.pem')
     -
   end
 end; end; end

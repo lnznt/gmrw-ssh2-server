@@ -33,8 +33,8 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :reader, 'SSH2::Protocol::Reader.new(self)'
   property_ro :writer, 'SSH2::Protocol::Writer.new(self)'
 
-  delegate :poll_message, :to => :reader
-  delegate :send_message, :to => :writer
+  delegate :recv_message, :poll_message, :to => :reader
+  delegate :send_message,                :to => :writer
 
   property_ro :peer,  :reader
   property_ro :local, :writer
