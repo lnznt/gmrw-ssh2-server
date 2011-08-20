@@ -9,8 +9,8 @@ require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
 
-module GMRW; module SSH2; module Server
-  class Side < Hash
+module GMRW; module SSH2; module Protocol
+  class End < Hash
     include GMRW::Utils::Loggable
 
     property_ro :algorithm, 'Struct.new(:cipher, :hmac, :compressor).new'

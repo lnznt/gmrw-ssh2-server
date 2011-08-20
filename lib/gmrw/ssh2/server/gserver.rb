@@ -8,13 +8,12 @@
 require 'gserver'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/ssh2/server/constants'
 require 'gmrw/ssh2/server/service'
 
 class GMRW::SSH2::Server::GServer < ::GServer
   include GMRW::SSH2
 
-  def initialize(port=Server::DEFAULT_PORT, *)
+  def initialize(port=Server::Config.port, *)
     super
   end
 

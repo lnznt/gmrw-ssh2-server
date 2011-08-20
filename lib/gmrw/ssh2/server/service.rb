@@ -8,8 +8,8 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
-require 'gmrw/ssh2/server/reader'
-require 'gmrw/ssh2/server/writer'
+require 'gmrw/ssh2/protocol/reader'
+require 'gmrw/ssh2/protocol/writer'
 require 'gmrw/ssh2/message/catalog'
 require 'gmrw/ssh2/server/config'
 
@@ -32,8 +32,8 @@ class GMRW::SSH2::Server::Service
   property_ro :message_catalog, 'Message::Catalog.new {|ct| ct.logger = logger }'
   property_ro :algorithm, 'Struct.new(:kex, :host_key).new'
 
-  property_ro :reader, 'Server::Reader.new(self)'
-  property_ro :writer, 'Server::Writer.new(self)'
+  property_ro :reader, 'Protocol::Reader.new(self)'
+  property_ro :writer, 'Protocol::Writer.new(self)'
 
   property_ro :peer,  :reader
   property_ro :local, :writer

@@ -9,7 +9,7 @@
 require 'optparse'
 require 'gmrw/ssh2/server'
 
-args = Struct.new(:port, :host).new(GMRW::SSH2::Server::DEFAULT_PORT)
+args = Struct.new(:port, :host).new(GMRW::SSH2::Server::Config.port)
 conf = Struct.new(:quiet, :debug).new
 
 OptionParser.new do |opt|

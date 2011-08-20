@@ -7,11 +7,11 @@
 
 require 'openssl'
 require 'gmrw/extension/all'
-require 'gmrw/ssh2/server/side'
+require 'gmrw/ssh2/protocol/end'
 require 'gmrw/ssh2/protocol/version_string'
 require 'gmrw/ssh2/message'
 
-class GMRW::SSH2::Server::Writer < GMRW::SSH2::Server::Side
+class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
   include GMRW::SSH2
 
   property_ro :version, %-
