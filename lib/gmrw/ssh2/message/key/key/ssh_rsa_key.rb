@@ -15,6 +15,4 @@ module GMRW::SSH2::Message::Key
   ]
 end
 
-p GMRW::SSH2::Message::Key.create(:ssh_rsa)
-
 # vim:set ts=2 sw=2 et fenc=utf-8:
