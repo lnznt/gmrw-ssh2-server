@@ -12,11 +12,12 @@ require 'gmrw/ssh2/protocol/version_string'
 require 'gmrw/ssh2/message'
 
 class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
-  include GMRW::SSH2
+  include GMRW
 
   property_ro :version, %-
-    puts Protocol::VersionString.new(:software_version => config.software_version,
-                                     :commnet          => config.version_comment)
+    puts SSH2::Protocol::VersionString.new(
+                              :software_version => config.software_version,
+                              :commnet          => config.version_comment)
   -
 
   def message(tag, params={})
@@ -24,7 +25,7 @@ class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
   end
 
   def send_message(tag, params={})
-    sent Message.create(tag, params).tap {|m| write pack(m.dump) }
+    sent SSH2::Message.create(tag, params).tap {|m| write pack(m.dump) }
   end
 
   private

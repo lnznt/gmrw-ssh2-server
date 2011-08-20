@@ -11,9 +11,9 @@ require 'gmrw/ssh2/protocol/version_string'
 require 'gmrw/ssh2/message'
 
 class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
-  include GMRW::SSH2
+  include GMRW
 
-  property_ro :version, 'Protocol::VersionString.new(gets)'
+  property_ro :version, 'SSH2::Protocol::VersionString.new(gets)'
 
 =begin
   def recv_message(tag)
@@ -28,7 +28,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   def poll_message
     info( "poll_message ...." )
 
-    received Message.build(payload) { message_catalog }
+    received SSH2::Message.build(payload) { message_catalog }
   end
 
   private

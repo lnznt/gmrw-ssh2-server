@@ -11,17 +11,17 @@ require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/server/service'
 
 class GMRW::SSH2::Server::GServer < ::GServer
-  include GMRW::SSH2
+  include GMRW
 
-  def initialize(port=Server::Config.port, *)
+  def initialize(port=SSH2::Server::Config.port, *)
     super
   end
 
   property :log_threshold, ':info'
 
   def serve(conn)
-    service                   = Server::Service.new(conn)
-    service.logger            = Server::GServer::Logger.new(self)
+    service                   = SSH2::Server::Service.new(conn)
+    service.logger            = GServerLogger.new(self)
     service.logger.threshold  = audit ? log_threshold : :any
 
     service.start
@@ -42,7 +42,7 @@ class GMRW::SSH2::Server::GServer < ::GServer
     end
   end
 
-  class Logger < ::GMRW::Utils::Logger
+  class GServerLogger < Utils::Logger
     private
     def write(logger, *msgs)
       out.debug = (logger.severity == :debug)
