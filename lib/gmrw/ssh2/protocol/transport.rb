@@ -14,6 +14,8 @@ require 'gmrw/ssh2/protocol/exception'
 require 'gmrw/ssh2/message/catalog'
 require 'gmrw/ssh2/algorithm/kex/dh'
 require 'gmrw/ssh2/algorithm/host_key/rsa_extension'
+require 'gmrw/ssh2/algorithm/cipher/cipher'
+require 'gmrw/ssh2/algorithm/hmac/hmac'
 
 class GMRW::SSH2::Protocol::Transport
   include GMRW
@@ -41,9 +43,12 @@ class GMRW::SSH2::Protocol::Transport
   alias peer  reader
   alias local writer
 
-  def client ; raise NotImplementedError, 'client' ; end
-  def server ; raise NotImplementedError, 'server' ; end
-  def config ; raise NotImplementedError, 'config' ; end
+#  def client ; raise NotImplementedError, 'client' ; end
+#  def server ; raise NotImplementedError, 'server' ; end
+#  def config ; raise NotImplementedError, 'config' ; end
+  abstract_method :client
+  abstract_method :server
+  abstract_method :config
 
   property_ro :message_catalog,
                 'SSH2::Message::Catalog.new {|ct| ct.logger = logger }'
@@ -63,7 +68,7 @@ class GMRW::SSH2::Protocol::Transport
   rescue => e
     fatal( "#{e.class}: #{e}" )
     debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
-    e.call(self) if e.respond_to?(:call)
+    e.call(self) rescue nil
 
   ensure
     connection.shutdown rescue nil
@@ -72,7 +77,7 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   private
-  def serve ; raise NotImplementedError, 'serve' ; end
+  abstract_method :serve
 
   #
   # version negotiation
@@ -165,23 +170,42 @@ class GMRW::SSH2::Protocol::Transport
     @session_id ||= @hash
   end
 
-  def key_digest(data)
-    host_key.digester.digest(@k + @hash + data)
-  end
+  def gen_key(salt)
+    digest = proc {|data| host_key.digester.digest(@k + @hash + data) }
 
-  def gen_key(salt, key_len)
-    key  = key_digest(salt + @session_id)[0, key_len]
-    key << key_digest(key)[0, key_len - key.length] while key.length < key_len
-    key
-  end
-
-  #
-  # misc.
-  #
-  def openssl_name(name)
-    case name
-      when 'aes128-cbc'; 'aes-128-cbc'
+    proc do |key_len|
+      key  = digest[salt + @session_id][0, key_len]
+      key << digest[key][0, key_len - key.length] while key.length < key_len
+      key
     end
+  end
+
+  def client_iv_gen      ; gen_key("A") ; end
+  def server_iv_gen      ; gen_key("B") ; end
+  def client_key_gen     ; gen_key("C") ; end
+  def server_key_gen     ; gen_key("D") ; end
+  def client_mac_key_gen ; gen_key("E") ; end
+  def server_mac_key_gen ; gen_key("F") ; end
+
+  def shift_to_secure_mode
+    SSH2::Algorithm::Cipher.get_cipher(mode = (client == local ? :encrypt : :decrypt),
+                                       client.algorithm.cipher,         
+                                       client_iv_gen,
+                                       client_key_gen).tap do |cryptor, block_size|
+      client.send(mode, cryptor)
+      client.block_size = block_size
+    end
+
+    SSH2::Algorithm::Cipher.get_cipher(mode = (server == local ? :encrypt : :decrypt),
+                                       server.algorithm.cipher,
+                                       server_iv_gen,
+                                       server_key_gen).tap do |cryptor, block_size|
+      server.send(mode, cryptor)
+      server.block_size = block_size
+    end
+
+    client.hmac = SSH2::Algorithm::HMAC.get_hmac(client.algorithm.hmac, client_mac_key_gen)
+    server.hmac = SSH2::Algorithm::HMAC.get_hmac(server.algorithm.hmac, server_mac_key_gen)
   end
 end
 

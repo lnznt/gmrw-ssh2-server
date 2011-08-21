@@ -28,7 +28,7 @@ module GMRW; module SSH2; module Protocol
               :send_message,
               :message_catalog, :to => :@service
 
-    property :sequence_number, '0'
+    property :seq_number, '0'
 
     property :block_size, '8'
     property :encrypt,    'proc {|x| x }'
@@ -66,29 +66,29 @@ module GMRW; module SSH2; module Protocol
     end
 
     def received(message)
-      info( "--> received[#{sequence_number}]: #{message.tag}" )
+      info( "--> received[#{seq_number}]: #{message.tag}" )
       debug( "#{message}" )
 
       send_message :unimplemented,
-          :packet_sequence_number => sequence_number unless message.tag
+          :packet_sequence_number => seq_number unless message.tag
         
 
-      sequence_number(sequence_number.next % MASK_BIT32)
+      seq_number(seq_number.next % MASK_BIT32)
 
       self[message.tag] = message
     end
 
     def sent(message)
-      info( "sent[#{sequence_number}] -->: #{message.tag}" )
+      info( "sent[#{seq_number}] -->: #{message.tag}" )
       debug( "#{message}" )
 
-      sequence_number(sequence_number.next % MASK_BIT32)
+      seq_number(seq_number.next % MASK_BIT32)
 
       self[message.tag] = message
     end
 
     def compute_mac(packet)
-      hmac[ [sequence_number, packet].pack("Na*") ]
+      hmac[ [seq_number, packet].pack("Na*") ]
     end
   end
 end; end; end

@@ -9,6 +9,10 @@ require 'gmrw/extension/extension'
 
 module GMRW::Extension
   mixin Module do
+    def abstract_method(method_name)
+      define_method(method_name) { raise NotImplementedError, method_name.to_s }
+    end
+
     private
     def self.define_property(method_name, keys) #:nodoc:
       define_method(method_name) do |name, *args|

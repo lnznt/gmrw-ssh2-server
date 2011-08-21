@@ -5,30 +5,20 @@
 # License:: Ruby's
 #
 
-require 'gmrw/extension/all'
-require 'gmrw/utils/command'
-require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/message'
 
 module GMRW::SSH2::Protocol
-  class Error < RuntimeError
+  module ErrorHandling
     include GMRW
+    def die(tag, *msgs)
+      e = RuntimeError.new
 
-    property_ro :command, 'Utils::Command.new'
-    delegate :call, :to => :command
-
-    def initialize(tag, *msgs)
-      command.add do |service|
+      e.define_singleton_method(:call) do |service|
         service.send_message :disconnect,
                               SSH2::Message.DisconnectReason(tag, *msgs)
       end
-    end
-  end
-
-  module ErrorHandling
-    extend self
-    def die(tag, *msgs)
-      raise Error.new(tag, *msgs), ([tag.to_s] + msgs) * ': '
+          
+      raise e, ([tag.to_s] + msgs) * ': '
     end
   end
 end
