@@ -25,8 +25,8 @@ module GMRW; module SSH2; module Message
     null
   end
 
-  def def_format(tag, fields)
-    Class.new(Hash) {
+  def def_message(tag, fields, options={})
+    classes[tag] = Class.new(Hash) {
       define_method(:tag)    { tag           }
       define_method(:fields) { fields.freeze }
 
@@ -55,10 +55,7 @@ module GMRW; module SSH2; module Message
         fields.map {|ftype, fname,| Field.encode(ftype, self[fname]) }.join
       end
     }
-  end
 
-  def def_message(tag, fields, options={})
-    classes[tag] = def_format(tag, fields)
     classes[tag].define_singleton_method(:number)   { fields[0][2]                 }
     classes[tag].define_singleton_method(:category) { options[:category] || [true] }
   end

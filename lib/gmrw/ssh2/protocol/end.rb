@@ -31,8 +31,8 @@ module GMRW; module SSH2; module Protocol
     property :sequence_number, '0'
 
     property :block_size, '8'
-    property :decrypt,    'proc {|x| x }'
     property :encrypt,    'proc {|x| x }'
+    property :decrypt,    'proc {|x| x }'
     property :compress,   'proc {|x| x }'
     property :decompress, 'proc {|x| x }'
     property :hmac,       'proc {|x| "" }'

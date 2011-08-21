@@ -12,6 +12,8 @@ require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
 require 'gmrw/ssh2/protocol/exception'
 require 'gmrw/ssh2/message/catalog'
+require 'gmrw/ssh2/algorithm/kex/dh'
+require 'gmrw/ssh2/algorithm/host_key/rsa_extension'
 
 class GMRW::SSH2::Protocol::Transport
   include GMRW
@@ -36,8 +38,8 @@ class GMRW::SSH2::Protocol::Transport
   delegate :recv_message, :poll_message, :to => :reader
   delegate :send_message,                :to => :writer
 
-  property_ro :peer,  :reader
-  property_ro :local, :writer
+  alias peer  reader
+  alias local writer
 
   def client ; raise NotImplementedError, 'client' ; end
   def server ; raise NotImplementedError, 'server' ; end
@@ -50,15 +52,13 @@ class GMRW::SSH2::Protocol::Transport
 
   property_ro :algorithm, 'Struct.new(:kex, :host_key).new'
 
+  property :kex
+  property :host_key
+
   def start
     info( "SSH service start" )
 
-    local.version.compatible?(peer.version) or
-        die :PROTOCOL_VERSION_NOT_SUPPORTED, "#{peer.version}"
-    info( "local version: #{local.version}" )
-    info( "peer  version: #{peer. version}" )
-
-    serve # SSH service
+    serve
 
   rescue => e
     fatal( "#{e.class}: #{e}" )
@@ -74,6 +74,20 @@ class GMRW::SSH2::Protocol::Transport
   private
   def serve ; raise NotImplementedError, 'serve' ; end
 
+  #
+  # version negotiation
+  #
+  def negotiate_version
+    local.version.compatible?(peer.version) or
+        die :PROTOCOL_VERSION_NOT_SUPPORTED, "#{peer.version}"
+
+    info( "local version: #{local.version}" )
+    info( "peer  version: #{peer. version}" )
+  end
+
+  #
+  # algorithm negotiation
+  #
   def send_kexinit
     send_message :kexinit, [
         :kex_algorithms,
@@ -106,11 +120,68 @@ class GMRW::SSH2::Protocol::Transport
     debug( "server.hmac       : #{server.algorithm.hmac}"       )
     debug( "client.compressor : #{client.algorithm.compressor}" )
     debug( "server.compressor : #{server.algorithm.compressor}" )
+
+    kex( choice_kex(algorithm.kex) )
+    host_key( choice_host_key(algorithm.host_key) )
   end
 
   def negotiate(name)
     client.message(:kexinit)[name].find   {|a|
     server.message(:kexinit)[name].include?(a)}
+  end
+
+  def choice_kex(kex_name)
+    case kex_name
+      when 'diffie-hellman-group14-sha1'
+        SSH2::Algorithm::Kex::DH.new(OpenSSL::Digest::SHA1,
+                                SSH2::Algorithm::OakleyGroup::Group14::G,
+                                SSH2::Algorithm::OakleyGroup::Group14::P)
+
+      when 'diffie-hellman-group1-sha1'
+        SSH2::Algorithm::Kex::DH.new(OpenSSL::Digest::SHA1,
+                                SSH2::Algorithm::OakleyGroup::Group1::G,
+                                SSH2::Algorithm::OakleyGroup::Group1::P)
+      else
+        die :PROTOCOL_ERROR, "unknown kex: #{kex_name}"
+    end
+  end
+
+  def choice_host_key(host_key_name)
+    case host_key_name
+      when 'ssh-rsa'
+        config.rsa_key.extend(SSH2::Algorithm::HostKey::RSAExtension)
+
+      else
+        die :PROTOCOL_ERROR, "unknown host-key: #{host_key_name}"
+    end
+  end
+
+
+  #
+  # KEX
+  #
+  def do_kex
+    @k, @hash, = kex.start(self)
+    @session_id ||= @hash
+  end
+
+  def key_digest(data)
+    host_key.digester.digest(@k + @hash + data)
+  end
+
+  def gen_key(salt, key_len)
+    key  = key_digest(salt + @session_id)[0, key_len]
+    key << key_digest(key)[0, key_len - key.length] while key.length < key_len
+    key
+  end
+
+  #
+  # misc.
+  #
+  def openssl_name(name)
+    case name
+      when 'aes128-cbc'; 'aes-128-cbc'
+    end
   end
 end
 

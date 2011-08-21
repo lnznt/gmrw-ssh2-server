@@ -12,6 +12,7 @@ require 'gmrw/ssh2/algorithm'
 
 module GMRW; module SSH2; module Server;
   module Config
+    include GMRW
     extend self
     conf_dir = '../etc/server'
 
@@ -21,11 +22,11 @@ module GMRW; module SSH2; module Server;
     property_ro :version_comment,   '""'
 
     property_ro :algorithms, %-
-      YAML.load open('#{conf_dir}/algorithms.yaml') {|f| f.read } rescue GMRW::SSH2::Algorithm.algorithms
+      YAML.load open('#{conf_dir}/algorithms.yaml') {|f| f.read } rescue SSH2::Algorithm.algorithms
     -
 
     property_ro :rsa_key, %-
-      OpenSSL::PKey::RSA.new open('#{conf_dir}/rsa_key.pem')
+      OpenSSL::PKey::RSA.new(open('#{conf_dir}/rsa_key.pem'))
     -
   end
 end; end; end
