@@ -41,7 +41,6 @@ class GMRW::SSH2::Protocol::Transport
 
   def client ; raise NotImplementedError, 'client' ; end
   def server ; raise NotImplementedError, 'server' ; end
-
   def config ; raise NotImplementedError, 'config' ; end
 
   property_ro :message_catalog,
@@ -107,8 +106,6 @@ class GMRW::SSH2::Protocol::Transport
     debug( "server.hmac       : #{server.algorithm.hmac}"       )
     debug( "client.compressor : #{client.algorithm.compressor}" )
     debug( "server.compressor : #{server.algorithm.compressor}" )
-
-    change_algorithm :kex => algorithm.kex
   end
 
   def negotiate(name)

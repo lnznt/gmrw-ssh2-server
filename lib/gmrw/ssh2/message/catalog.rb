@@ -50,6 +50,7 @@ class GMRW::SSH2::Message::Catalog
   end
 
   def search_tag(number)
+   debug( "search tag: #{number}" )
    GMRW::SSH2::Message.classes.select {|tag, mclass|
       mclass.number == number &&
       mclass.category.include?(category[number])

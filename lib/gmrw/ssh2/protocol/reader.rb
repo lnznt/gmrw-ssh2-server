@@ -46,11 +46,13 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
     debug( "compressed_data.length : #{zipped_data.length}" )
     debug( "padding.length         : #{padding.length}"     )
 
+    m2s = proc {|m| m.each_byte.map {|b| "%02x" % b.ord } * ':' }
+
     mac0 = compute_mac(packet)
     mac1 = read(mac0.length)
-    mac0 == mac1 or die :MAC_ERROR, "#{mac0} <=> #{mac1}"
+    mac0 == mac1 or die :MAC_ERROR, "#{m2s[mac0]} <=> #{m2s[mac1]}"
 
-    debug( "MAC                    : #{mac0.unpack('C*')}"     )
+    debug( "MAC                    : #{m2s[mac0]}" )
 
     decompress[ zipped_data ]
   end
