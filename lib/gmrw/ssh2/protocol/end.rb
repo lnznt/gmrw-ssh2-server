@@ -58,7 +58,7 @@ module GMRW; module SSH2; module Protocol
 
       n <= READ_LEN_LIMIT or die :PROTOCOL_ERROR, "read len = #{n}"
 
-      connection.read(n)
+      connection.read(n) or raise EOFError, 'connection.read'
     end
 
     def forget(*tags)

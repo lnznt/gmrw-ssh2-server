@@ -25,12 +25,27 @@ module GMRW; module SSH2; module Message
     null
   end
 
-  def def_message(tag, fields, options={})
+  def def_message(tag, fields, info={})
+    requires = fields.map{|_,fn,*a|   [fn, a.grep(Hash ).first]}.to_hash
+    choices  = fields.map{|_,fn,_,*a| [fn, a.grep(Array).first]}.to_hash
+
     classes[tag] = Class.new(Hash) {
       define_method(:tag)    { tag           }
       define_method(:fields) { fields.freeze }
 
+      define_method(:appear?) do |fname|
+        (requires[fname]||{}).all? {|f,v| self[f] == v }
+      end
+
+      define_method(:ok?) do |fname, val|
+        !(cs = choices[fname]) || cs.include?(val)
+      end
+
       def []=(fname, val) 
+        return unless appear?(fname)
+
+        ok?(fname, val) or raise ArgumentError, "#{fname}: #{val}"
+
         ftype = (fields.rassoc(fname) || [])[0]
         Field.validate(ftype, val) or raise TypeError, "#{fname}:#{val}"
         super
@@ -38,6 +53,8 @@ module GMRW; module SSH2; module Message
 
       def initialize(data={})
         fields.each do |ftype, fname, fval,|
+          next unless appear?(fname)
+
           self[fname] = case data
             when String
               val, data = Field.decode(ftype, data)
@@ -52,12 +69,15 @@ module GMRW; module SSH2; module Message
       end
 
       def dump
-        fields.map {|ftype, fname,| Field.encode(ftype, self[fname]) }.join
+        fields.map {|ftype, fname,|
+          Field.encode(ftype, self[fname]) if appear?(fname)
+        }.compact.join
       end
-    }
 
-    classes[tag].define_singleton_method(:number)   { fields[0][2]                 }
-    classes[tag].define_singleton_method(:category) { options[:category] || [true] }
+    }.tap {|mclass|
+      mclass.define_singleton_method(:number)   { fields.first[2]          }
+      mclass.define_singleton_method(:category) { info[:category] || [nil] }
+    }
   end
 end; end; end
 

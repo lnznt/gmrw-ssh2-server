@@ -17,41 +17,46 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   property_ro :config, 'SSH2::Server::Config'
 
   def serve
-    negotiate_version
+    #
+    # SSH Transport Layer Protocol (see RFC4253 for details)
+    #
+    protocol_version_exchange
 
-    permit(1..49) { true }
-    permit(:service_request) { false }
-    permit(:service_accept)  { false }
+    :start_binary_packet_protocol.tap {
+      permit(1..49) { true }
+      permit(:service_request) { false }
+      permit(:service_accept)  { false }
+    }
 
-    send_kexinit and negotiate_algorithms
+    send_kexinit and :algorithm_negotiation.tap {
+      negotiate_algorithms
+      permit(:kexinit) { false }
+      change_algorithm :kex => algorithm.kex
+    }
 
-    permit(:kexinit) { false }
-    change_algorithm :kex => algorithm.kex
+    :key_exchange.tap {
+      do_kex
 
-    do_kex
+      permit(:service_request) { true }
+      permit(:kexinit)         { true }
 
-    permit(:service_request) { true }
-    permit(:kexinit)         { true }
+      taking_keys_into_use
 
-    shift_to_secure_mode
+      permit(50..79) { true }
+    }
     
-    permit(50..79) { true }
+    (:wait_for_service_request && 'ssh-userauth').tap {
+      recv_message :service_request, :service_name => 'ssh-userauth'
 
-    ############## DUMMY ######################
-
-    poll_message # ---> maybe, :service_request receive
-
-    send_message :service_accept, :service_name => 'ssh-userauth'
-              
-    poll_message # ---> maybe message(50) unimplemented error
-
-    ############## DUMMY ######################
+      send_message :service_accept,  :service_name => 'ssh-userauth'
+    }
 
     #
-    # TODO : implementention
+    # SSH Authentication Protocol (see RFC4252 for details)
     #
+    poll_message # (DUMMY): TODO: implementention
 
-    die :BY_APPLICATION, "SORRY!! Not implement yet."
+    die :BY_APPLICATION, "SORRY!! NOT IMPLEMENT YET."
   end
 end
 

@@ -8,16 +8,48 @@
 require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/algorithm/oakley_group'
+require 'gmrw/ssh2/message'
 
 module GMRW; module SSH2; module Algorithm ; module Kex
   class DH
     include GMRW
     include Utils::Loggable
 
+    private
+    delegate :logger,
+             :send_message,
+             :recv_message,
+             :client,
+             :server,
+             :host_key,     :to => :@service
+            
+    property_ro :dh, 'OpenSSL::PKey::DH.new' 
+    property    :digester
+
+    def initialize(dh_digester, dh_g=nil, dh_p=nil, secret_key_bits=512)
+      digester(dh_digester)
+
+      @g, @p           = dh_g, dh_p
+      @secret_key_bits = secret_key_bits
+    end
+
+    def ready(dh_g=nil, dh_p=nil, secret_key_bits=nil)
+      dh.g        = dh_g || @g
+      dh.p        = dh_p || @p
+      dh.priv_key = OpenSSL::BN.rand(secret_key_bits || @secret_key_bits)
+      dh.generate_key! until dh_pub_key_ok?
+    end
+
+    def dh_pub_key_ok?(pub_key=dh.pub_key.to_i)
+       (0...dh.p).include?(pub_key) && pub_key.count_bit > 1
+    end
+
+    public
     def start(service)
       @service = service
+
+      ready
 
       send_message :kexdh_reply,
             :host_key_and_certificates => k_s,
@@ -31,62 +63,27 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     end
 
     private
-    delegate :logger,
-             :send_message,
-             :recv_message,
-             :client,
-             :server,
-             :host_key,     :to => :@service
-            
-    property_ro :dh, 'OpenSSL::PKey::DH.new' 
-    property    :digester
+    property_ro :k_s, 'host_key.dump'
+    property_ro :e,   'client.message(:kexdh_init)[:e]'
+    property_ro :f,   'dh.pub_key'
 
-    def initialize(dh_digester, dh_g, dh_p, secret_key_bit=512)
-      digester(dh_digester)
+    property_ro :shared_secret, 'dh.compute_key(e)'
+    property_ro :hash,          'digester.digest(h)'
+    property_ro :s,             'host_key.to_signature(hash)'
 
-#      group = SSH2::Algorithm::OakleyGroup[dh_group]
-      #dh.g = group::G
-      #dh.p = group::P
-      dh.g, dh.p = dh_g, dh_p
-      dh.priv_key = OpenSSL::BN.rand(secret_key_bit)
-      dh.generate_key! until dh_pub_key_ok?
-    end
-
-    private
-    def dh_pub_key_ok?(pub_key=dh.pub_key.to_i)
-       (0...dh.p).include?(pub_key) && pub_key.count_bit > 1
-    end
-
-    def v_c ; client.version                  ; end
-    def v_s ; server.version                  ; end
-
-    def i_c ; client[:kexinit].dump           ; end
-    def i_s ; server[:kexinit].dump           ; end
-
-    def k_s ; host_key.dump                   ; end
-
-    def e   ; client.message(:kexdh_init)[:e] ; end
-    def f   ; dh.pub_key                      ; end
-
-    def shared_secret
-      @shared_secret ||= dh.compute_key(e)
-    end
-
+    include SSH2::Message
     def k
-      SSH2::Message::Field.encode(:mpint, OpenSSL::BN.new(shared_secret, 2))
+      Field.encode(:mpint, OpenSSL::BN.new(shared_secret, 2))
     end
-
-    def hash ; digester.digest(h)           ; end
-    def s    ; host_key.to_signature(hash)  ; end
 
     def h
-        SSH2::Message::Field.pack( [:string, v_c],
-                                   [:string, v_s],
-                                   [:string, i_c],
-                                   [:string, i_s],
-                                   [:string, k_s],
-                                   [:mpint , e  ],
-                                   [:mpint , f  ]) + k
+      Field.pack([:string, v_c = client.version       ],
+                 [:string, v_s = server.version       ],
+                 [:string, i_c = client[:kexinit].dump],
+                 [:string, i_s = server[:kexinit].dump],
+                 [:string, k_s                        ],
+                 [:mpint , e                          ],
+                 [:mpint , f                          ]) + k
     end
   end
 end; end; end; end

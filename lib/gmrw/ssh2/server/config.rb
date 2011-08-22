@@ -6,15 +6,12 @@
 #
 
 require 'yaml'
-require 'openssl'
 require 'gmrw/extension/all'
 
 module GMRW; module SSH2; module Server; module Config
   include GMRW
   extend self
   property_ro :default, 'Hash.new{{}}.merge(YAML.load Default)'
-
-  property_ro :rsa_key, 'OpenSSL::PKey::RSA.new open(key_files[:rsa_key])'
 
   private
   def method_missing(name, *)
@@ -28,21 +25,27 @@ module GMRW; module SSH2; module Server; module Config
 :listen:
   :port: 50022
 
-:paths:
-  :conf_dir: ../etc/server
+:host_key_files:
+  ssh-rsa: ../etc/server/rsa_key.pem
+  ssh-dss: ../etc/server/dsa_key.pem
 
-:key_files:
-  :rsa_key: ../etc/server/rsa_key.pem
+:openssl_name: 
+  aes128-cbc: aes-128-cbc
+  aes256-cbc: aes-256-cbc
+  aes192-cbc: aes-192-cbc
+  blowfish-cbc: bf-cbc
+  cast128-cbc: cast-cbc
+  3des-cbc: des-ede3-cbc
 
 :algorithms:
   kex_algorithms:
-#  - diffie-hellman-group-exchange-sha256
-#  - diffie-hellman-group-exchange-sha1
+#  - diffie-hellman-group-exchange-sha256 # DON'T WORK!!
+  - diffie-hellman-group-exchange-sha1
   - diffie-hellman-group14-sha1
   - diffie-hellman-group1-sha1
   server_host_key_algorithms:
   - ssh-rsa
-  - ssh-dss
+#  - ssh-dss  # DON'T WORK!!
   encryption_algorithms_client_to_server:
   - aes128-cbc
   - aes256-cbc
@@ -75,8 +78,5 @@ module GMRW; module SSH2; module Server; module Config
   - zlib
 DEFAULT
 end; end; end; end
-
-#p GMRW::SSH2::Server::Config.default[:listen]
-#p GMRW::SSH2::Server::Config.listen
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

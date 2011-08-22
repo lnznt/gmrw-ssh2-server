@@ -12,10 +12,11 @@ require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
 require 'gmrw/ssh2/protocol/exception'
 require 'gmrw/ssh2/message/catalog'
-require 'gmrw/ssh2/algorithm/kex/dh'
-require 'gmrw/ssh2/algorithm/host_key/rsa_extension'
-require 'gmrw/ssh2/algorithm/cipher/cipher'
-require 'gmrw/ssh2/algorithm/hmac/hmac'
+require 'gmrw/ssh2/algorithm/kex'
+require 'gmrw/ssh2/algorithm/host_key'
+require 'gmrw/ssh2/algorithm/cipher'
+require 'gmrw/ssh2/algorithm/hmac'
+require 'gmrw/ssh2/algorithm/compressor'
 
 class GMRW::SSH2::Protocol::Transport
   include GMRW
@@ -77,9 +78,9 @@ class GMRW::SSH2::Protocol::Transport
   abstract_method :serve
 
   #
-  # version negotiation
+  # :section: Protocol Version Exchange
   #
-  def negotiate_version
+  def protocol_version_exchange
     local.version.compatible?(peer.version) or
         die :PROTOCOL_VERSION_NOT_SUPPORTED, "#{peer.version}"
 
@@ -88,7 +89,7 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   #
-  # algorithm negotiation
+  # :section: Algorithm Negotiation
   #
   def send_kexinit
     send_message :kexinit, [
@@ -123,8 +124,13 @@ class GMRW::SSH2::Protocol::Transport
     debug( "client.compressor : #{client.algorithm.compressor}" )
     debug( "server.compressor : #{server.algorithm.compressor}" )
 
-    kex( choice_kex(algorithm.kex) )
-    host_key( choice_host_key(algorithm.host_key) )
+    kex(
+      SSH2::Algorithm::Kex.get_kex(algorithm.kex)
+    )
+    
+    host_key(
+      SSH2::Algorithm::HostKey.get_host_key(algorithm.host_key, config.host_key_files)
+    )
   end
 
   def negotiate(name)
@@ -132,35 +138,8 @@ class GMRW::SSH2::Protocol::Transport
     server.message(:kexinit)[name].include?(a)}
   end
 
-  def choice_kex(kex_name)
-    case kex_name
-      when 'diffie-hellman-group14-sha1'
-        SSH2::Algorithm::Kex::DH.new(OpenSSL::Digest::SHA1,
-                                SSH2::Algorithm::OakleyGroup::Group14::G,
-                                SSH2::Algorithm::OakleyGroup::Group14::P)
-
-      when 'diffie-hellman-group1-sha1'
-        SSH2::Algorithm::Kex::DH.new(OpenSSL::Digest::SHA1,
-                                SSH2::Algorithm::OakleyGroup::Group1::G,
-                                SSH2::Algorithm::OakleyGroup::Group1::P)
-      else
-        die :PROTOCOL_ERROR, "unknown kex: #{kex_name}"
-    end
-  end
-
-  def choice_host_key(host_key_name)
-    case host_key_name
-      when 'ssh-rsa'
-        config.rsa_key.extend(SSH2::Algorithm::HostKey::RSAExtension)
-
-      else
-        die :PROTOCOL_ERROR, "unknown host-key: #{host_key_name}"
-    end
-  end
-
-
   #
-  # KEX
+  # :section: Key Exchange
   #
   def do_kex
     @k, @hash, = kex.start(self)
@@ -168,41 +147,54 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   def gen_key(salt)
+    salt = {
+      :client_iv  => "A", :server_iv  => "B",
+      :client_key => "C", :server_key => "D",
+      :client_mac => "E", :server_mac => "F",
+    }[salt] || salt
+
     digest = proc {|data| host_key.digester.digest(@k + @hash + data) }
 
     proc do |key_len|
-      key  = digest[salt + @session_id][0, key_len]
-      key << digest[key][0, key_len - key.length] while key.length < key_len
-      key
+      digest[salt + @session_id][0, key_len].tap do |key|
+        key << digest[key][0, key_len - key.length] while key.length < key_len
+      end
     end
   end
 
-  def client_iv_gen      ; gen_key("A") ; end
-  def server_iv_gen      ; gen_key("B") ; end
-  def client_key_gen     ; gen_key("C") ; end
-  def server_key_gen     ; gen_key("D") ; end
-  def client_mac_key_gen ; gen_key("E") ; end
-  def server_mac_key_gen ; gen_key("F") ; end
-
-  def shift_to_secure_mode
-    SSH2::Algorithm::Cipher.get_cipher(mode = (client == local ? :encrypt : :decrypt),
-                                       client.algorithm.cipher,         
-                                       client_iv_gen,
-                                       client_key_gen).tap do |cryptor, block_size|
+  def taking_keys_into_use
+    SSH2::Algorithm::Cipher.get_cipher(
+                mode = (client == local ? :encrypt : :decrypt),
+                config.openssl_name[client.algorithm.cipher] || client.algorithm.cipher,
+                gen_key(:client_iv),
+                gen_key(:client_key)).tap do |cryptor, block_size|
       client.send(mode, cryptor)
       client.block_size = block_size
     end
 
-    SSH2::Algorithm::Cipher.get_cipher(mode = (server == local ? :encrypt : :decrypt),
-                                       server.algorithm.cipher,
-                                       server_iv_gen,
-                                       server_key_gen).tap do |cryptor, block_size|
+    SSH2::Algorithm::Cipher.get_cipher(
+                mode = (server == local ? :encrypt : :decrypt),
+                config.openssl_name[server.algorithm.cipher] || server.algorithm.cipher,
+                gen_key(:server_iv),
+                gen_key(:server_key)).tap do |cryptor, block_size|
       server.send(mode, cryptor)
       server.block_size = block_size
     end
 
-    client.hmac = SSH2::Algorithm::HMAC.get_hmac(client.algorithm.hmac, client_mac_key_gen)
-    server.hmac = SSH2::Algorithm::HMAC.get_hmac(server.algorithm.hmac, server_mac_key_gen)
+    client.hmac = SSH2::Algorithm::HMAC.get_hmac(client.algorithm.hmac, gen_key(:client_mac))
+    server.hmac = SSH2::Algorithm::HMAC.get_hmac(server.algorithm.hmac, gen_key(:server_mac))
+
+    SSH2::Algorithm::Compressor.get_compressor(
+                mode = (client == local ? :compress : :decompress),
+                client.algorithm.compressor).tap do |compressor|
+      client.send(mode, compressor)
+    end
+
+    SSH2::Algorithm::Compressor.get_compressor(
+                mode = (server == local ? :compress : :decompress),
+                server.algorithm.compressor).tap do |compressor|
+      server.send(mode, compressor)
+    end
   end
 end
 

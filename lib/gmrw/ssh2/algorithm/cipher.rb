@@ -13,7 +13,7 @@ module GMRW; module SSH2; module Algorithm
     include GMRW
     extend self
     def get_cipher(encryption, cipher_name, iv_gen, key_gen)
-      cipher = OpenSSL::Cipher.new(openssl_name(cipher_name))
+      cipher = OpenSSL::Cipher.new(cipher_name)
       cipher.send(encryption)
       cipher.padding = 0
       cipher.iv  = iv_gen [cipher.iv_len ]
@@ -23,12 +23,6 @@ module GMRW; module SSH2; module Algorithm
         proc {|data| data.present? ? cipher.update(data) : data },
         cipher.block_size
       ]
-    end
-
-    def openssl_name(name)
-      case name
-        when 'aes128-cbc'; 'aes-128-cbc'
-      end
     end
   end
 end; end; end
