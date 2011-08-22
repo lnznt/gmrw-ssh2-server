@@ -13,8 +13,8 @@ require 'gmrw/ssh2/server/service'
 class GMRW::SSH2::Server::GServer < ::GServer
   include GMRW
 
-  def initialize(port=SSH2::Server::Config.port, *)
-    super
+  def initialize(*a)
+    super *(a.empty? ? [SSH2::Server::Config.listen[:port]] : a)
   end
 
   property :log_threshold, ':info'

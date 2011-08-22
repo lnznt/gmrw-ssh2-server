@@ -16,8 +16,8 @@ class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
 
   property_ro :version, %-
     puts SSH2::Protocol::VersionString.new(
-                              :software_version => config.software_version,
-                              :commnet          => config.version_comment)
+                        :software_version => config.version[:software_version],
+                        :commnet          => config.version[:commnet])
   -
 
   def message(tag, params={})

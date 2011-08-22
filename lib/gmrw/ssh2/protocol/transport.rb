@@ -43,13 +43,6 @@ class GMRW::SSH2::Protocol::Transport
   alias peer  reader
   alias local writer
 
-#  def client ; raise NotImplementedError, 'client' ; end
-#  def server ; raise NotImplementedError, 'server' ; end
-#  def config ; raise NotImplementedError, 'config' ; end
-  abstract_method :client
-  abstract_method :server
-  abstract_method :config
-
   property_ro :message_catalog,
                 'SSH2::Message::Catalog.new {|ct| ct.logger = logger }'
 
@@ -59,6 +52,10 @@ class GMRW::SSH2::Protocol::Transport
 
   property :kex
   property :host_key
+
+  abstract_method :client
+  abstract_method :server
+  abstract_method :config
 
   def start
     info( "SSH service start" )

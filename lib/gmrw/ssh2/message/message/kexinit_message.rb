@@ -6,7 +6,6 @@
 #
 
 require 'openssl'
-require 'gmrw/ssh2/algorithm'
 require 'gmrw/ssh2/message/def_message'
 
 module GMRW::SSH2::Message

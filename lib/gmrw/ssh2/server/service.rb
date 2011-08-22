@@ -39,7 +39,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
     ############## DUMMY ######################
 
-    poll_message
+    poll_message # ---> maybe, :service_request receive
 
     send_message :service_accept, :service_name => 'ssh-userauth'
               
@@ -48,8 +48,9 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     ############## DUMMY ######################
 
     #
-    # TODO :
+    # TODO : implementention
     #
+
     die :BY_APPLICATION, "SORRY!! Not implement yet."
   end
 end

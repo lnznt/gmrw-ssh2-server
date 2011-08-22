@@ -10,6 +10,7 @@ require 'gmrw/alternative/active_support'
 
 module GMRW; module SSH2; module Algorithm
   module Cipher
+    include GMRW
     extend self
     def get_cipher(encryption, cipher_name, iv_gen, key_gen)
       cipher = OpenSSL::Cipher.new(openssl_name(cipher_name))
