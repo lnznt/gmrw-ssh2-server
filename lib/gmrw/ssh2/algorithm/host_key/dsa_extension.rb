@@ -16,11 +16,11 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
     property :digester, 'OpenSSL::Digest::DSS1'
 
     def dump
-      SSH2::Message::Field.pack [:string, 'ssh-dss'           ],
-                                [ :mpint, p                   ],
-                                [ :mpint, q                   ],
-                                [ :mpint, g                   ],
-                                [ :mpint, priv_key || pub_key ]
+      SSH2::Message::Field.pack [:string, 'ssh-dss' ],
+                                [ :mpint, p         ],
+                                [ :mpint, q         ],
+                                [ :mpint, g         ],
+                                [ :mpint, pub_key   ]
     end
 
     def sign(*a)
