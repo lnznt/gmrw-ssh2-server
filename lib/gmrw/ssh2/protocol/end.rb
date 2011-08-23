@@ -17,8 +17,6 @@ module GMRW; module SSH2; module Protocol
     include GMRW
     include Utils::Loggable
 
-    property_ro :algorithm, 'Struct.new(:cipher, :hmac, :compressor).new'
-
     def initialize(service)
       @service = service
     end
@@ -33,8 +31,7 @@ module GMRW; module SSH2; module Protocol
     #
     # :section: connection read/write
     #
-    EOL             = "\r\n"
-    READ_LEN_LIMIT  = 35000
+    EOL = "\r\n"
 
     def puts(s)
       write(s + EOL) ; s
@@ -48,24 +45,23 @@ module GMRW; module SSH2; module Protocol
       (connection.gets || "") - /#{EOL}\z/
     end
 
+    READ_LEN_LIMIT = 35000
+
     def read(n)
       return "" if n <= 0
 
       n <= READ_LEN_LIMIT or die :PROTOCOL_ERROR, "read len = #{n}"
-
-      connection.read(n) or raise EOFError, 'connection.read'
+      connection.read(n)  or die :CONNECTION_LOST, "connection.read"
     end
-
 
     #
     # :section: memoize messages / sequence number
     #
     property :seq_number, '0'
 
-    MASK_BIT32 = 0xffff_ffff
-
-    def forget(*tags)
-      tags.each {|tag| delete(tag) }
+    def []=(*)
+      seq_number(seq_number.next % 0xffff_ffff)
+      super
     end
 
     def received(message)
@@ -75,9 +71,6 @@ module GMRW; module SSH2; module Protocol
       send_message :unimplemented,
           :packet_sequence_number => seq_number unless message.tag
         
-
-      seq_number(seq_number.next % MASK_BIT32)
-
       self[message.tag] = message
     end
 
@@ -85,38 +78,38 @@ module GMRW; module SSH2; module Protocol
       info( "sent[#{seq_number}] -->: #{message.tag}" )
       debug( "#{message}" )
 
-      seq_number(seq_number.next % MASK_BIT32)
-
       self[message.tag] = message
     end
 
+    def forget(*tags)
+      tags.each {|tag| delete(tag) }
+    end
 
     #
     # :section: encryption / mac / compression
     #
     property :block_size, '8'
+    property :block_align,'proc {|n| n.align(block_size) }'
     property :encrypt,    'proc {|x| x }'
     property :decrypt,    'proc {|x| x }'
     property :compress,   'proc {|x| x }'
     property :decompress, 'proc {|x| x }'
     property :hmac,       'proc {|x| "" }'
-
-    def compute_mac(packet)
-      hmac[ [seq_number, packet].pack("Na*") ]
-    end
-
-    property_ro :key_generator, '@service.method(:gen_key)'
+    property :compute_mac,'proc {|pkt| hmac[ [seq_number, pkt].pack("Na*") ] }'
 
     public
-    def taking_keys_into_use(salt)
-      block_size(SSH2::Algorithm::Cipher.block_size[algorithm.cipher])
-      encrypt(SSH2::Algorithm::Cipher.get(:encrypt, algorithm.cipher, key_generator, salt))
-      decrypt(SSH2::Algorithm::Cipher.get(:decrypt, algorithm.cipher, key_generator, salt))
+    property_ro :algorithm, 'Struct.new(:cipher, :hmac, :compressor).new'
 
-      compress(SSH2::Algorithm::Compressor.get(:compress, algorithm.compressor))
+    def keys_into_use(keys)
+      block_size(SSH2::Algorithm::Cipher.block_size[algorithm.cipher])
+
+      encrypt(SSH2::Algorithm::Cipher.get(:encrypt, algorithm.cipher, keys))
+      decrypt(SSH2::Algorithm::Cipher.get(:decrypt, algorithm.cipher, keys))
+
+      compress(  SSH2::Algorithm::Compressor.get(:compress,   algorithm.compressor))
       decompress(SSH2::Algorithm::Compressor.get(:decompress, algorithm.compressor))
 
-      hmac(SSH2::Algorithm::HMAC.get(algorithm.hmac, key_generator, salt[:mac]))
+      hmac(SSH2::Algorithm::HMAC.get(algorithm.hmac, &keys[:mac]))
     end
   end
 end; end; end

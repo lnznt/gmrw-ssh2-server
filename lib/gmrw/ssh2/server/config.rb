@@ -39,7 +39,7 @@ module GMRW; module SSH2; module Server; module Config
 
 :algorithms:
   kex_algorithms:
-#  - diffie-hellman-group-exchange-sha256 # DON'T WORK!!
+  - diffie-hellman-group-exchange-sha256
   - diffie-hellman-group-exchange-sha1
   - diffie-hellman-group14-sha1
   - diffie-hellman-group1-sha1

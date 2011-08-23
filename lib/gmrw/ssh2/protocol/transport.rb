@@ -20,6 +20,9 @@ class GMRW::SSH2::Protocol::Transport
   include Utils::Loggable
   include SSH2::Protocol::ErrorHandling
 
+  #
+  # :section: resources (Connection and Logger)
+  #
   attr_reader :connection
   property_ro :id, 'connection.object_id'
 
@@ -31,7 +34,9 @@ class GMRW::SSH2::Protocol::Transport
     super.tap {|l| l.format {|*s| "[#{id}] #{s.map(&:to_s) * ': '}" }}
   end
 
-
+  #
+  # :section: Reader/Writer (=peer/local)
+  #
   property_ro :reader, 'SSH2::Protocol::Reader.new(self)' ; alias peer  reader
   property_ro :writer, 'SSH2::Protocol::Writer.new(self)' ; alias local writer
 
@@ -41,18 +46,24 @@ class GMRW::SSH2::Protocol::Transport
   abstract_method :client
   abstract_method :server
 
-
+  #
+  # :section: Message Catalog
+  #
   property_ro :message_catalog,
                 'SSH2::Message::Catalog.new {|ct| ct.logger = logger }'
   delegate :permit, :change_algorithm, :to => :message_catalog
 
-
+  #
+  # :section: Memo (Algorithms)
+  #
   property_ro :algorithm, 'Struct.new(:kex, :host_key).new'
 
   property :kex
   property :host_key
 
-
+  #
+  # :section: Starting Transport
+  #
   def start
     info( "SSH service start" )
 
@@ -136,19 +147,17 @@ class GMRW::SSH2::Protocol::Transport
     @session_id ||= @hash
   end
 
-  def digest(data, len)
-    ( host_key.digester.digest(@k + @hash + data) )[0, len]
-  end
+  def keys_into_use
+    digest = proc {|s, len| kex.digest(@k + @hash + s)[0...len] }
 
-  def gen_key(salt, key_len)
-    key = digest(salt + @session_id, key_len)
-    key << digest(key, key_len - key.length) while key.length < key_len
-    key
-  end
+    key = proc do |salt, len|
+      y  = digest[salt + @session_id, len           ]
+      y << digest[y,                  len - y.length] while y.length < len
+      y
+    end
 
-  def taking_keys_into_use
-    client.taking_keys_into_use(:iv => "A", :key => "C", :mac => "E")
-    server.taking_keys_into_use(:iv => "B", :key => "D", :mac => "F")
+    client.keys_into_use(:iv => key+"A", :key => key+"C", :mac => key+"E")
+    server.keys_into_use(:iv => key+"B", :key => key+"D", :mac => key+"F")
   end
 end
 

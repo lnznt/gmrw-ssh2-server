@@ -17,7 +17,6 @@ class GMRW::SSH2::Message::Catalog
 
   alias initialize cascade
 
-  #property_ro :category,   '[true]  * 256'
   property_ro :category,   '[nil  ] * 256'
   property_ro :permission, '[false] * 256'
 

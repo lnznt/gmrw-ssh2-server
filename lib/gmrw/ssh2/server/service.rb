@@ -19,41 +19,31 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     SSH2.define_singleton_method(:config) { SSH2::Server::Config }
 
     #
-    # SSH Transport Layer Protocol (see RFC4253 for details)
+    # :section: SSH Transport Layer Protocol (see RFC4253 for details)
     #
     protocol_version_exchange
 
-    :start_binary_packet_protocol.tap {
-      permit(1..49) { true }
-      permit(:service_request) { false }
-      permit(:service_accept)  { false }
-    }
+    #   start binay packet protocol
+    permit(1..49                            ) { true  }
+    permit(:service_request, :service_accept) { false }
 
-    send_kexinit and :algorithm_negotiation.tap {
-      negotiate_algorithms
-      permit(:kexinit) { false }
-      change_algorithm :kex => algorithm.kex
-    }
+    #   algorithm negotiation
+    send_kexinit and negotiate_algorithms
+    change_algorithm :kex => algorithm.kex
 
-    :key_exchange.tap {
-      do_kex
+    permit(:kexinit) { false }
 
-      permit(:service_request) { true }
-      permit(:kexinit)         { true }
+    #   key exchange
+    do_kex and keys_into_use
 
-      taking_keys_into_use
-
-      permit(50..79) { true }
-    }
+    permit(:kexinit, :service_request, 50..79) { true }
     
-    (:wait_for_service_request && 'ssh-userauth').tap {
-      recv_message :service_request, :service_name => 'ssh-userauth'
-
-      send_message :service_accept,  :service_name => 'ssh-userauth'
-    }
+    #   start 'ssh-userauth' service
+    recv_message :service_request, :service_name => 'ssh-userauth'
+    send_message :service_accept,  :service_name => 'ssh-userauth'
 
     #
-    # SSH Authentication Protocol (see RFC4252 for details)
+    # :section: SSH Authentication Protocol (see RFC4252 for details)
     #
     poll_message # (DUMMY): TODO: implementention
 

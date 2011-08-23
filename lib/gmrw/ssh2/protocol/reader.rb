@@ -13,9 +13,14 @@ require 'gmrw/ssh2/message'
 class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   include GMRW
 
+  #
+  # :section: Protocol Version
+  #
   property_ro :version, 'SSH2::Protocol::VersionString.new(gets)'
 
-
+  #
+  # :section: Receive Methods
+  #
   def recv_message(tag, *a)
     forget(tag) ; message(tag, *a)
   end
@@ -31,6 +36,9 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
     received SSH2::Message.build(payload) { message_catalog }
   end
 
+  #
+  # :section: Receive/Unpack Packet
+  #
   private
   def payload
     packet = [
@@ -56,7 +64,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   def verify!(packet)
     xdump = proc {|m| m.each_byte.map {|b| "%02x" % b.ord } * ':' }
 
-    mac0 = compute_mac(packet)
+    mac0 = compute_mac[ packet ]
     mac1 = read(mac0.length)
     mac0 == mac1 or die :MAC_ERROR, "#{xdump[mac0]} : #{xdump[mac1]}"
 
@@ -66,7 +74,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
 
   def buffered_read(bytes)
     s0, rem0 = (@buffer ||= "") / bytes
-    s1       = decrypt[ read((bytes - s0.length).align(block_size)) ]
+    s1       = decrypt[ read block_align[ bytes - s0.length ] ]
     s,  rem1 = (s0 + s1) / bytes
 
     @buffer = rem0 || rem1 || ""

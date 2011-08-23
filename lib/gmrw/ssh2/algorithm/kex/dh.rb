@@ -26,6 +26,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
             
     property_ro :dh, 'OpenSSL::PKey::DH.new' 
     property    :digester
+    delegate    :digest, :to => :digester
 
     def initialize(dh_digester, dh_g=nil, dh_p=nil, secret_key_bits=512)
       digester(dh_digester)
@@ -68,7 +69,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     property_ro :f,   'dh.pub_key'
 
     property_ro :shared_secret, 'dh.compute_key(e)'
-    property_ro :hash,          'digester.digest(h)'
+    property_ro :hash,          'digest(h)'
     property_ro :s,             'host_key.to_signature(hash)'
 
     include SSH2::Message

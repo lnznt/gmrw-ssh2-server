@@ -49,17 +49,8 @@ module GMRW::SSH2::Algorithm::Kex
     property_ro :min, 'client.message(:key_dh_gex_request)[:min]'
 
     property_ro :e,   'client.message(:key_dh_gex_init)[:e]'
-    property_ro :f,   'dh.pub_key'
-
-    property_ro :shared_secret, 'dh.compute_key(e)'
-    property_ro :hash,          'digester.digest(h)'
-    property_ro :s,             'host_key.to_signature(hash)'
 
     include SSH2::Message
-    def k
-      Field.encode(:mpint, OpenSSL::BN.new(shared_secret, 2))
-    end
-
     def h
       Field.pack([:string, v_c = client.version       ],
                  [:string, v_s = server.version       ],

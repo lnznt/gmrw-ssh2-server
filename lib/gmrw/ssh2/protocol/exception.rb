@@ -10,12 +10,13 @@ require 'gmrw/ssh2/message'
 module GMRW::SSH2::Protocol
   module ErrorHandling
     include GMRW
+
     def die(tag, *msgs)
       e = RuntimeError.new
 
       e.define_singleton_method(:call) do |service|
         service.send_message :disconnect,
-                              SSH2::Message.DisconnectReason(tag, *msgs)
+                     SSH2::Message.DisconnectReason(tag, *msgs)
       end
           
       raise e, ([tag.to_s] + msgs) * ': '
