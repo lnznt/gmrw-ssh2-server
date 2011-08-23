@@ -12,17 +12,21 @@ module GMRW; module SSH2; module Algorithm
   module Cipher
     include GMRW
     extend self
-    def get_cipher(encryption, cipher_name, iv_gen, key_gen)
-      cipher = OpenSSL::Cipher.new(cipher_name)
-      cipher.send(encryption)
-      cipher.padding = 0
-      cipher.iv  = iv_gen [cipher.iv_len ]
-      cipher.key = key_gen[cipher.key_len]
 
-      [
-        proc {|data| data.present? ? cipher.update(data) : data },
-        cipher.block_size
-      ]
+    property_ro :block_size, 'Hash.new{|h,name| h[name] = new(name).block_size}'
+
+    def new(name)
+      OpenSSL::Cipher.new(SSH2.config.openssl_name[name])
+    end
+
+    def get(enc_or_dec, cipher_name, gen_key, salt)
+      cipher = new(cipher_name)
+      cipher.send(enc_or_dec)
+      cipher.padding = 0
+      cipher.iv  = gen_key[salt[:iv ], cipher.iv_len ]
+      cipher.key = gen_key[salt[:key], cipher.key_len]
+
+      proc {|s| s.present? ? cipher.update(s) : s }
     end
   end
 end; end; end

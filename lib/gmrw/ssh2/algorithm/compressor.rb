@@ -14,23 +14,24 @@ module GMRW; module SSH2; module Algorithm
 
     def zlib_compressor
       zlib = Zlib::Deflate.new
-      proc {|data| zlib.deflate(data, Zlib::SYNC_FLUSH) }
+      proc {|s| zlib.deflate(s, Zlib::SYNC_FLUSH) }
     end
 
     def zlib_decompressor
       zlib = Zlib::Inflate.new
-      proc {|data| zlib.inflate(data) }
+      proc {|s| zlib.inflate(s) }
     end
 
-    def get_compressor(mode, compressor_name)
+    def get(comp_or_decomp, compressor_name)
       case compressor_name
         when 'zlib'
-          mode == :compress ? zlib_compressor : zlib_decompressor
+          { :compress   => zlib_compressor   ,
+            :decompress => zlib_decompressor }[comp_or_decomp]
+
         when 'none'
-          proc {|data| data }
-        else
-          raise "unknown compressor: #{compressor_name}"
-      end
+          proc {|s| s }
+
+      end or raise "unknown compressor: #{compressor_name}"
     end
   end
 end; end; end

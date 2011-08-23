@@ -10,28 +10,19 @@ require 'openssl'
 module GMRW; module SSH2; module Algorithm
   module HMAC
     extend self
-    def get_hmac(hmac_name, key_gen)
-      spec = case hmac_name
-        when 'hmac-md5'
-          {:digester => OpenSSL::Digest::MD5,  :key_len => 16, :mac_len => 16}
 
-        when 'hmac-md5-96'
-          {:digester => OpenSSL::Digest::MD5,  :key_len => 16, :mac_len => 12}
+    def get(hmac_name, gen_key, salt)
+      digester, key_len, mac_len = {
+        'hmac-md5'     => [OpenSSL::Digest::MD5,  16, 16],
+        'hmac-md5-96'  => [OpenSSL::Digest::MD5,  16, 12],
+        'hmac-sha1'    => [OpenSSL::Digest::SHA1, 20, 20],
+        'hmac-sha1-96' => [OpenSSL::Digest::SHA1, 20, 12],
+      }[hmac_name]
 
-        when 'hmac-sha1'
-          {:digester => OpenSSL::Digest::SHA1, :key_len => 20, :mac_len => 20}
+      mac_len or raise "unknown hmac: #{hmac_name}"
 
-        when 'hmac-sha1-96'
-          {:digester => OpenSSL::Digest::SHA1, :key_len => 20, :mac_len => 12}
-
-        else
-          raise "unknown hmac: #{hmac_name}"
-      end
-
-      key = key_gen[spec[:key_len]]
-      proc do|data|
-        OpenSSL::HMAC.digest(spec[:digester].new, key, data)[0, spec[:mac_len]]
-      end
+      key = gen_key[salt, key_len]
+      proc {|s| OpenSSL::HMAC.digest(digester.new, key, s)[0, mac_len] }
     end
   end
 end; end; end

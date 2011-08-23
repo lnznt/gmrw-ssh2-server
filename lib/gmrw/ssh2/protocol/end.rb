@@ -8,6 +8,9 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/alternative/active_support'
+require 'gmrw/ssh2/algorithm/cipher'
+require 'gmrw/ssh2/algorithm/hmac'
+require 'gmrw/ssh2/algorithm/compressor'
 
 module GMRW; module SSH2; module Protocol
   class End < Hash
@@ -22,23 +25,15 @@ module GMRW; module SSH2; module Protocol
 
     private
     delegate  :connection,
-              :config,
               :logger,
               :die,
               :send_message,
               :message_catalog, :to => :@service
 
-    property :seq_number, '0'
-
-    property :block_size, '8'
-    property :encrypt,    'proc {|x| x }'
-    property :decrypt,    'proc {|x| x }'
-    property :compress,   'proc {|x| x }'
-    property :decompress, 'proc {|x| x }'
-    property :hmac,       'proc {|x| "" }'
-
+    #
+    # :section: connection read/write
+    #
     EOL             = "\r\n"
-    MASK_BIT32      = 0xffff_ffff
     READ_LEN_LIMIT  = 35000
 
     def puts(s)
@@ -60,6 +55,14 @@ module GMRW; module SSH2; module Protocol
 
       connection.read(n) or raise EOFError, 'connection.read'
     end
+
+
+    #
+    # :section: memoize messages / sequence number
+    #
+    property :seq_number, '0'
+
+    MASK_BIT32 = 0xffff_ffff
 
     def forget(*tags)
       tags.each {|tag| delete(tag) }
@@ -87,8 +90,33 @@ module GMRW; module SSH2; module Protocol
       self[message.tag] = message
     end
 
+
+    #
+    # :section: encryption / mac / compression
+    #
+    property :block_size, '8'
+    property :encrypt,    'proc {|x| x }'
+    property :decrypt,    'proc {|x| x }'
+    property :compress,   'proc {|x| x }'
+    property :decompress, 'proc {|x| x }'
+    property :hmac,       'proc {|x| "" }'
+
     def compute_mac(packet)
       hmac[ [seq_number, packet].pack("Na*") ]
+    end
+
+    property_ro :key_generator, '@service.method(:gen_key)'
+
+    public
+    def taking_keys_into_use(salt)
+      block_size(SSH2::Algorithm::Cipher.block_size[algorithm.cipher])
+      encrypt(SSH2::Algorithm::Cipher.get(:encrypt, algorithm.cipher, key_generator, salt))
+      decrypt(SSH2::Algorithm::Cipher.get(:decrypt, algorithm.cipher, key_generator, salt))
+
+      compress(SSH2::Algorithm::Compressor.get(:compress, algorithm.compressor))
+      decompress(SSH2::Algorithm::Compressor.get(:decompress, algorithm.compressor))
+
+      hmac(SSH2::Algorithm::HMAC.get(algorithm.hmac, key_generator, salt[:mac]))
     end
   end
 end; end; end

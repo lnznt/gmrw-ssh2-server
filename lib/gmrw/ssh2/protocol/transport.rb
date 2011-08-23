@@ -14,49 +14,44 @@ require 'gmrw/ssh2/protocol/exception'
 require 'gmrw/ssh2/message/catalog'
 require 'gmrw/ssh2/algorithm/kex'
 require 'gmrw/ssh2/algorithm/host_key'
-require 'gmrw/ssh2/algorithm/cipher'
-require 'gmrw/ssh2/algorithm/hmac'
-require 'gmrw/ssh2/algorithm/compressor'
 
 class GMRW::SSH2::Protocol::Transport
   include GMRW
   include Utils::Loggable
   include SSH2::Protocol::ErrorHandling
 
+  attr_reader :connection
+  property_ro :id, 'connection.object_id'
+
   def initialize(conn)
     @connection = conn
   end
-
-  attr_reader :connection
-
-  property_ro :id, 'connection.object_id'
 
   def logger=(*)
     super.tap {|l| l.format {|*s| "[#{id}] #{s.map(&:to_s) * ': '}" }}
   end
 
-  property_ro :reader, 'SSH2::Protocol::Reader.new(self)'
-  property_ro :writer, 'SSH2::Protocol::Writer.new(self)'
+
+  property_ro :reader, 'SSH2::Protocol::Reader.new(self)' ; alias peer  reader
+  property_ro :writer, 'SSH2::Protocol::Writer.new(self)' ; alias local writer
 
   delegate :recv_message, :poll_message, :to => :reader
   delegate :send_message,                :to => :writer
 
-  alias peer  reader
-  alias local writer
+  abstract_method :client
+  abstract_method :server
+
 
   property_ro :message_catalog,
                 'SSH2::Message::Catalog.new {|ct| ct.logger = logger }'
-
   delegate :permit, :change_algorithm, :to => :message_catalog
+
 
   property_ro :algorithm, 'Struct.new(:kex, :host_key).new'
 
   property :kex
   property :host_key
 
-  abstract_method :client
-  abstract_method :server
-  abstract_method :config
 
   def start
     info( "SSH service start" )
@@ -76,7 +71,7 @@ class GMRW::SSH2::Protocol::Transport
 
   private
   abstract_method :serve
-
+  
   #
   # :section: Protocol Version Exchange
   #
@@ -101,7 +96,7 @@ class GMRW::SSH2::Protocol::Transport
         :mac_algorithms_server_to_client,
         :compression_algorithms_client_to_server,
         :compression_algorithms_server_to_client  ].map {|name|
-            [name, config.algorithms[name.to_s] ]
+            [name, SSH2.config.algorithms[name.to_s] ]
         }.to_hash
   end
 
@@ -124,13 +119,8 @@ class GMRW::SSH2::Protocol::Transport
     debug( "client.compressor : #{client.algorithm.compressor}" )
     debug( "server.compressor : #{server.algorithm.compressor}" )
 
-    kex(
-      SSH2::Algorithm::Kex.get_kex(algorithm.kex)
-    )
-    
-    host_key(
-      SSH2::Algorithm::HostKey.get_host_key(algorithm.host_key, config.host_key_files)
-    )
+    kex( SSH2::Algorithm::Kex[algorithm.kex] )
+    host_key( SSH2::Algorithm::HostKey[algorithm.host_key] )
   end
 
   def negotiate(name)
@@ -146,55 +136,19 @@ class GMRW::SSH2::Protocol::Transport
     @session_id ||= @hash
   end
 
-  def gen_key(salt)
-    salt = {
-      :client_iv  => "A", :server_iv  => "B",
-      :client_key => "C", :server_key => "D",
-      :client_mac => "E", :server_mac => "F",
-    }[salt] || salt
+  def digest(data, len)
+    ( host_key.digester.digest(@k + @hash + data) )[0, len]
+  end
 
-    digest = proc {|data| host_key.digester.digest(@k + @hash + data) }
-
-    proc do |key_len|
-      digest[salt + @session_id][0, key_len].tap do |key|
-        key << digest[key][0, key_len - key.length] while key.length < key_len
-      end
-    end
+  def gen_key(salt, key_len)
+    key = digest(salt + @session_id, key_len)
+    key << digest(key, key_len - key.length) while key.length < key_len
+    key
   end
 
   def taking_keys_into_use
-    SSH2::Algorithm::Cipher.get_cipher(
-                mode = (client == local ? :encrypt : :decrypt),
-                config.openssl_name[client.algorithm.cipher] || client.algorithm.cipher,
-                gen_key(:client_iv),
-                gen_key(:client_key)).tap do |cryptor, block_size|
-      client.send(mode, cryptor)
-      client.block_size = block_size
-    end
-
-    SSH2::Algorithm::Cipher.get_cipher(
-                mode = (server == local ? :encrypt : :decrypt),
-                config.openssl_name[server.algorithm.cipher] || server.algorithm.cipher,
-                gen_key(:server_iv),
-                gen_key(:server_key)).tap do |cryptor, block_size|
-      server.send(mode, cryptor)
-      server.block_size = block_size
-    end
-
-    client.hmac = SSH2::Algorithm::HMAC.get_hmac(client.algorithm.hmac, gen_key(:client_mac))
-    server.hmac = SSH2::Algorithm::HMAC.get_hmac(server.algorithm.hmac, gen_key(:server_mac))
-
-    SSH2::Algorithm::Compressor.get_compressor(
-                mode = (client == local ? :compress : :decompress),
-                client.algorithm.compressor).tap do |compressor|
-      client.send(mode, compressor)
-    end
-
-    SSH2::Algorithm::Compressor.get_compressor(
-                mode = (server == local ? :compress : :decompress),
-                server.algorithm.compressor).tap do |compressor|
-      server.send(mode, compressor)
-    end
+    client.taking_keys_into_use(:iv => "A", :key => "C", :mac => "E")
+    server.taking_keys_into_use(:iv => "B", :key => "D", :mac => "F")
   end
 end
 

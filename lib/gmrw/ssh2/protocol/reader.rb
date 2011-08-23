@@ -15,6 +15,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
 
   property_ro :version, 'SSH2::Protocol::VersionString.new(gets)'
 
+
   def recv_message(tag, *a)
     forget(tag) ; message(tag, *a)
   end

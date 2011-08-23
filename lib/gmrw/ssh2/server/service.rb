@@ -12,11 +12,12 @@ require 'gmrw/ssh2/server/config'
 class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   include GMRW
 
-  property_ro :client, :peer
-  property_ro :server, :local
-  property_ro :config, 'SSH2::Server::Config'
+  alias client peer
+  alias server local
 
   def serve
+    SSH2.define_singleton_method(:config) { SSH2::Server::Config }
+
     #
     # SSH Transport Layer Protocol (see RFC4253 for details)
     #

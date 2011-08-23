@@ -14,7 +14,8 @@ module GMRW; module SSH2; module Algorithm
   module Kex
     include GMRW
     extend self
-    def get_kex(kex_name)
+
+    def [](kex_name)
       case kex_name
         when 'diffie-hellman-group14-sha1'
           SSH2::Algorithm::Kex::DH.new(OpenSSL::Digest::SHA1,
