@@ -8,17 +8,20 @@
 require 'yaml'
 require 'gmrw/extension/all'
 
-module GMRW; module SSH2; module Server; module Config
-  include GMRW
-  extend self
-  property_ro :default, 'Hash.new{{}}.merge(YAML.load Default)'
+module GMRW; module SSH2
+  class << self ; property :config ; end
 
-  private
-  def method_missing(name, *)
-    default.key?(name) ? default[name] : super
-  end
+  module Server; module Config
+    include GMRW
+    extend self
+    property_ro :default, 'Hash.new{{}}.merge(YAML.load Default)'
 
-  Default = <<-DEFAULT
+    private
+    def method_missing(name, *)
+      default.key?(name) ? default[name] : super
+    end
+
+    Default = <<-DEFAULT
 :version:
   :software_version: ruby/gmrw_ssh2_server(v0.00a)
 

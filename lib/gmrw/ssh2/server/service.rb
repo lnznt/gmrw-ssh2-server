@@ -16,7 +16,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   alias server local
 
   def serve
-    SSH2.define_singleton_method(:config) { SSH2::Server::Config }
+    SSH2.config(SSH2::Server::Config)
 
     #
     # :section: SSH Transport Layer Protocol (see RFC4253 for details)

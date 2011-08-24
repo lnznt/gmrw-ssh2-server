@@ -74,9 +74,13 @@ module GMRW; module SSH2; module Message
       end
 
     }.tap {|mclass|
-      mclass.define_singleton_method(:number)   { fields[0][2]          }
-      mclass.define_singleton_method(:category) { info[:category] || [nil] }
+#      mclass.define_singleton_method(:number)   { fields[0][2]          }
+#      mclass.define_singleton_method(:category) { info[:category] || [nil] }
+      c = class << mclass ; self ; end
+      c.send(:define_method, :number)   { fields[0][2]             }
+      c.send(:define_method, :category) { info[:category] || [nil] }
     }
+
   end
 end; end; end
 

@@ -66,7 +66,7 @@ module GMRW; module SSH2; module Protocol
 
     def received(message)
       info( "--> received[#{seq_number}]: #{message.tag}" )
-      debug( "#{message}" )
+      debug( "#{message.inspect}" )
 
       send_message :unimplemented,
           :packet_sequence_number => seq_number unless message.tag
@@ -76,7 +76,7 @@ module GMRW; module SSH2; module Protocol
 
     def sent(message)
       info( "sent[#{seq_number}] -->: #{message.tag}" )
-      debug( "#{message}" )
+      debug( "#{message.inspect}" )
 
       self[message.tag] = message
     end
