@@ -7,7 +7,6 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
 require 'gmrw/ssh2/protocol/exception'
@@ -40,8 +39,8 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :reader, 'SSH2::Protocol::Reader.new(self)' ; alias peer  reader
   property_ro :writer, 'SSH2::Protocol::Writer.new(self)' ; alias local writer
 
-  delegate :recv_message, :poll_message, :to => :reader
-  delegate :send_message,                :to => :writer
+  forward [:recv_message, :poll_message] => :reader
+  forward [:send_message,              ] => :writer
 
   abstract_method :client
   abstract_method :server
@@ -51,7 +50,7 @@ class GMRW::SSH2::Protocol::Transport
   #
   property_ro :message_catalog,
                 'SSH2::Message::Catalog.new {|ct| ct.logger = logger }'
-  delegate :permit, :change_algorithm, :to => :message_catalog
+  forward [:permit, :change_algorithm] => :message_catalog
 
   #
   # :section: Memo (Algorithms)

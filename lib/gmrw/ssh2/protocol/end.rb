@@ -7,7 +7,6 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/algorithm/cipher'
 require 'gmrw/ssh2/algorithm/hmac'
 require 'gmrw/ssh2/algorithm/compressor'
@@ -22,11 +21,11 @@ module GMRW; module SSH2; module Protocol
     end
 
     private
-    delegate  :connection,
-              :logger,
-              :die,
-              :send_message,
-              :message_catalog, :to => :@service
+    forward [:connection,
+             :logger,
+             :die,
+             :send_message,
+             :message_catalog] => :@service
 
     #
     # :section: connection read/write
@@ -45,13 +44,14 @@ module GMRW; module SSH2; module Protocol
       (connection.gets || "") - /#{EOL}\z/
     end
 
-    READ_LEN_LIMIT = 35000
+    READ_LIMIT = 35000
 
     def read(n)
-      return "" if n <= 0
-
-      n <= READ_LEN_LIMIT or die :PROTOCOL_ERROR, "read len = #{n}"
-      connection.read(n)  or die :CONNECTION_LOST, "connection.read"
+      n <= 0         ? ""                                              :
+      n > READ_LIMIT ? die(:PROTOCOL_ERROR, "read len = #{n}, too big"):
+                       connection.read(n) or raise EORError
+    rescue EOFError
+      die :CONNECTION_LOST, "connection.read"
     end
 
     #

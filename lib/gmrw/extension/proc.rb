@@ -27,11 +27,11 @@ module GMRW::Extension
     end
 
     def cond(procs, &block)
-      to_selector = proc {|x, c| c ? c : proc {|*a| x === a.first } }
+      to_selector = proc {|x, c| c ? c : proc {|*a| x === a[0] } }
 
       proc do |*a|
         procs.select{|s, | convert(s, &to_selector)[*a] }.take(1).
-              map   {|_,x| convert(x, &block      )[*a] }.first
+              map   {|_,x| convert(x, &block      )[*a] }[0]
       end
     end
 

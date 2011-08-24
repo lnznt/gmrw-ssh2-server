@@ -14,20 +14,19 @@ module GMRW; module SSH2; module Algorithm
     include GMRW
     extend self
 
-    def [](host_key_name)
-      case host_key_name
-        when 'ssh-rsa'
-          OpenSSL::PKey::RSA.new(open(SSH2.config.host_key_files[host_key_name])).
-                             extend(SSH2::Algorithm::HostKey::RSAExtension)
-          
-        when 'ssh-dss'
-          OpenSSL::PKey::DSA.new(open(SSH2.config.host_key_files[host_key_name])).
-                             extend(SSH2::Algorithm::HostKey::DSAExtension)
+    def [](name)
+      open(SSH2.config.host_key_files[name]) do |f|
+        case name
+          when 'ssh-rsa'
+            OpenSSL::PKey::RSA.new(f).extend(SSH2::Algorithm::HostKey::RSAExtension)
+            
+          when 'ssh-dss'
+            OpenSSL::PKey::DSA.new(f).extend(SSH2::Algorithm::HostKey::DSAExtension)
 
-        else
-          raise "unknown host-key: #{host_key_name}"
-      end
+        end or raise "unknown host-key: #{name}"
+      end 
     end
+
   end
 end; end; end
 

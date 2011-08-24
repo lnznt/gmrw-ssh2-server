@@ -22,16 +22,15 @@ module GMRW; module SSH2; module Algorithm
       proc {|s| zlib.inflate(s) }
     end
 
-    def get(comp_or_decomp, compressor_name)
-      case compressor_name
-        when 'zlib'
-          { :compress   => zlib_compressor   ,
-            :decompress => zlib_decompressor }[comp_or_decomp]
+    def get(comp_or_decomp, name)
+      compressor = {
+        'zlib' => { :compress   => zlib_compressor    ,
+                    :decompress => zlib_decompressor  },
+        'none' => { :compress   => proc {|s| s }      ,
+                    :decompress => proc {|s| s }      },
+      }[name] or raise "unknown compressor: #{name}"
 
-        when 'none'
-          proc {|s| s }
-
-      end or raise "unknown compressor: #{compressor_name}"
+      compressor[comp_or_decomp]
     end
   end
 end; end; end

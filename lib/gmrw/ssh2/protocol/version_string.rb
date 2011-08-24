@@ -9,16 +9,20 @@ require 'gmrw/extension/all'
 
 module GMRW; module SSH2; module Protocol
   class VersionString < String
-    def initialize(data={})
-      return super if data.kind_of?(String)
-
+    private
+    def build_string(data)
       pv = data[:protocol_version] || '2.0'
       sv = data[:software_version] || '___'
       cm = data[:comment]
 
-      super "SSH-#{pv}-#{sv}" + (cm ? cm >> 1 : "")
+      "SSH-#{pv}-#{sv}" + (cm ? cm >> 1 : "")
     end
 
+    def initialize(s={})
+      super(s.respond_to?(:to_str) ? s : build_string(s))
+    end
+
+    public
     COMPONENTS = [:ssh_version, :protocol_version, :software_version, :comment]
 
     def component(name)

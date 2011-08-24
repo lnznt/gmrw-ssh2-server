@@ -16,7 +16,7 @@ module GMRW::Extension
     private
     def self.define_property(method_name, keys) #:nodoc:
       define_method(method_name) do |name, *args|
-        default = args.empty? ? '' : args.first
+        default = args.empty? ? '' : args[0]
 
         statements = {
           :no_arg   => "def #{name}",
@@ -24,7 +24,7 @@ module GMRW::Extension
           :default  => "instance_variable_defined?(:@#{name})" +
                           " or (@#{name} = (#{default}))",
           :return   => "@#{name}",
-          :set_val  => "@#{name} = args.empty? ? (block || @#{name}) : args.first",
+          :set_val  => "@#{name} = args.empty? ? (block || @#{name}) : args[0]",
           :end      => "end",
           :attr_w   => "attr_writer :#{name}",
         }

@@ -8,7 +8,6 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/utils/cascadable'
-require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/message'
 
 class GMRW::SSH2::Message::Catalog
@@ -31,7 +30,7 @@ class GMRW::SSH2::Message::Catalog
 
   def permit(*nums)
     (nums.presence || [0..255]).each do |num|
-      num = GMRW::SSH2::Message.classes[tag=num].try(:number) || num
+      num = ((m = GMRW::SSH2::Message.classes[tag=num]) && m.number) || num
 
       permission[num] = num.respond_to?(:count) ? [yield] * num.count : yield
 

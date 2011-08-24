@@ -6,7 +6,6 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/alternative/active_support'
 require 'gmrw/ssh2/message/field'
 
 module GMRW; module SSH2; module Message
@@ -26,8 +25,8 @@ module GMRW; module SSH2; module Message
   end
 
   def def_message(tag, fields, info={})
-    requires = fields.map{|_,fn,*a|   [fn, a.grep(Hash ).first]}.to_hash
-    choices  = fields.map{|_,fn,_,*a| [fn, a.grep(Array).first]}.to_hash
+    requires = fields.map{|_,fn,*a|   [fn, a.grep(Hash )[0]]}.to_hash
+    choices  = fields.map{|_,fn,_,*a| [fn, a.grep(Array)[0]]}.to_hash
 
     classes[tag] = Class.new(Hash) {
       define_method(:tag)    { tag           }
@@ -75,7 +74,7 @@ module GMRW; module SSH2; module Message
       end
 
     }.tap {|mclass|
-      mclass.define_singleton_method(:number)   { fields.first[2]          }
+      mclass.define_singleton_method(:number)   { fields[0][2]          }
       mclass.define_singleton_method(:category) { info[:category] || [nil] }
     }
   end

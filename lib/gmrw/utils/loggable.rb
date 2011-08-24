@@ -6,7 +6,6 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/alternative/active_support'
 
 module GMRW; module Utils
   class Logger < Array
@@ -22,16 +21,15 @@ module GMRW; module Utils
     property :severity, :threshold
     property :format, 'proc {|*msgs| msgs.map(&:to_s) * ": " }'
 
-    def log(sev=nil, *messages, &block)
-      severity(sev) if sev ; return unless active?
+    def log(sev=nil, *msgs, &block)
+      severity(sev || severity)
 
-      (block             ? block          :
-       messages.present? ? method(:write) :
-                           proc {|*|}     )[self, *messages]
+      (active? && block       )? block[self, *msgs] :
+      (active? && !msgs.empty?)? write(self, *msgs) : nil
     end
 
-    def <<(message)
-      log(nil, message)
+    def <<(msg)
+      log(nil, msg)
     end
 
     private
@@ -50,8 +48,7 @@ module GMRW; module Utils
 
   module Loggable
     property :logger, :null
-    delegate :log, :to => :logger
-    delegate *GMRW::Utils::Logger::LEVELS, :to => :logger
+    forward ([:log] + GMRW::Utils::Logger::LEVELS) => :logger
   end
 end; end
 

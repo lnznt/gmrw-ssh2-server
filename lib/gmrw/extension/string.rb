@@ -8,9 +8,32 @@
 require 'gmrw/extension/extension'
 require 'gmrw/extension/array'
 require 'gmrw/extension/integer'
-require 'gmrw/alternative/active_support'
 
 module GMRW::Extension
+  compatibility String do
+    def at(pos)
+      self[pos, 1]
+    end
+=begin
+    def camelize(first_letter_in_uppercase = true)
+      first_letter_in_uppercase ? upper_camelize : lower_camelize
+    end
+
+    private
+    def upper_camelize
+      lower_camelize.sub(/./) { $&.upcase }
+    end
+
+    def lower_camelize
+      path_to_namespace.gsub(/(?:_|(::))(.)/) { "#{$1}#{$2.upcase}" }
+    end
+
+    def path_to_namespace
+      gsub(/\//, '::')
+    end
+=end
+  end
+
   mixin String do
     def remove(s)
       sub(s, '')

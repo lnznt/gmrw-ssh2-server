@@ -24,9 +24,9 @@ module GMRW; module Utils; module AliasResolver
   property_ro :aliases, 'Hash.new {|h,k| h[k] = {}}'
 
   def resolve_alias(hash)
-    return hash unless hash.kind_of?(Hash)
+    return hash unless hash.respond_to?(:each_pair)
 
-    category, alias_name = hash.first
+    category, alias_name = hash.each_pair.next
     aliases[category][alias_name] || alias_name
   end
 

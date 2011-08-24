@@ -11,8 +11,8 @@ require 'gmrw/utils/command'
 module GMRW::Utils::Observable
   property_ro :observers, 'Hash.new {|h,k| h[k] = GMRW::Utils::Command.new }'
 
-  def add_observer(event, command=nil, &block)
-    observers[event] << (command || block) if command || block
+  def add_observer(event, &block)
+    observers[event] << block
   end
 
   def notify_observers(event, *a, &b)

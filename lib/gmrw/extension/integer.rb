@@ -5,7 +5,6 @@
 # License:: Ruby's
 #
 
-require 'openssl'
 require 'gmrw/extension/extension'
 
 module GMRW::Extension

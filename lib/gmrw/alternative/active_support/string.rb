@@ -10,14 +10,7 @@ class String  #:nodoc:
     self[pos, 1]
   end
 
-  def first(n=1)
-    self[0, n]
-  end
-
-  def last(n=1)
-    self[-1, n]
-  end
-
+=begin
   def blank?
     !!match(/\A\s*\Z/)
   end
@@ -38,6 +31,7 @@ class String  #:nodoc:
   def path_to_namespace
     gsub(/\//, '::')
   end
+=end
 end
 
 # vim:set ts=2 sw=2 et fenc=UTF-8:

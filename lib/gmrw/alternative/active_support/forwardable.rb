@@ -5,6 +5,7 @@
 # License:: Ruby's
 #
 
+=begin
 require 'forwardable'
 
 module Forwardable  #:nodoc:
@@ -17,5 +18,6 @@ end
 class Module
   include Forwardable
 end
+=end
 
 # vim:set ts=2 sw=2 et fenc=UTF-8:

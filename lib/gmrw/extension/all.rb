@@ -6,6 +6,7 @@
 #
 
 require 'gmrw/extension/array'
+require 'gmrw/extension/forwardable'
 require 'gmrw/extension/integer'
 require 'gmrw/extension/module'
 require 'gmrw/extension/object'

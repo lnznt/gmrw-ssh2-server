@@ -17,16 +17,16 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     include Utils::Loggable
 
     private
-    delegate :logger,
+    forward [:logger,
              :send_message,
              :recv_message,
              :client,
              :server,
-             :host_key,     :to => :@service
+             :host_key     ] => :@service
             
     property_ro :dh, 'OpenSSL::PKey::DH.new' 
     property    :digester
-    delegate    :digest, :to => :digester
+    forward     [:digest] => :digester
 
     def initialize(dh_digester, dh_g=nil, dh_p=nil, secret_key_bits=512)
       digester(dh_digester)
