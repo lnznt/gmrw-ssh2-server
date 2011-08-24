@@ -7,14 +7,14 @@ add   = lambda {|a, b| a + b }
 mul10 = proc {|a| a * 10 }
 cout  = $>.method(:puts)
 
-(add % mul10 % cout)[1,2]                                 # 30 と表示
-(cout.to_proc * mul10 * (add + 1) * mul10)[2]            # 210 と表示
-(cout.to_proc * mul10 * (add + 1).tee(cout) * mul10)[2]  # 21, 210 と 2 回表示
+(add % mul10 % cout)[1,2]                                 # print 30
+(cout.to_proc * mul10 * (add << 1) * mul10)[2]            # print 210
+(cout.to_proc * mul10 * (add << 1).tee(cout) * mul10)[2]  # print 21 and 210
 
 puts "-" * 8
 
-Proc.cat([add, mul10, cout])[1,2]                         # 30 と表示
-Proc.cat([:+, mul10, cout])[1,2]                          # 30 と表示
+Proc.cat([add, mul10, cout])[1,2]                         # print 30
+Proc.cat([:+, mul10, cout])[1,2]                          # print 30
 
 puts "-" * 8
 

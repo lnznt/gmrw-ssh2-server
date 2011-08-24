@@ -22,40 +22,9 @@ module GMRW::Extension
       self < n ? n : self
     end
 
-    def count_bit(bit=1)
-      sprintf("%b", self).count(bit.to_s)
+    def count_bit
+      sprintf("%b", self).count("1")
     end
-
-    def to_bignum
-      OpenSSL::BN.new(to_s)
-    end
-
-=begin
-    def positive?
-      self > 0
-    end
-
-    def negative?
-      self < 0
-    end
-
-    def zero_or_positive?
-      zero? || positive?
-    end
-
-    def zero_or_negative?
-      zero? || negative?
-    end
-
-    def signum
-      positive? ?  1 :
-      negative? ? -1 : 0
-    end
-
-    def negate
-      self * -1
-    end
-=end
   end
 end
 

@@ -8,7 +8,7 @@ d = lambda {|s| "xxx " + s + " xxx" }
 
 #decorate = Proc.cat [ u, d ]
 #decorate = Proc.cat [ :upcase, d ]
-decorate = Proc.cat [ :upcase, d, (:center.to_proc - 20) ]
+decorate = Proc.cat [ :upcase, d, (:center.to_proc >> 20) ]
 
 puts decorate["menu"]
 puts "-" * 20

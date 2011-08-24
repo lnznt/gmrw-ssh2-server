@@ -35,15 +35,13 @@ module GMRW::Extension
       end
     end
 
-    def t ; proc {|*| true  } ; end
-    def f ; proc {|*| false } ; end
-    def n ; proc {|*| nil   } ; end
+    def t     ; proc {|*| true  } ; end
+    def f     ; proc {|*| false } ; end
+    def n     ; proc {|*| nil   } ; end
+    def as_is ; proc {|a| a }     ; end
 
     def otherwise ; t ; end
 
-    def as_is
-      proc {|a| a }
-    end
     Proc.extend self
   end
 
@@ -67,8 +65,8 @@ module GMRW::Extension
     alias *  compose        # f(x) * g(x) ==> f(g(x))
     alias %  rcompose       # f(x) % g(x) ==> g(f(x))
 
-    alias << scompose       # f(x) << g(x) ==> f(*g(x))
-    alias >> srcompose      # f(x) >> g(x) ==> g(*f(x))
+    alias & scompose       # f(x) & g(x) ==> f(*g(x))
+    alias | srcompose      # f(x) | g(x) ==> g(*f(x))
 
     def first_arg(*x)
       proc {|*a| call( *(x + a) )}
@@ -78,8 +76,8 @@ module GMRW::Extension
       proc {|*a| call( *(a + x) )}
     end
 
-    alias + first_arg
-    alias - last_arg
+    alias << first_arg
+    alias >> last_arg
 
     def tee(pr)
       proc {|*a| call(*a).tap{|result| Proc.convert(pr).call(result) }}

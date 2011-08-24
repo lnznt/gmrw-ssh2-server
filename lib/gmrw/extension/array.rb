@@ -14,15 +14,7 @@ module GMRW::Extension
     end
 
     def mapping(*keys)
-      keys.empty? ? mapping_by_index : mapping_by_name(*keys)
-    end
-
-    def mapping_by_name(*names)
-      names.zip(self).to_hash
-    end
-
-    def mapping_by_index
-      (0...count).zip(self).to_hash
+      (keys.empty? ? (0...count) : keys).zip(self).to_hash
     end
   end
 end

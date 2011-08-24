@@ -13,7 +13,7 @@ module GMRW; module SSH2; module Message; module Field
     case ftype
       when :boolean              ; false
       when :byte,:uint32,:uint64 ; 0
-      when :mpint                ; 0.to_bignum
+      when :mpint                ; OpenSSL::BN.new(0.to_s)
       when :string               ; ""
       when :namelist             ; []
       when Integer               ; [0] * ftype 
@@ -88,7 +88,7 @@ module GMRW; module SSH2; module Message; module Field
     n = b.inject(0) {|sum, n| sum << 8 | n }
     n = -(n + 1)              if negative
 
-    n.to_bignum
+    OpenSSL::BN.new(n.to_s)
   end
 
   def n2b(n)

@@ -24,8 +24,9 @@ module GMRW::Extension
 
     alias >> indent
 
-    def wrap(w)
-      (w[0,1] || '') + self + (w[-1,1] || '')
+    def wrap(*ws)
+      w = ws.reduce(&:+)
+      (w.at(0) || '') + self + (w.at(-1) || '')
     end
 
     alias ** wrap
@@ -38,11 +39,11 @@ module GMRW::Extension
       wrap('"')
     end
 
-    def divide(n=1)
+    def div(n=1)
       [self[0, n.minimum(0)], self[n.minimum(0)..-1]]
     end
 
-    alias / divide
+    alias / div
 
     def parse(pattern)
       (match(pattern) || [])[1..-1]

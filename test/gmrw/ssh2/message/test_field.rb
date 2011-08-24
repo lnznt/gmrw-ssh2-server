@@ -6,6 +6,7 @@
 #
 
 require 'test/unit'
+require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/ssh2/message/field'
 
@@ -92,10 +93,10 @@ class TestField < Test::Unit::TestCase
 
   def test_validate__mpint
     try_assert_equal [
-      { Field.validate(:mpint, 0x00.to_bignum)          => true    },
-      { Field.validate(:mpint, 0x01.to_bignum)          => true    },
-      { Field.validate(:mpint, (1 << 64).to_bignum)     => true    },
-      { Field.validate(:mpint, -1.to_bignum)            => true    },
+      { Field.validate(:mpint, OpenSSL::BN.new(0x00.to_s)     ) => true    },
+      { Field.validate(:mpint, OpenSSL::BN.new(0x01.to_s)     ) => true    },
+      { Field.validate(:mpint, OpenSSL::BN.new((1 << 64).to_s)) => true    },
+      { Field.validate(:mpint, OpenSSL::BN.new(-1.to_s)       ) => true    },
 
       { Field.validate(:mpint, 0)             => false   },
       { Field.validate(:mpint, 1)             => false   },

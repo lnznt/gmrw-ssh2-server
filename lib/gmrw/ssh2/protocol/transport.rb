@@ -156,8 +156,8 @@ class GMRW::SSH2::Protocol::Transport
       y
     end
 
-    client.keys_into_use(:iv => key+"A", :key => key+"C", :mac => key+"E")
-    server.keys_into_use(:iv => key+"B", :key => key+"D", :mac => key+"F")
+    client.keys_into_use(:iv => key<<"A", :key => key<<"C", :mac => key<<"E")
+    server.keys_into_use(:iv => key<<"B", :key => key<<"D", :mac => key<<"F")
   end
 end
 
