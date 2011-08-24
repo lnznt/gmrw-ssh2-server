@@ -17,7 +17,7 @@ module GMRW::SSH2::Algorithm::Kex
     def start(service)
       @service = service
 
-      ready n
+      ready n, min..max
 
       send_message :key_dh_gex_group, :p => dh.p, :g => dh.g
 
@@ -33,10 +33,12 @@ module GMRW::SSH2::Algorithm::Kex
     end
 
     private
-    def ready(bits)
-      group = bits == 2048 ? SSH2::Algorithm::OakleyGroup::Group14 :
-              bits == 1024 ? SSH2::Algorithm::OakleyGroup::Group1  :
-                             (raise "DH_GEX: #{bits} bits")
+    def ready(bits, range)
+      group = bits == 2048         ? SSH2::Algorithm::OakleyGroup::Group14 :
+              bits == 1024         ? SSH2::Algorithm::OakleyGroup::Group1  :
+              range.include?(2048) ? SSH2::Algorithm::OakleyGroup::Group14 :
+              range.include?(1024) ? SSH2::Algorithm::OakleyGroup::Group1  :
+                                     (raise "DH_GEX: #{bits} bits")
 
       super(group::G, group::P, group::BITS)
     end

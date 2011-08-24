@@ -47,8 +47,8 @@ module GMRW; module SSH2
   - diffie-hellman-group14-sha1
   - diffie-hellman-group1-sha1
   server_host_key_algorithms:
-  - ssh-rsa
   - ssh-dss
+  - ssh-rsa
   encryption_algorithms_client_to_server:
   - aes128-cbc
   - aes256-cbc
