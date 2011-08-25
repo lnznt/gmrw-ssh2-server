@@ -13,7 +13,7 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
   module DSAExtension
     include GMRW
 
-    property :digester, 'OpenSSL::Digest::DSS1'
+    property_ro :digester, 'OpenSSL::Digest::DSS1'
 
     def dump
       SSH2::Message::Field.pack [:string, 'ssh-dss' ],
@@ -28,7 +28,7 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
     end
 
     def to_signature(*a)
-      a1 = OpenSSL::ASN1.decode(sign(*a))
+      a1 = OpenSSL::ASN1.decode(sign(*a)) # DER expression => Ruby's object
 
       s = a1.value.map  {|v| v.value.to_s(2)}.
                    each {|v| v.length <= 20 or raise OpenSSL::PKey::DSAError, "bad sig size"}.

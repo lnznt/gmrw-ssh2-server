@@ -100,16 +100,17 @@ module GMRW; module SSH2; module Protocol
     public
     property_ro :algorithm, 'Struct.new(:cipher, :hmac, :compressor).new'
 
+    include SSH2::Algorithm
     def keys_into_use(keys)
-      block_size(SSH2::Algorithm::Cipher.block_size[algorithm.cipher])
+      block_size  Cipher.block_size[algorithm.cipher]
 
-      encrypt(SSH2::Algorithm::Cipher.get(:encrypt, algorithm.cipher, keys))
-      decrypt(SSH2::Algorithm::Cipher.get(:decrypt, algorithm.cipher, keys))
+      encrypt     Cipher.get_encrypt(algorithm.cipher, keys)
+      decrypt     Cipher.get_decrypt(algorithm.cipher, keys)
 
-      compress(  SSH2::Algorithm::Compressor.get(:compress,   algorithm.compressor))
-      decompress(SSH2::Algorithm::Compressor.get(:decompress, algorithm.compressor))
+      compress    Compressor.get_compress(  algorithm.compressor)
+      decompress  Compressor.get_decompress(algorithm.compressor)
 
-      hmac(SSH2::Algorithm::HMAC.get(algorithm.hmac, &keys[:mac]))
+      hmac        HMAC.get(algorithm.hmac, &keys[:mac])
     end
   end
 end; end; end
