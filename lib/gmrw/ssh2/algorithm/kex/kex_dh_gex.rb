@@ -9,12 +9,12 @@ require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 #require 'gmrw/ssh2/algorithm/oakley_group'
-require 'gmrw/ssh2/algorithm/kex/dh'
+require 'gmrw/ssh2/algorithm/kex/kex_dh'
 
 
 module GMRW::SSH2::Algorithm::Kex
   # see RFC4419 for details
-  class DH_GroupExchange < DH
+  class KexDHGex < KexDH
     def start(service)
       @service = service
 

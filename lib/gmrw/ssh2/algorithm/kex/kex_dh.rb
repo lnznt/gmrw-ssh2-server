@@ -12,7 +12,7 @@ require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/message'
 
 module GMRW; module SSH2; module Algorithm ; module Kex
-  class DH
+  class KexDH
     include GMRW
     include Utils::Loggable
 
