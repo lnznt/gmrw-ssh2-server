@@ -31,10 +31,15 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     send_kexinit and negotiate_algorithms
     change_algorithm :kex => algorithm.kex
 
+    #   key exchange
     permit(:kexinit) { false }
 
-    #   key exchange
-    do_kex and keys_into_use
+    do_kex
+
+    send_message :newkeys
+    recv_message :newkeys
+
+    keys_into_use
 
     permit(:kexinit, :service_request, 50..79) { true }
     
