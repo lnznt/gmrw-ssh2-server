@@ -21,12 +21,12 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   #
   # :section: Receive Methods
   #
-  def recv_message(tag, *a)
-    forget(tag) ; message(tag, *a)
+  def recv_message(tag)
+    forget(tag) ; message(tag)
   end
 
-  def message(tag, cond={})
-    poll_message until self[tag] && cond.none? {|f,v| self[tag][f] != v }
+  def message(tag)
+    poll_message until self[tag]
     self[tag]
   end
 
@@ -69,7 +69,6 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
     mac0 == mac1 or die :MAC_ERROR, "#{xdump[mac0]} : #{xdump[mac1]}"
 
     debug( "MAC                    : #{xdump[mac0]}" )
-
   end
 
   def buffered_read(bytes)

@@ -16,7 +16,7 @@ module GMRW::Utils::Observable
   end
 
   def notify_observers(event, *a, &b)
-    observers[event][*a, &b]
+    observers[event].call(*a, &b)
   end
 end
 

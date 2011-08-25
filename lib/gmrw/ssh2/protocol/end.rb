@@ -7,6 +7,7 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
+require 'gmrw/utils/observable'
 require 'gmrw/ssh2/algorithm/cipher'
 require 'gmrw/ssh2/algorithm/hmac'
 require 'gmrw/ssh2/algorithm/compressor'
@@ -15,17 +16,16 @@ module GMRW; module SSH2; module Protocol
   class End < Hash
     include GMRW
     include Utils::Loggable
-
-    def initialize(service)
-      @service = service
-    end
+    include Utils::Observable
 
     private
+    property :service ; alias initialize service= 
+
     forward [:connection,
              :logger,
              :die,
              :send_message,
-             :message_catalog] => :@service
+             :message_catalog] => :service
 
     #
     # :section: connection read/write
@@ -49,34 +49,26 @@ module GMRW; module SSH2; module Protocol
     def read(n)
       n <= 0         ? ""                                              :
       n > READ_LIMIT ? die(:PROTOCOL_ERROR, "read len = #{n}, too big"):
-                       connection.read(n) or raise EORError
+                       connection.read(n) or raise EOFError
     rescue EOFError
       die :CONNECTION_LOST, "connection.read"
     end
 
     #
-    # :section: memoize messages / sequence number
+    # :section: messages / sequence number
     #
     property :seq_number, '0'
 
-    def []=(*)
+    def received(message) ; memo(:recv_message, message) ; end
+    def sent(message)     ; memo(:send_message, message) ; end
+
+    def memo(label, message)
+      info( "--> #{label}[#{seq_number}]: #{message.tag}" )
+      debug( "#{message.inspect}" )
+
+      notify_observers(label, message, :seq_number => seq_number)
+
       seq_number(seq_number.next % 0xffff_ffff)
-      super
-    end
-
-    def received(message)
-      info( "--> received[#{seq_number}]: #{message.tag}" )
-      debug( "#{message.inspect}" )
-
-      send_message :unimplemented,
-          :packet_sequence_number => seq_number unless message.tag
-        
-      self[message.tag] = message
-    end
-
-    def sent(message)
-      info( "sent[#{seq_number}] -->: #{message.tag}" )
-      debug( "#{message.inspect}" )
 
       self[message.tag] = message
     end

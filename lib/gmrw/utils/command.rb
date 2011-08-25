@@ -16,7 +16,7 @@ module GMRW; module Utils; class Command < Array
   end
 
   def call(*a, &b)
-    each {|cmd| cmd[*a, &b] }
+    each {|cmd| cmd.call(*a, &b) }
   end
 
   def [](*a, &b)

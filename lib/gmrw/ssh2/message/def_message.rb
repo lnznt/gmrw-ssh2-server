@@ -25,12 +25,15 @@ module GMRW; module SSH2; module Message
   end
 
   def def_message(tag, fields, info={})
-    requires = fields.map{|_,fn,*a|   [fn, a.grep(Hash )[0]]}.to_hash
+    requires = fields.map{|_,fn,_,*a| [fn, a.grep(Hash )[0]]}.to_hash
     choices  = fields.map{|_,fn,_,*a| [fn, a.grep(Array)[0]]}.to_hash
+    ifilter  = fields.map{|_,fn,_,*a| [fn, a.grep(Proc)[0]]}.to_hash 
 
     classes[tag] = Class.new(Hash) {
       define_method(:tag)    { tag           }
       define_method(:fields) { fields.freeze }
+
+      define_method(:ifilter) { ifilter }
 
       define_method(:appear?) do |fname|
         (requires[fname]||{}).all? {|f,v| self[f] == v }
@@ -42,6 +45,8 @@ module GMRW; module SSH2; module Message
 
       def []=(fname, val) 
         return unless appear?(fname)
+
+        val = (ifilter[fname] || proc {|v| v })[val]
 
         ok?(fname, val) or raise ArgumentError, "#{fname}: #{val}"
 
@@ -74,8 +79,6 @@ module GMRW; module SSH2; module Message
       end
 
     }.tap {|mclass|
-#      mclass.define_singleton_method(:number)   { fields[0][2]          }
-#      mclass.define_singleton_method(:category) { info[:category] || [nil] }
       c = class << mclass ; self ; end
       c.send(:define_method, :number)   { fields[0][2]             }
       c.send(:define_method, :category) { info[:category] || [nil] }

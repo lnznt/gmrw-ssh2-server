@@ -43,17 +43,27 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
     permit(:kexinit, :service_request, 50..79) { true }
     
-    #   start 'ssh-userauth' service
-    recv_message :service_request, :service_name => 'ssh-userauth'
-    send_message :service_accept,  :service_name => 'ssh-userauth'
-
-    #
-    # :section: SSH Authentication Protocol (see RFC4252 for details)
-    #
-    poll_message # (DUMMY): TODO: implementention
-
-    die :BY_APPLICATION, "SORRY!! NOT IMPLEMENT YET."
+    loop { poll_message } # (DUMMY): TODO: implementention
   end
+
+  #
+  # :section: message handler
+  #
+  def message_received(message, hints={})
+    case message.tag
+      when :service_request
+        # (DUMMY) : TODO implementention
+        send_message :service_accept, :service_name => message[:service_name]
+
+      when :ignore, :debug, :unimplemented
+        debug( "through: #{message.tag}" )
+
+      when :disconnect
+        die :PROTOCOL_ERROR, "disconnect message received"
+
+    end
+  end
+
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

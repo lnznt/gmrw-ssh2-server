@@ -5,29 +5,23 @@
 # License:: Ruby's
 #
 
-require 'gmrw/ssh2/message'
-
 module GMRW::SSH2::Protocol
-  module ErrorHandling
-    include GMRW
+  module Exception
+    class SSHError < RuntimeError
+      def initialize(tag, *msgs)
+        super [(@tag = tag).to_s, (@msg = msgs.map(&:to_s) * ': ')] * ': '
+      end
 
-    def die(tag, *msgs)
-      e = RuntimeError.new
-=begin
-      # for Ruby1.9
-      e.define_singleton_method(:call) do |service|
-        service.send_message :disconnect,
-                     SSH2::Message.DisconnectReason(tag, *msgs)
+      def call(service)
+        service.send_message :disconnect, :reason_code => @tag,
+                                          :description => @msg
       end
-=end
-      e.extend Module.new do
-        define_method(:call) do |service|
-          service.send_message :disconnect,
-                     SSH2::Message.DisconnectReason(tag, *msgs)
-        end
+    end
+
+    module Handling
+      def die(tag, *msgs)
+        raise SSHError.new(tag, *msgs)
       end
-          
-      raise e, ([tag.to_s] + msgs) * ': '
     end
   end
 end

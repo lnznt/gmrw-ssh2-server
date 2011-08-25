@@ -7,14 +7,12 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/utils/cascadable'
 require 'gmrw/ssh2/message'
 
 class GMRW::SSH2::Message::Catalog
   include GMRW::Utils::Loggable
-  include GMRW::Utils::Cascadable
 
-  alias initialize cascade
+  alias initialize logger=
 
   property_ro :category,   '[nil  ] * 256'
   property_ro :permission, '[false] * 256'

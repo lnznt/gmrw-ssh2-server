@@ -17,17 +17,13 @@ require 'gmrw/ssh2/algorithm/host_key'
 class GMRW::SSH2::Protocol::Transport
   include GMRW
   include Utils::Loggable
-  include SSH2::Protocol::ErrorHandling
+  include SSH2::Protocol::Exception::Handling
 
   #
   # :section: resources (Connection and Logger)
   #
-  attr_reader :connection
+  property    :connection ; alias initialize connection=
   property_ro :id, 'connection.object_id'
-
-  def initialize(conn)
-    @connection = conn
-  end
 
   def logger=(*)
     super.tap {|l| l.format {|*s| "[#{id}] #{s.map(&:to_s) * ': '}" }}
@@ -48,8 +44,9 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Message Catalog
   #
-  property_ro :message_catalog,
-                'SSH2::Message::Catalog.new {|ct| ct.logger = logger }'
+  #property_ro :message_catalog,
+  #              'SSH2::Message::Catalog.new {|ct| ct.logger = logger }'
+  property_ro :message_catalog, 'SSH2::Message::Catalog.new(logger)'
   forward [:permit, :change_algorithm] => :message_catalog
 
   #
@@ -66,21 +63,30 @@ class GMRW::SSH2::Protocol::Transport
   def start
     info( "SSH service start" )
 
+    reader.add_observer(:recv_message, &method(:message_received))
+    writer.add_observer(:send_message, &method(:message_sent))
+
     serve
+
+  rescue SSH2::Protocol::Exception::SSHError => e
+    e.call(self)
+    fatal( "#{e.class}: #{e}" )
+    debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
 
   rescue => e
     fatal( "#{e.class}: #{e}" )
     debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
-    e.call(self) rescue nil
 
   ensure
-    connection.shutdown rescue nil
-    connection.close    rescue nil
+    connection.shutdown
+    connection.close
     info( "SSH service terminated" )
   end
 
   private
   abstract_method :serve
+  def message_received(*) ; end
+  def message_sent(*) ; end
   
   #
   # :section: Protocol Version Exchange
@@ -111,14 +117,14 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   def negotiate_algorithms
-    algorithm.kex               = negotiate(:kex_algorithms)
-    algorithm.host_key          = negotiate(:server_host_key_algorithms)
-    client.algorithm.cipher     = negotiate(:encryption_algorithms_client_to_server)
-    server.algorithm.cipher     = negotiate(:encryption_algorithms_server_to_client)
-    client.algorithm.hmac       = negotiate(:mac_algorithms_client_to_server)
-    server.algorithm.hmac       = negotiate(:mac_algorithms_server_to_client)
-    client.algorithm.compressor = negotiate(:compression_algorithms_client_to_server)
-    server.algorithm.compressor = negotiate(:compression_algorithms_server_to_client)
+    algorithm.kex               = negotiate :kex_algorithms
+    algorithm.host_key          = negotiate :server_host_key_algorithms
+    client.algorithm.cipher     = negotiate :encryption_algorithms_client_to_server
+    server.algorithm.cipher     = negotiate :encryption_algorithms_server_to_client
+    client.algorithm.hmac       = negotiate :mac_algorithms_client_to_server
+    server.algorithm.hmac       = negotiate :mac_algorithms_server_to_client
+    client.algorithm.compressor = negotiate :compression_algorithms_client_to_server
+    server.algorithm.compressor = negotiate :compression_algorithms_server_to_client
 
     debug( "kex               : #{algorithm.kex}"               )
     debug( "host_key          : #{algorithm.host_key}"          )
@@ -129,8 +135,8 @@ class GMRW::SSH2::Protocol::Transport
     debug( "client.compressor : #{client.algorithm.compressor}" )
     debug( "server.compressor : #{server.algorithm.compressor}" )
 
-    kex( SSH2::Algorithm::Kex[algorithm.kex] )
-    host_key( SSH2::Algorithm::HostKey[algorithm.host_key] )
+    kex       SSH2::Algorithm::Kex[algorithm.kex]
+    host_key  SSH2::Algorithm::HostKey[algorithm.host_key]
   end
 
   def negotiate(name)
@@ -142,8 +148,7 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Key Exchange
   #
   def do_kex
-    @k, @hash, = kex.start(self)
-    @session_id ||= @hash
+    @k, @hash, = kex.start(self) ; @session_id ||= @hash
   end
 
   def keys_into_use
@@ -155,8 +160,8 @@ class GMRW::SSH2::Protocol::Transport
       y
     end
 
-    client.keys_into_use(:iv => key<<"A", :key => key<<"C", :mac => key<<"E")
-    server.keys_into_use(:iv => key<<"B", :key => key<<"D", :mac => key<<"F")
+    client.keys_into_use :iv => key<<"A", :key => key<<"C", :mac => key<<"E"
+    server.keys_into_use :iv => key<<"B", :key => key<<"D", :mac => key<<"F"
   end
 end
 
