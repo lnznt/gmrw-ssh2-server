@@ -9,11 +9,9 @@ require 'gmrw/ssh2/message/def_message'
 
 # see RFC4419 for details
 module GMRW::SSH2::Message
-  def_message :key_dh_gex_request, [
-    [ :byte,    :type, 34 ],
-    [ :uint32,  :min      ],
-    [ :uint32,  :n        ],
-    [ :uint32,  :max      ],
+  def_message :kex_dh_gex_init, [
+    [ :byte,  :type, 32 ],
+    [ :mpint, :e        ],
   ],
   :category => ['diffie-hellman-group-exchange-sha1','diffie-hellman-group-exchange-sha256']
 end

@@ -54,6 +54,20 @@ module GMRW; module SSH2; module Message
       end
 
       public
+      def number
+        self.class.number
+      end
+
+      def layer
+        ( 1.. 49).include?(number) ? :ssh_transport  :
+        (50.. 79).include?(number) ? :ssh_userauth   :
+        (80..127).include?(number) ? :ssh_connection : nil
+      end
+
+      def ssh_transport?  ; layer == :ssh_transport  ; end
+      def ssh_userauth?   ; layer == :ssh_userauth   ; end
+      def ssh_connection? ; layer == :ssh_connection ; end
+
       def []=(fname, val) 
         ftype = search_ftype(fname) or return
 

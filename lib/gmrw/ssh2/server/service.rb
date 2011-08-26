@@ -8,6 +8,7 @@
 require 'gmrw/extension/all'
 require 'gmrw/ssh2/protocol/transport'
 require 'gmrw/ssh2/server/config'
+require 'gmrw/ssh2/server/userauth'
 
 class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   include GMRW
@@ -61,9 +62,10 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     end
   end
 
-  property :not_in_service, 'NotInService.new(self)'
-  property :ssh_userauth,   :not_in_service
-  property :ssh_connection, :not_in_service
+  property_ro :not_in_service, 'NotInService.new(self)'
+  property    :ssh_userauth,   'SSH2::Server::UserAuth.new(self)'
+  property    :ssh_connection, :not_in_service
+  property    :ssh_service,    :not_in_service
 
   def message_received(message, hints={})
     case message.tag
@@ -77,21 +79,18 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
         die :PROTOCOL_ERROR, "unimplemented message received"
 
       when :service_request
-        ssh_service = {
+        ssh_service( {
           'ssh-userauth'   => ssh_userauth,
           'ssh-connection' => ssh_connection,
-        }[message[:service_name]] || not_in_service
+        }[message[:service_name]] || not_in_service )
 
         ssh_service.service_request_received(message, hints)
 
       when :service_accept
         send_message :unimplemented, :packet_sequence_number => hints[:sequence_number]
 
-      when 50..79
-        ssh_userauth.message_received(message, hints)
-
-      when 80..127
-        ssh_connection.message_received(message, hints)
+      else
+        message.ssh_transport? ? :through : ssh_service.message_received(message, hints)
     end
   end
 

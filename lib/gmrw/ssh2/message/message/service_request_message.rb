@@ -9,8 +9,8 @@ require 'gmrw/ssh2/message/def_message'
 
 module GMRW::SSH2::Message
   def_message :service_request, [
-    [ :byte,   :type,           5                               ],
-    [ :string, :service_name, nil, %w[ssh-userauth ssh-connect] ],
+    [ :byte,   :type         ,5 ],
+    [ :string, :service_name    ]
   ]
 end
 

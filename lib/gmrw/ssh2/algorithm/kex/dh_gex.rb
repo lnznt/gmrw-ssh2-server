@@ -21,19 +21,19 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     # :section: DH Key Agreement
     #
     def agree
-      send_message :key_dh_gex_group, :p => dh.p, :g => dh.g
+      send_message :kex_dh_gex_group, :p => dh.p, :g => dh.g
 
-      send_message :key_dh_gex_reply,
+      send_message :kex_dh_gex_reply,
             :host_key_and_certificates => k_s,
             :f                         => f,
             :signature_of_hash         => s
     end
 
-    property_ro :max, 'client.message(:key_dh_gex_request)[:max]'
-    property_ro :n,   'client.message(:key_dh_gex_request)[:n  ]'
-    property_ro :min, 'client.message(:key_dh_gex_request)[:min]'
+    property_ro :max, 'client.message(:kex_dh_gex_request)[:max]'
+    property_ro :n,   'client.message(:kex_dh_gex_request)[:n  ]'
+    property_ro :min, 'client.message(:kex_dh_gex_request)[:min]'
 
-    property_ro :e,   'client.message(:key_dh_gex_init)[:e]'
+    property_ro :e,   'client.message(:kex_dh_gex_init)[:e]'
 
     def h
       pack([:string, v_c  ],

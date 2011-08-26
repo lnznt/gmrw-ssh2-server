@@ -9,7 +9,7 @@ require 'gmrw/ssh2/message/def_message'
 
 # see RFC4419 for details
 module GMRW::SSH2::Message
-  def_message :key_dh_gex_group, [
+  def_message :kex_dh_gex_group, [
     [ :byte,    :type, 31 ],
     [ :mpint,   :p      ],
     [ :mpint,   :g      ],

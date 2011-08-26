@@ -102,7 +102,7 @@ module GMRW; module SSH2; module Protocol
         'Struct.new(:cipher, :hmac, :compressor).new("none","none","none")'
 
     def keys_into_use(keys)
-      debug( "keys into use" )
+      debug( "new keys into use" )
 
       @keys = keys
 

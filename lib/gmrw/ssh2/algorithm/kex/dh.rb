@@ -76,7 +76,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     property_ro :k,             'encode(:mpint, shared_secret)'
 
     property_ro :hash,          'digest(h)'
-    property_ro :s,             'host_key.to_signature(hash)'
+    property_ro :s,             'host_key.dumped_sign(hash)'
 
     #
     # :section: DH Key Agreement

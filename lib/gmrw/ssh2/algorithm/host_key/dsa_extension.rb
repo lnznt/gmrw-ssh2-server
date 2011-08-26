@@ -27,7 +27,7 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
       a.count < 2 ? sign(digester.new, a[0]) : super
     end
 
-    def to_signature(*a)
+    def dumped_sign(*a)
       a1 = OpenSSL::ASN1.decode(sign(*a)) # DER expression => Ruby's object
 
       s = a1.value.map  {|v| v.value.to_s(2)}.

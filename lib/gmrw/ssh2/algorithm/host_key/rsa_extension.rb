@@ -25,7 +25,7 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
       a.count < 2 ? sign(digester.new, a[0]) : super
     end
 
-    def to_signature(*a)
+    def dumped_sign(*a)
       SSH2::Message::Field.pack [:string, 'ssh-rsa'],
                                 [:string, sign(*a) ]
     end
