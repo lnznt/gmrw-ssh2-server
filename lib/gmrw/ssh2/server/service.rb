@@ -28,7 +28,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     permit(50..127, :service_request) { false }
 
     #   algorithm negotiation
-    send_kexinit and negotiate_algorithms
+    send_message :kexinit and negotiate_algorithms
     change_algorithm :kex => algorithm.kex
 
     #   key exchange

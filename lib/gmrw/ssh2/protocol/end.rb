@@ -86,29 +86,13 @@ module GMRW; module SSH2; module Protocol
     #
     # :section: encryption / mac / compression
     #
-    def block_size
-      @block_size ||= SSH2::Algorithm::Cipher.block_size(algorithm.cipher)
-    end
-
-    def encrypt
-      @encrypt ||= SSH2::Algorithm::Cipher.get_encrypt(algorithm.cipher, @keys)
-    end
-
-    def decrypt
-      @decrypt ||= SSH2::Algorithm::Cipher.get_decrypt(algorithm.cipher, @keys)
-    end
-
-    def hmac
-      @hmac ||= SSH2::Algorithm::HMAC.get(algorithm.hmac, @keys)
-    end
-
-    def compress
-      @compress ||= SSH2::Algorithm::Compressor.get_compress(algorithm.compressor)
-    end
-
-    def decompress
-      @decompress ||= SSH2::Algorithm::Compressor.get_decompress(algorithm.compressor)
-    end
+    include SSH2::Algorithm
+    property_rov :block_size, 'Cipher.block_size(algorithm.cipher)'
+    property_rov :encrypt,    'Cipher.get_encrypt(algorithm.cipher, @keys)'
+    property_rov :decrypt,    'Cipher.get_decrypt(algorithm.cipher, @keys)'
+    property_rov :hmac,       'HMAC.get(algorithm.hmac, @keys)'
+    property_rov :compress,   'Compressor.get_compress(algorithm.compressor)'
+    property_rov :decompress, 'Compressor.get_decompress(algorithm.compressor)'
 
     property :block_align,'proc {|n| n.align(block_size) }'
     property :compute_mac,'proc {|pkt| hmac[ [seq_number, pkt].pack("Na*") ] }'
@@ -118,10 +102,12 @@ module GMRW; module SSH2; module Protocol
         'Struct.new(:cipher, :hmac, :compressor).new("none","none","none")'
 
     def keys_into_use(keys)
+      debug( "keys into use" )
+
       @keys = keys
 
       @block_size =
-      @encrypt    = @decrypt    =
+      @encrypt    = @decrypt =
       @hmac       =
       @compress   = @decompress = nil
     end

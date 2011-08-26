@@ -44,8 +44,6 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Message Catalog
   #
-  #property_ro :message_catalog,
-  #              'SSH2::Message::Catalog.new {|ct| ct.logger = logger }'
   property_ro :message_catalog, 'SSH2::Message::Catalog.new(logger)'
   forward [:permit, :change_algorithm] => :message_catalog
 
@@ -111,20 +109,6 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Algorithm Negotiation
   #
-  def send_kexinit
-    send_message :kexinit, [
-        :kex_algorithms,
-        :server_host_key_algorithms,
-        :encryption_algorithms_client_to_server,
-        :encryption_algorithms_server_to_client,
-        :mac_algorithms_client_to_server,
-        :mac_algorithms_server_to_client,
-        :compression_algorithms_client_to_server,
-        :compression_algorithms_server_to_client  ].map {|name|
-            [name, SSH2.config.algorithms[name.to_s] ]
-        }.to_hash
-  end
-
   def negotiate_algorithms
     algorithm.kex               = negotiate :kex_algorithms
     algorithm.host_key          = negotiate :server_host_key_algorithms

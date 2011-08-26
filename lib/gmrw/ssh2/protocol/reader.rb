@@ -29,7 +29,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
     poll_message until self[tag] ; self[tag]
   end
 
-  def poll_message(&block)
+  def poll_message
     info( "poll_message ...." )
 
     received SSH2::Message.build(payload) { message_catalog }

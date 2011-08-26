@@ -23,6 +23,7 @@ module GMRW::Extension
           :va_arg   => "def #{name}(*args, &block)",
           :default  => "instance_variable_defined?(:@#{name})" +
                           " or (@#{name} = (#{default}))",
+          :nvl      => "@#{name} = (#{default}) if @#{name}.nil?",
           :return   => "@#{name}",
           :set_val  => "@#{name} = args.empty? ? (block || @#{name}) : args[0]",
           :end      => "end",
@@ -34,10 +35,11 @@ module GMRW::Extension
     end
 
     public
-    define_property :property_ro,  [:no_arg, :default, :return,  :end]
-    define_property :property_rw,  [:va_arg, :default, :set_val, :end]
-    define_property :property_roa, [:no_arg, :default, :return,  :end, :attr_w]
-    define_property :property_rwa, [:va_arg, :default, :set_val, :end, :attr_w]
+    define_property :property_ro,  [:no_arg, :default,       :return,  :end]
+    define_property :property_rov, [:no_arg, :default, :nvl, :return,  :end]
+    define_property :property_rw,  [:va_arg, :default,       :set_val, :end]
+    define_property :property_roa, [:no_arg, :default,       :return,  :end, :attr_w]
+    define_property :property_rwa, [:va_arg, :default,       :set_val, :end, :attr_w]
 
     alias property property_rwa
   end
