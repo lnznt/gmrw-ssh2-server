@@ -13,6 +13,10 @@ module GMRW::Extension
     def presence
       (self && !empty?) ? self : nil
     end
+
+    def try(*a, &b)
+      send(*a, &b)
+    end
   end
 
   mixin Object do

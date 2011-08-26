@@ -12,14 +12,21 @@ module GMRW; module SSH2; module Algorithm
     include GMRW
     extend self
 
-    property_ro :block_size, 'Hash.new{|h,name| h[name] = new(name).block_size}'
+    #property_ro :block_size, 'Hash.new{|h,name| h[name] = new(name).block_size}'
+    def block_size(name)
+      name == 'none' ? 8 : new(name).block_size
+    end
 
     def get_encrypt(*a) ; get(:encrypt, *a) ; end
     def get_decrypt(*a) ; get(:decrypt, *a) ; end
 
     private
-    def get(enc_or_dec, cipher_name, keys)
-      cipher = new(cipher_name)
+    def get(enc_or_dec, name, keys)
+      name == 'none' ? proc {|s| s } : get_cipher(enc_or_dec, name, keys)
+    end
+
+    def get_cipher(enc_or_dec, name, keys)
+      cipher = new(name)
       cipher.send(enc_or_dec)
       cipher.padding = 0
       cipher.iv  = keys[:iv ][cipher.iv_len ]

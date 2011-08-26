@@ -20,62 +20,60 @@ module GMRW; module SSH2; module Message
 
   def create(tag, data={})
     classes.fetch(tag).new(data)
-  rescue KeyError
-    null
   end
 
   def def_message(tag, fields, info={})
-    requires = fields.map{|_,fn,_,*a| [fn, a.grep(Hash )[0]]}.to_hash
-    choices  = fields.map{|_,fn,_,*a| [fn, a.grep(Array)[0]]}.to_hash
-    ifilter  = fields.map{|_,fn,_,*a| [fn, a.grep(Proc)[0]]}.to_hash 
+    options = fields.map {|_,fname,_,*a|
+      [fname, {:requires  => a.grep(Hash )[0] || {},
+               :choices   => a.grep(Array)[0],
+               :converter => a.grep(Proc )[0] || proc {|v| v }} ]
+    }.to_hash
 
     classes[tag] = Class.new(Hash) {
-      define_method(:tag)    { tag           }
-      define_method(:fields) { fields.freeze }
+      define_method(:tag)       { tag           }
+      private
+      define_method(:fields)    { fields.freeze }
+      define_method(:requires)  {|fname| options[fname][:requires ] }
+      define_method(:converter) {|fname| options[fname][:converter] }
+      define_method(:choices)   {|fname| options[fname][:choices]   }
 
-      define_method(:ifilter) { ifilter }
-
-      define_method(:appear?) do |fname|
-        (requires[fname]||{}).all? {|f,v| self[f] == v }
+      def avail_fields
+        fields.select{|_,fname,| requires(fname).all?{|f,v| self[f] == v } }
       end
 
-      define_method(:ok?) do |fname, val|
-        !(cs = choices[fname]) || cs.include?(val)
+      def search_ftype(fname)
+        avail_fields.rassoc(fname).try(:[], 0)
       end
 
+      def convert(ftype, fname, val)
+        converter(fname)[ val.nil? ? Field.default(ftype) : val ]
+      end
+
+      def verify(ftype, fname, val)
+        (!(c = choices(fname)) || c.include?(val)) && Field.validate(ftype, val)
+      end
+
+      public
       def []=(fname, val) 
-        return unless appear?(fname)
+        ftype = search_ftype(fname) or return
 
-        val = (ifilter[fname] || proc {|v| v })[val]
+        val = convert(ftype, fname, val)
 
-        ok?(fname, val) or raise ArgumentError, "#{fname}: #{val}"
-
-        ftype = (fields.rassoc(fname) || [])[0]
-        Field.validate(ftype, val) or raise TypeError, "#{fname}:#{val}"
+        verify(ftype, fname, val) or raise TypeError, "#{fname}:#{val}"
         super
       end
 
       def initialize(data={})
-        fields.each do |ftype, fname, fval,|
-          next unless appear?(fname)
-
-          self[fname] = case data
-            when String
-              val, data = Field.decode(ftype, data)
-              val
-            else
-              !data[fname].nil?       ? data[fname]     :
-              fval.respond_to?(:call) ? fval.call(self) :
-              !fval.nil?              ? fval            :
-                                        Field.default(ftype)
-          end
-        end
+        avail_fields.each {|ftype, fname, fval,|
+          self[fname], data = data.respond_to?(:to_str) ? Field.decode(ftype, data):
+                              !data[fname].nil?         ? [data[fname],     data]  :
+                              fval.respond_to?(:call)   ? [fval.call(self), data]  :
+                                                          [fval,            data]
+        }
       end
 
       def dump
-        fields.map {|ftype, fname,|
-          Field.encode(ftype, self[fname]) if appear?(fname)
-        }.compact.join
+        avail_fields.map{|ftype, fname,| Field.encode(ftype, self[fname]) }.join
       end
 
     }.tap {|mclass|

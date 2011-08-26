@@ -24,8 +24,8 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     protocol_version_exchange
 
     #   start binay packet protocol
-    permit(1..49                            ) { true  }
-    permit(:service_request, :service_accept) { false }
+    permit                            { true  }
+    permit(50..127, :service_request) { false }
 
     #   algorithm negotiation
     send_kexinit and negotiate_algorithms
@@ -41,29 +41,68 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
     keys_into_use
 
-    permit(:kexinit, :service_request, 50..79) { true }
-    
-    loop { poll_message } # (DUMMY): TODO: implementention
+    permit(:kexinit, :service_request) { true }
+
+    loop { poll_message }
   end
 
   #
   # :section: message handler
   #
-  def message_received(message, hints={})
-    case message.tag
-      when :service_request
-        # (DUMMY) : TODO implementention
-        send_message :service_accept, :service_name => message[:service_name]
+  class NotInService
+    property :service ; alias initialize service=
 
-      when :ignore, :debug, :unimplemented
-        debug( "through: #{message.tag}" )
+    def service_request_received(message, hints={})
+      service.die :SERVICE_NOT_AVAILABLE, "not in service: #{message[:service_name]}"
+    end
 
-      when :disconnect
-        die :PROTOCOL_ERROR, "disconnect message received"
-
+    def message_received(message, hints={})
+      service.die :SERVICE_NOT_AVAILABLE, "#{message.tag}"
     end
   end
 
+  property :not_in_service, 'NotInService.new(self)'
+  property :ssh_userauth,   :not_in_service
+  property :ssh_connection, :not_in_service
+
+  def message_received(message, hints={})
+    case message.tag
+      when :disconnect
+        raise "disconnect message received"
+
+      when :ignore, :debug
+        debug( "through: #{message.tag}" )
+
+      when :unimplemented
+        die :PROTOCOL_ERROR, "unimplemented message received"
+
+      when :service_request
+        ssh_service = {
+          'ssh-userauth'   => ssh_userauth,
+          'ssh-connection' => ssh_connection,
+        }[message[:service_name]] || not_in_service
+
+        ssh_service.service_request_received(message, hints)
+
+      when :service_accept
+        send_message :unimplemented, :packet_sequence_number => hints[:sequence_number]
+
+      when 50..79
+        ssh_userauth.message_received(message, hints)
+
+      when 80..127
+        ssh_connection.message_received(message, hints)
+    end
+  end
+
+  def message_forbidden(e, *)
+    die :PROTOCOL_ERROR, "forbidden message received: #{e}"
+  end
+
+  def message_not_found(e, hints={})
+    info( "message unimplemented: #{e}" )
+    send_message :unimplemented, :packet_sequence_number => hints[:sequence_number]
+  end
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

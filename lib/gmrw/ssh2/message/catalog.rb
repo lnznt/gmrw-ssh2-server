@@ -10,7 +10,8 @@ require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/message'
 
 class GMRW::SSH2::Message::Catalog
-  include GMRW::Utils::Loggable
+  include GMRW
+  include Utils::Loggable
 
   alias initialize logger=
 
@@ -18,17 +19,16 @@ class GMRW::SSH2::Message::Catalog
   property_ro :permission, '[false] * 256'
 
   def change_algorithm(hash)
-    hash.each do |cate, algo|
-      range = {:kex => 30..49, :auth => 60..79}[cate]
-      category.fill(algo, range)
+    hash.each_pair do |cate, algo|
+      category.fill(algo, {:kex => 30..49, :auth => 60..79}[cate] || cate)
 
-      debug( "message mode (#{range}) => #{algo}" )
+      debug( "message mode (#{cate}) => #{algo}" )
     end
   end
 
   def permit(*nums)
     (nums.presence || [0..255]).each do |num|
-      num = ((m = GMRW::SSH2::Message.classes[tag=num]) && m.number) || num
+      num = SSH2::Message.classes[tag=num].try(:number) || num
 
       permission[num] = num.respond_to?(:count) ? [yield] * num.count : yield
 
@@ -36,22 +36,20 @@ class GMRW::SSH2::Message::Catalog
     end
   end
 
-  def permit?(number)
-    permission[number].tap do |pm|
-      pm or error("permission denide: message ##{number}")
-    end
-  end
-
   def search(number)
     permit?(number) && search_tag(number)
   end
 
+  private
+  def permit?(number)
+    permission[number] or raise SSH2::Message::ForbiddenMessage, number.to_s
+  end
+
   def search_tag(number)
-   debug( "search tag: #{number}" )
-   GMRW::SSH2::Message.classes.select {|tag, mclass|
-      mclass.number == number &&
-      mclass.category.include?(category[number])
-    }.map {|tag,| tag }[0]
+    debug( "search tag: #{number}" )
+    SSH2::Message.classes.select {|tag, mclass|
+      mclass.number == number && mclass.category.include?(category[number])
+    }.map {|tag,| tag }[0] or raise SSH2::Message::MessageNotFound, number.to_s
   end
 end
 

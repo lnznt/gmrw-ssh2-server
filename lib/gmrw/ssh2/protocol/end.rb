@@ -5,6 +5,7 @@
 # License:: Ruby's
 #
 
+require 'timeout'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/utils/observable'
@@ -22,15 +23,15 @@ module GMRW; module SSH2; module Protocol
     property :service ; alias initialize service= 
 
     forward [:connection,
-             :logger,
-             :die,
-             :send_message,
+             :logger, :die,
              :message_catalog] => :service
 
     #
     # :section: connection read/write
     #
     EOL = "\r\n"
+    READ_SIZE_LIMIT = 35000 # in octets(bytes)
+    READ_WAIT_LIMIT = 3600  # in seconds
 
     def puts(s)
       write(s + EOL) ; s
@@ -41,17 +42,22 @@ module GMRW; module SSH2; module Protocol
     end
 
     def gets
-      (connection.gets || "") - /#{EOL}\z/
+      timeout(READ_WAIT_LIMIT) do
+        (connection.gets or raise EOFError) - /#{EOL}\z/
+      end
+    rescue EOFError       ; raise "connection EOF"
+    rescue Timeout::Error ; raise "connection timeout"
     end
 
-    READ_LIMIT = 35000
-
     def read(n)
-      n <= 0         ? ""                                              :
-      n > READ_LIMIT ? die(:PROTOCOL_ERROR, "read len = #{n}, too big"):
-                       connection.read(n) or raise EOFError
-    rescue EOFError
-      die :CONNECTION_LOST, "connection.read"
+      timeout(READ_WAIT_LIMIT) do
+        n <= 0              ? ""                                      :
+        n > READ_SIZE_LIMIT ?                       raise(RangeError) :
+                              connection.read(n) or raise(EOFError)
+      end
+    rescue EOFError       ; die :CONNECTION_LOST, "connection EOF"
+    rescue RangeError     ; die :PROTOCOL_ERROR, "read len error:#{n}"
+    rescue Timeout::Error ; die :PROTOCOL_ERROR, "connection timeout"
     end
 
     #
@@ -80,29 +86,44 @@ module GMRW; module SSH2; module Protocol
     #
     # :section: encryption / mac / compression
     #
-    property :block_size, '8'
+    def block_size
+      @block_size ||= SSH2::Algorithm::Cipher.block_size(algorithm.cipher)
+    end
+
+    def encrypt
+      @encrypt ||= SSH2::Algorithm::Cipher.get_encrypt(algorithm.cipher, @keys)
+    end
+
+    def decrypt
+      @decrypt ||= SSH2::Algorithm::Cipher.get_decrypt(algorithm.cipher, @keys)
+    end
+
+    def hmac
+      @hmac ||= SSH2::Algorithm::HMAC.get(algorithm.hmac, @keys)
+    end
+
+    def compress
+      @compress ||= SSH2::Algorithm::Compressor.get_compress(algorithm.compressor)
+    end
+
+    def decompress
+      @decompress ||= SSH2::Algorithm::Compressor.get_decompress(algorithm.compressor)
+    end
+
     property :block_align,'proc {|n| n.align(block_size) }'
-    property :encrypt,    'proc {|x| x }'
-    property :decrypt,    'proc {|x| x }'
-    property :compress,   'proc {|x| x }'
-    property :decompress, 'proc {|x| x }'
-    property :hmac,       'proc {|x| "" }'
     property :compute_mac,'proc {|pkt| hmac[ [seq_number, pkt].pack("Na*") ] }'
 
     public
-    property_ro :algorithm, 'Struct.new(:cipher, :hmac, :compressor).new'
+    property_ro :algorithm,
+        'Struct.new(:cipher, :hmac, :compressor).new("none","none","none")'
 
-    include SSH2::Algorithm
     def keys_into_use(keys)
-      block_size  Cipher.block_size[algorithm.cipher]
+      @keys = keys
 
-      encrypt     Cipher.get_encrypt(algorithm.cipher, keys)
-      decrypt     Cipher.get_decrypt(algorithm.cipher, keys)
-
-      compress    Compressor.get_compress(  algorithm.compressor)
-      decompress  Compressor.get_decompress(algorithm.compressor)
-
-      hmac        HMAC.get(algorithm.hmac, &keys[:mac])
+      @block_size =
+      @encrypt    = @decrypt    =
+      @hmac       =
+      @compress   = @decompress = nil
     end
   end
 end; end; end

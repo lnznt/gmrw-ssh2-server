@@ -63,8 +63,10 @@ class GMRW::SSH2::Protocol::Transport
   def start
     info( "SSH service start" )
 
-    reader.add_observer(:recv_message, &method(:message_received))
     writer.add_observer(:send_message, &method(:message_sent))
+    reader.add_observer(:recv_message, &method(:message_received))
+    reader.add_observer(:forbidden_message_error, &method(:message_forbidden))
+    reader.add_observer(:message_not_found_error, &method(:message_not_found))
 
     serve
 
@@ -74,6 +76,7 @@ class GMRW::SSH2::Protocol::Transport
     debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
 
   rescue => e
+    connection.puts e.to_s
     fatal( "#{e.class}: #{e}" )
     debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
 
@@ -85,15 +88,21 @@ class GMRW::SSH2::Protocol::Transport
 
   private
   abstract_method :serve
-  def message_received(*) ; end
-  def message_sent(*) ; end
-  
+
+  #
+  # :section: Message Handlers
+  #
+  def message_sent(*)      ; end
+  def message_received(*)  ; end
+  def message_forbidden(*) ; end
+  def message_not_found(*) ; end
+
   #
   # :section: Protocol Version Exchange
   #
   def protocol_version_exchange
     local.version.compatible?(peer.version) or
-        die :PROTOCOL_VERSION_NOT_SUPPORTED, "#{peer.version}"
+                        raise "Protocol mismatch: #{peer.version}"
 
     info( "local version: #{local.version}" )
     info( "peer  version: #{peer. version}" )
@@ -135,8 +144,8 @@ class GMRW::SSH2::Protocol::Transport
     debug( "client.compressor : #{client.algorithm.compressor}" )
     debug( "server.compressor : #{server.algorithm.compressor}" )
 
-    kex       SSH2::Algorithm::Kex[algorithm.kex]
-    host_key  SSH2::Algorithm::HostKey[algorithm.host_key]
+    kex       SSH2::Algorithm::Kex.get(algorithm.kex)
+    host_key  SSH2::Algorithm::HostKey.get(algorithm.host_key)
   end
 
   def negotiate(name)

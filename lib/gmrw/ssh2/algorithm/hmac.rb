@@ -11,7 +11,12 @@ module GMRW; module SSH2; module Algorithm
   module HMAC
     extend self
 
-    def get(name)
+    def get(name, keys)
+      name == 'none' ? proc {|s| "" } : get_mac(name, &keys[:mac])
+    end
+
+    private
+    def get_mac(name)
       (d, key_len, mac_len = {
         'hmac-md5'     => [OpenSSL::Digest::MD5,  16, 16],
         'hmac-md5-96'  => [OpenSSL::Digest::MD5,  16, 12],

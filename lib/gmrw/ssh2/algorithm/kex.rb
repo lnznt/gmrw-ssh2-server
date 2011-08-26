@@ -14,7 +14,7 @@ module GMRW; module SSH2; module Algorithm
     include GMRW
     extend self
 
-    def [](name)
+    def get(name)
       params = {
         'diffie-hellman-group1-sha1'           => {:group => :group1,  :digester => :SHA1  },
         'diffie-hellman-group14-sha1'          => {:group => :group14, :digester => :SHA1  },

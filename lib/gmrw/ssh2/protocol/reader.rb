@@ -26,14 +26,18 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   end
 
   def message(tag)
-    poll_message until self[tag]
-    self[tag]
+    poll_message until self[tag] ; self[tag]
   end
 
-  def poll_message
+  def poll_message(&block)
     info( "poll_message ...." )
 
     received SSH2::Message.build(payload) { message_catalog }
+
+  rescue SSH2::Message::ForbiddenMessage => e
+    notify_observers(:forbidden_message_error, e, :sequence_number => seq_number)
+  rescue SSH2::Message::MessageNotFound => e
+    notify_observers(:message_not_found_error, e, :sequence_number => seq_number)
   end
 
   #

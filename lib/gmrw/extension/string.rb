@@ -6,15 +6,14 @@
 #
 
 require 'gmrw/extension/extension'
-require 'gmrw/extension/array'
-require 'gmrw/extension/integer'
+require 'gmrw/extension/all'
 
 module GMRW::Extension
   compatibility String do
     def at(pos)
       self[pos, 1]
     end
-=begin
+
     def camelize(first_letter_in_uppercase = true)
       first_letter_in_uppercase ? upper_camelize : lower_camelize
     end
@@ -31,7 +30,6 @@ module GMRW::Extension
     def path_to_namespace
       gsub(/\//, '::')
     end
-=end
   end
 
   mixin String do
@@ -73,7 +71,7 @@ module GMRW::Extension
     end
 
     def mapping(*names)
-      (parsed = parse(yield)) and parsed.mapping(*names)
+      parse(yield).try(:mapping, *names)
     end
   end
 end
