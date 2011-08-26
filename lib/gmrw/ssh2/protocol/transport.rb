@@ -141,7 +141,7 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Key Exchange
   #
   def do_kex
-    @secret, @hash, = kex.start(self) ; @session_id ||= @hash
+    @secret, @hash, = kex.key_exchange(self) ; @session_id ||= @hash
   end
 
   def keys_into_use

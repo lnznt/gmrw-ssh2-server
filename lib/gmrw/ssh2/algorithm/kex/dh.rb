@@ -53,7 +53,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     end
 
     public
-    def start(service)
+    def key_exchange(service)
       @service = service
 
       ready ; agree
