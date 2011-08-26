@@ -10,20 +10,17 @@ require 'gmrw/extension/all'
 module GMRW; module SSH2; module Message; module Field
   extend self
   def default(ftype)
-    case ftype
+    case n=ftype
       when :boolean              ; false
       when :byte,:uint32,:uint64 ; 0
       when :mpint                ; OpenSSL::BN.new(0.to_s)
       when :string               ; ""
       when :namelist             ; []
-      when Integer               ; [0] * ftype 
+      when Integer               ; [0] * n 
     end
   end
 
   def validate(ftype, x)
-    check = proc {|val, *ts| ts.all? {|t| t === val }}
-    all   = proc {|a, t| a.all? {|e| t[e] } }
-
     # see RFC4250 (4.6.1) for details
     is_name = proc {|s| s.kind_of?(String)           &&
                         s =~ /\A[[:graph:]]{1,64}\z/ &&
@@ -32,21 +29,20 @@ module GMRW; module SSH2; module Message; module Field
 
     is_byte = proc {|b| validate(:byte, b) }
 
-    case ftype
+    case n=ftype
       when :boolean  ; x == true || x == false
-      when :byte     ; check[x, Integer, 0...(1<< 8)]
-      when :uint32   ; check[x, Integer, 0...(1<<32)]
-      when :uint64   ; check[x, Integer, 0...(1<<64)]
-      when :mpint    ; check[x, OpenSSL::BN]
-      when :string   ; check[x, String ]
-      when :namelist ; check[x, Array  ] && all[x, is_name]
-      when Integer   ; check[x, Array  ] && all[x, is_byte] && x.count == ftype
-      else           ; false
+      when :byte     ; x.kind_of?(Integer) && (0...(1<< 8)).include?(x)
+      when :uint32   ; x.kind_of?(Integer) && (0...(1<<32)).include?(x)
+      when :uint64   ; x.kind_of?(Integer) && (0...(1<<64)).include?(x)
+      when :mpint    ; x.kind_of?(OpenSSL::BN)
+      when :string   ; x.kind_of?(String)
+      when :namelist ; x.kind_of?(Array) && x.all? {|s| is_name[s] }
+      when Integer   ; x.kind_of?(Array) && x.all? {|b| is_byte[b] } && x.count == n
     end
   end
 
   def decode(ftype, str)
-    case ftype
+    case n=ftype
       when :byte     ; b, s  = str.unpack("Ca*")    ; b && [b,       s]
       when :uint32   ; n, s  = str.unpack("Na*")    ; n && [n,       s]
       when :uint64   ; n,m,s = str.unpack("NNa*")   ; m && [n<<32|m, s]
@@ -54,7 +50,7 @@ module GMRW; module SSH2; module Message; module Field
       when :string   ; n, s  = decode(:uint32, str) ; s/n if n && s.length >= n
       when :mpint    ; b, s  = decode(:string, str) ; b && [b2n(b),         s]
       when :namelist ; l, s  = decode(:string, str) ; l && [l.split(","),   s]
-      when Integer   ; ((b,s = str / ftype) and (b && s && [b.unpack("C*"), s]))
+      when Integer   ; ((b,s = str / n) and (b && s && [b.unpack("C*"), s]))
     end
   end
 
