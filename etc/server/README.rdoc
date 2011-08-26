@@ -1,0 +1,9 @@
+== example: How to make RSA Key File
+
+ $ openssl genrsa 1024 > rsa_key.pem
+
+== example: How to make DSA Key File
+
+ $ openssl dsaparam 1024 > dsa_keyparam.pem
+ $ openssl gendsa dsa_keyparam.pem > dsa_key.pem
+

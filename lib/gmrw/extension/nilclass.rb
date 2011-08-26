@@ -5,11 +5,11 @@
 # License:: Ruby's
 #
 
-module GMRW
-  module SSH2
-    module Server
-      DEFAULT_PORT = 50022
-    end
+require 'gmrw/extension/extension'
+
+module GMRW::Extension
+  compatibility NilClass do
+    def try(*) ; end
   end
 end
 

@@ -1,4 +1,4 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -6,25 +6,28 @@
 #
 
 require 'gserver'
-require 'gmrw/extension/module'
-require 'gmrw/ssh2/server/constants'
+require 'gmrw/extension/all'
+require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/server/service'
 
 class GMRW::SSH2::Server::GServer < ::GServer
-  include GMRW::SSH2
+  include GMRW
 
-  def initialize(port=Server::DEFAULT_PORT, *)
-    super
+  def initialize(*a)
+    super *(a.empty? ? [SSH2::Server::Config.listen[:port]] : a)
   end
 
   property :log_threshold, ':info'
 
   def serve(conn)
-    service                   = Server::Service.new(conn)
-    service.logger            = Server::GServer::Logger.new(self)
+    service                   = SSH2::Server::Service.new(conn)
+    service.logger            = GServerLogger.new(self)
     service.logger.threshold  = audit ? log_threshold : :any
 
     service.start
+
+  rescue => e
+    log("#{e.class}: #{e}") ; raise
   end
 
   class << self
@@ -39,13 +42,13 @@ class GMRW::SSH2::Server::GServer < ::GServer
     end
   end
 
-  class Logger < ::GMRW::Utils::Logger
+  class GServerLogger < Utils::Logger
     private
-    def write(thr, sev, msg)
-      out.debug = (thr == :debug)
-      out.send(:log, "#{sev}: #{msg}")
+    def write(logger, *msgs)
+      out.debug = (logger.severity == :debug)
+      out.send(:log, "#{logger.severity}: " + logger.format[*msgs])
     end
   end
 end
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:

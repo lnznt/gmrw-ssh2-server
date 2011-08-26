@@ -1,49 +1,108 @@
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
 # License:: Ruby's
 #
 
-require 'gmrw/extension/string'
-require 'gmrw/utils/loggable'
-require 'gmrw/ssh2/server/constants'
+require 'gmrw/extension/all'
+require 'gmrw/ssh2/protocol/transport'
+require 'gmrw/ssh2/server/config'
 
-class GMRW::SSH2::Server::Service
-  include GMRW::Utils::Loggable
+class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
+  include GMRW
 
-  def initialize(conn)
-    @connection = conn
+  alias client peer
+  alias server local
+
+  def serve
+    SSH2.config(SSH2::Server::Config)
+
+    #
+    # :section: SSH Transport Layer Protocol (see RFC4253 for details)
+    #
+    protocol_version_exchange
+
+    #   start binay packet protocol
+    permit                            { true  }
+    permit(50..127, :service_request) { false }
+
+    #   algorithm negotiation
+    send_message :kexinit and negotiate_algorithms
+    change_algorithm :kex => algorithm.kex
+
+    #   key exchange
+    permit(:kexinit) { false }
+
+    do_kex
+
+    send_message :newkeys
+    recv_message :newkeys
+
+    keys_into_use
+
+    permit(:kexinit, :service_request) { true }
+
+    loop { poll_message }
   end
 
-  attr_reader :connection
+  #
+  # :section: message handler
+  #
+  class NotInService
+    property :service ; alias initialize service=
 
-  def id
-    connection.object_id
-  end
+    def service_request_received(message, hints={})
+      service.die :SERVICE_NOT_AVAILABLE, "not in service: #{message[:service_name]}"
+    end
 
-  def logger=(*)
-    super.tap do |l|
-      l.format {|*s| "[#{id}] #{s.map(&:to_s).join(': ')}" }
+    def message_received(message, hints={})
+      service.die :SERVICE_NOT_AVAILABLE, "#{message.tag}"
     end
   end
 
-  def start
-    info( "SSH service start" )
+  property :not_in_service, 'NotInService.new(self)'
+  property :ssh_userauth,   :not_in_service
+  property :ssh_connection, :not_in_service
 
-    #
-    # TODO : サービスの実装
-    #
+  def message_received(message, hints={})
+    case message.tag
+      when :disconnect
+        raise "disconnect message received"
 
-  rescue => e
-    fatal( "#{e.class}: #{e}" )
-    debug {|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
+      when :ignore, :debug
+        debug( "through: #{message.tag}" )
 
-  ensure
-    connection.shutdown rescue nil
-    connection.close    rescue nil
-    info( "SSH service terminated" )
+      when :unimplemented
+        die :PROTOCOL_ERROR, "unimplemented message received"
+
+      when :service_request
+        ssh_service = {
+          'ssh-userauth'   => ssh_userauth,
+          'ssh-connection' => ssh_connection,
+        }[message[:service_name]] || not_in_service
+
+        ssh_service.service_request_received(message, hints)
+
+      when :service_accept
+        send_message :unimplemented, :packet_sequence_number => hints[:sequence_number]
+
+      when 50..79
+        ssh_userauth.message_received(message, hints)
+
+      when 80..127
+        ssh_connection.message_received(message, hints)
+    end
+  end
+
+  def message_forbidden(e, *)
+    die :PROTOCOL_ERROR, "forbidden message received: #{e}"
+  end
+
+  def message_not_found(e, hints={})
+    info( "message unimplemented: #{e}" )
+    send_message :unimplemented, :packet_sequence_number => hints[:sequence_number]
   end
 end
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:

@@ -1,0 +1,23 @@
+# -*- coding: utf-8 -*-
+#
+# Author:: lnznt
+# Copyright:: (C) 2011 lnznt.
+# License:: Ruby's
+#
+
+require 'forwardable'
+require 'gmrw/extension/extension'
+
+module GMRW::Extension
+  mixin Forwardable do
+    def forward(delegation)
+      delegation.each_pair {|methods, to| def_delegators to, *methods }
+    end
+  end
+end
+
+class Module
+  include Forwardable
+end
+
+# vim:set ts=2 sw=2 et fenc=utf-8:

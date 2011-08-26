@@ -7,21 +7,21 @@
 #
 
 require 'optparse'
-require 'gmrw/ssh2/server'
+require 'gmrw/ssh2/server/gserver'
 
-args = Struct.new(:port, :host).new(GMRW::SSH2::Server::DEFAULT_PORT)
+args = []
 conf = Struct.new(:quiet, :debug).new
 
 OptionParser.new do |opt|
-  opt.on('-p PORT', '--port PORT', 'port number') {|v| args.port = v.to_i }
-  opt.on('-h HOST', '--host HOST', 'host')        {|v| args.host = v      }
-  opt.on('-q',      '--quiet',     'no logging')  {|v| conf.quiet = v     }
-  opt.on('-d',      '--debug',     'debug mode')  {|v| conf.debug = v     }
+  opt.on('-p PORT', '--port PORT', 'port number') {|v| args[0] = v.to_i }
+  opt.on('-h HOST', '--host HOST', 'host')        {|v| args[1] = v      }
+  opt.on('-q',      '--quiet',     'no logging')  {|v| conf.quiet = v   }
+  opt.on('-d',      '--debug',     'debug mode')  {|v| conf.debug = v   }
 
   opt.parse!
 end
 
-server               = GMRW::SSH2::Server::GServer.new(*args.to_a.compact)
+server               = GMRW::SSH2::Server::GServer.new(*args)
 server.audit         = !conf.quiet
 server.log_threshold = conf.debug ? :debug : :info
 
