@@ -30,6 +30,9 @@ module GMRW; module SSH2; module Server; class UserAuth
     respond_to?(handler)  ? send(handler, message, *a)                    : 
     message.ssh_userauth? ? die(:SERVICE_NOT_AVAILABLE, "#{message.tag}") : nil
   end
+
+  #def userauth_request_received(message, *a)
+  #end
 end; end; end; end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

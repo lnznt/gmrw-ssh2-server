@@ -58,25 +58,26 @@ module GMRW; module SSH2; module Algorithm ; module Kex
 
       ready ; agree
 
-      [k, hash]
+      [k, h]
     end
 
     #
     # :section: protocol parameters
     #
     private
-    property_ro :v_c,           'client.version'
-    property_ro :v_s,           'server.version'
-    property_ro :i_c,           'client[:kexinit].dump'
-    property_ro :i_s,           'server[:kexinit].dump'
-    property_ro :k_s,           'host_key.dump'
-    property_ro :f,             'dh.pub_key'
+    property_ro :v_c,                  'client.version'
+    property_ro :v_s,                  'server.version'
+    property_ro :i_c,                  'client[:kexinit].dump'
+    property_ro :i_s,                  'server[:kexinit].dump'
+    property_ro :k_s,                  'host_key.dump'
+    property_ro :f,                    'dh.pub_key'
 
-    property_ro :shared_secret, 'OpenSSL::BN.new(dh.compute_key(e), 2)'
-    property_ro :k,             'encode(:mpint, shared_secret)'
+    property_ro :shared_secret,        'dh.compute_key(e)'
+    property_ro :binary_shared_secret, 'OpenSSL::BN.new(shared_secret, 2)'
+    property_ro :k,                    'encode(:mpint, binary_shared_secret)'
 
-    property_ro :hash,          'digest(h)'
-    property_ro :s,             'host_key.dumped_sign(hash)'
+    property_ro :h,                    'digest(h0)'
+    property_ro :s,                    'host_key.dumped_sign(h)'
 
     #
     # :section: DH Key Agreement
@@ -91,7 +92,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
 
     property_ro :e, 'client.message(:kexdh_init)[:e]'
 
-    def h
+    def h0
       pack([:string, v_c ],
            [:string, v_s ],
            [:string, i_c ],

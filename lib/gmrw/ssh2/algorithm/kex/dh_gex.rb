@@ -35,7 +35,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
 
     property_ro :e,   'client.message(:kex_dh_gex_init)[:e]'
 
-    def h
+    def h0
       pack([:string, v_c  ],
            [:string, v_s  ],
            [:string, i_c  ],

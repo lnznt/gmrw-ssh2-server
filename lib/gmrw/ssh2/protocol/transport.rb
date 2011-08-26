@@ -141,13 +141,13 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Key Exchange
   #
   def do_kex
-    @k, @hash, = kex.start(self) ; @session_id ||= @hash
+    @secret, @hash, = kex.start(self) ; @session_id ||= @hash
   end
 
   def keys_into_use
     key = proc do |salt, len|
-      y =  kex.digest(@k + @hash + salt + @session_id)
-      y << kex.digest(@k + @hash + y)                  while y.length < len
+      y =  kex.digest(@secret + @hash + salt + @session_id)
+      y << kex.digest(@secret + @hash + y)                  while y.length < len
       y[0...len]
     end
 
