@@ -11,8 +11,7 @@ require 'gmrw/extension/extension'
 module GMRW::Extension
   mixin Forwardable do
     def forward(delegation)
-      methods, to = delegation.each_pair.next
-      def_delegators to, *methods
+      delegation.each_pair {|methods, to| def_delegators to, *methods }
     end
   end
 end
