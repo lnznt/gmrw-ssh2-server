@@ -1,5 +1,5 @@
 #!/usr/bin/env ruby
-# -*- coding: UTF-8 -*-
+# -*- coding: utf-8 -*-
 #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
@@ -27,4 +27,4 @@ server.log_threshold = conf.debug ? :debug : :info
 
 server.start.join
 
-# vim:set ts=2 sw=2 et fenc=UTF-8:
+# vim:set ts=2 sw=2 et fenc=utf-8:
