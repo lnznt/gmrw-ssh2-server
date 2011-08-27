@@ -9,6 +9,7 @@ require 'gmrw/extension/all'
 require 'gmrw/ssh2/protocol/transport'
 require 'gmrw/ssh2/server/config'
 require 'gmrw/ssh2/server/userauth'
+require 'gmrw/ssh2/server/connection'
 
 class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   include GMRW
@@ -64,7 +65,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
   property_ro :not_in_service, 'NotInService.new(self)'
   property    :ssh_userauth,   'SSH2::Server::UserAuth.new(self)'
-  property    :ssh_connection, :not_in_service
+  property    :ssh_connection, 'SSH2::Server::Connection.new(self)'
   property    :ssh_service,    :not_in_service
 
   def message_received(message, hints={})
