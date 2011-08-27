@@ -29,8 +29,8 @@ module GMRW; module SSH2
   :port: 50022
 
 :host_key_files:
-  ssh-rsa: ../etc/server/rsa_key.pem
-  ssh-dss: ../etc/server/dsa_key.pem
+  ssh-rsa: ../etc/server/keys/rsa_key.pem
+  ssh-dss: ../etc/server/keys/dsa_key.pem
 
 :openssl_name: 
   aes128-cbc: aes-128-cbc

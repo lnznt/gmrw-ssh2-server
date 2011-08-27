@@ -21,8 +21,8 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
                                 [:mpint,  n        ]
     end
 
-    def sign(*a)
-      a.count < 2 ? sign(digester.new, a[0]) : super
+    def sign(s, extra=nil)
+      extra ? super : sign(digester.new, s)
     end
 
     def dumped_sign(*a)
