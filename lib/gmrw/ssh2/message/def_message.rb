@@ -50,7 +50,8 @@ module GMRW; module SSH2; module Message
       end
 
       def verify(ftype, fname, val)
-        (!(c = choices(fname)) || c.include?(val)) && Field.validate(ftype, val)
+        #(!(c = choices(fname)) || c.include?(val)) && Field.validate(ftype, val)
+        Field.validate(ftype, val)
       end
 
       public
@@ -73,7 +74,7 @@ module GMRW; module SSH2; module Message
 
         val = convert(ftype, fname, val)
 
-        verify(ftype, fname, val) or raise TypeError, "#{fname}:#{val}"
+        verify(ftype, fname, val) or raise TypeError, "#{fname}: #{val}"
         super
       end
 
