@@ -51,7 +51,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   # :section: message handler
   #
   class NotInService
-    property :service ; alias initialize service=
+    def_initialize :service
 
     def service_request_received(message, hints={})
       service.die :SERVICE_NOT_AVAILABLE, "not in service: #{message[:service_name]}"

@@ -13,6 +13,10 @@ module GMRW::Extension
       define_method(method_name) { raise NotImplementedError, method_name.to_s }
     end
 
+    def def_initialize(name)
+      module_eval "property :#{name} ; alias initialize #{name}="
+    end
+
     private
     def self.define_property(method_name, keys) #:nodoc:
       define_method(method_name) do |name, *args|
@@ -40,9 +44,9 @@ module GMRW::Extension
     define_property :property_rw,   [:va_arg, :default,       :set_val, :end]
     define_property :property_rwv,  [:va_arg, :default, :nvl, :set_val, :end]
     define_property :property_roa,  [:no_arg, :default,       :return,  :end, :attr_w]
-    define_property :property_roav, [:no_arg, :default, :nvl, :return,  :end, :attr_w]
+    define_property :property_rova, [:no_arg, :default, :nvl, :return,  :end, :attr_w]
     define_property :property_rwa,  [:va_arg, :default,       :set_val, :end, :attr_w]
-    define_property :property_rwav, [:va_arg, :default, :nvl, :set_val, :end, :attr_w]
+    define_property :property_rwva, [:va_arg, :default, :nvl, :set_val, :end, :attr_w]
 
     alias property property_rwa
   end

@@ -22,7 +22,7 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: resources (Connection and Logger)
   #
-  property    :connection ; alias initialize connection=
+  def_initialize :connection
   property_ro :id, 'connection.object_id'
 
   def logger=(*)

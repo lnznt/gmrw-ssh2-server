@@ -20,7 +20,7 @@ module GMRW; module SSH2; module Protocol
     include Utils::Observable
 
     private
-    property :service ; alias initialize service= 
+    def_initialize :service
 
     forward [:connection,
              :logger, :die,
@@ -94,8 +94,8 @@ module GMRW; module SSH2; module Protocol
     property_rov :compress,   'Compressor.get_compress(algorithm.compressor)'
     property_rov :decompress, 'Compressor.get_decompress(algorithm.compressor)'
 
-    property :block_align,'proc {|n| n.align(block_size) }'
-    property :compute_mac,'proc {|pkt| hmac[ [seq_number, pkt].pack("Na*") ] }'
+    property_ro :block_align,'proc {|n| n.align(block_size) }'
+    property_ro :compute_mac,'proc {|pkt| hmac[ [seq_number, pkt].pack("Na*") ] }'
 
     public
     property_ro :algorithm,

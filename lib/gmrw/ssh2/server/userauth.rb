@@ -12,7 +12,7 @@ module GMRW; module SSH2; module Server; class UserAuth
   include GMRW
   include Utils::Loggable
 
-  property :service ; alias initialize service=
+  def_initialize :service
   forward [ :logger, :die,
             :permit,
             :send_message] => :service
