@@ -44,9 +44,8 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     #
     private
     def ready
-      dh.g        = group[:g]
-      dh.p        = OpenSSL::BN.new(*group[:p])
-      dh.priv_key = OpenSSL::BN.rand(group[:bits])
+      dh.g = group[:g]
+      dh.p = OpenSSL::BN.new(*group[:p])
 
       dh.generate_key! until (0...dh.p).include?(dh.pub_key) &&
                              dh.pub_key.to_i.count_bit > 1

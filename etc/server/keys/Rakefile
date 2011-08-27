@@ -7,7 +7,10 @@
 #
 dsa_key      = "dsa_key.pem"
 dsa_keyparam = "dsa_keyparam.pem"
+dsa_key_bits = 1024
+
 rsa_key      = "rsa_key.pem"
+rsa_key_bits = 1024
 
 task :default => [dsa_key, rsa_key]
 
@@ -16,9 +19,9 @@ file dsa_key => dsa_keyparam do
 end
 
 file dsa_keyparam do
-  sh "openssl dsaparam 1024 > #{dsa_keyparam}"
+  sh "openssl dsaparam #{dsa_key_bits} > #{dsa_keyparam}"
 end
 
 file rsa_key do
-  sh "openssl genrsa 1024 > #{rsa_key}"
+  sh "openssl genrsa #{rsa_key_bits} > #{rsa_key}"
 end

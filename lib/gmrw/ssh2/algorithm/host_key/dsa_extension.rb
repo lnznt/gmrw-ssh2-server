@@ -17,10 +17,10 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
 
     def dump
       SSH2::Message::Field.pack [:string, 'ssh-dss' ],
-                                [ :mpint, p         ],
-                                [ :mpint, q         ],
-                                [ :mpint, g         ],
-                                [ :mpint, pub_key   ]
+                                [:mpint,  p         ],
+                                [:mpint,  q         ],
+                                [:mpint,  g         ],
+                                [:mpint,  pub_key   ]
     end
 
     def sign(s, extra=nil)
@@ -28,15 +28,13 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
     end
 
     def dumped_sign(*a)
-      a1 = OpenSSL::ASN1.decode(sign(*a)) # DER expression => Ruby's object
+      # DER expression => Ruby's object
+      ss = OpenSSL::ASN1.decode(sign(*a)).value.map {|v| v.value.to_s(2).rjust(20, "\0") }
 
-      s = a1.value.map  {|v| v.value.to_s(2)}.
-                   each {|v| v.length <= 20 or raise OpenSSL::PKey::DSAError, "bad sig size"}.
-                   map  {|v| "\0" * (20 - v.length) + v}.
-                   join
+      !ss.find {|v| v.length > 20 } or raise OpenSSL::PKey::DSAError, "bad sig size"
 
       SSH2::Message::Field.pack [:string, 'ssh-dss'],
-                                [:string, s        ]
+                                [:string, ss.join  ]
     end
   end
 end; end; end; end
