@@ -12,9 +12,8 @@ module GMRW; module SSH2; module Algorithm
     include GMRW
     extend self
 
-    #property_ro :block_size, 'Hash.new{|h,name| h[name] = new(name).block_size}'
     def block_size(name)
-      name == 'none' ? 8 : new(name).block_size
+      name == 'none' ? 0 : new(name).block_size
     end
 
     def get_encrypt(*a) ; get(:encrypt, *a) ; end

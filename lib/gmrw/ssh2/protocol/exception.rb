@@ -4,17 +4,21 @@
 # Copyright:: (C) 2011 lnznt.
 # License:: Ruby's
 #
+require 'gmrw/extension/all'
 
 module GMRW::SSH2::Protocol
   module Exception
     class SSHError < RuntimeError
+      property :params, '{}'
+
       def initialize(tag, *msgs)
-        super [(@tag = tag).to_s, (@msg = msgs.map(&:to_s) * ': ')] * ': '
+        params[:reason_code] = tag.to_sym
+        params[:description] = msgs.map(&:to_s) * ': '
+        super "#{params[:reason_code]}: #{params[:description]}"
       end
 
       def call(service)
-        service.send_message :disconnect, :reason_code => @tag,
-                                          :description => @msg
+        service.send_message :disconnect, params
       end
     end
 

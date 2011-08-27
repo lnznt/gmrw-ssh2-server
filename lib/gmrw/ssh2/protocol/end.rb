@@ -63,7 +63,7 @@ module GMRW; module SSH2; module Protocol
     #
     # :section: messages / sequence number
     #
-    property :seq_number, '0'
+    property :seq_number, 0
 
     def received(message) ; memo(:recv_message, message) ; end
     def sent(message)     ; memo(:send_message, message) ; end
@@ -87,15 +87,15 @@ module GMRW; module SSH2; module Protocol
     # :section: encryption / mac / compression
     #
     include SSH2::Algorithm
-    property_rov :block_size, 'Cipher.block_size(algorithm.cipher)'
-    property_rov :encrypt,    'Cipher.get_encrypt(algorithm.cipher, @keys)'
-    property_rov :decrypt,    'Cipher.get_decrypt(algorithm.cipher, @keys)'
-    property_rov :hmac,       'HMAC.get(algorithm.hmac, @keys)'
-    property_rov :compress,   'Compressor.get_compress(algorithm.compressor)'
-    property_rov :decompress, 'Compressor.get_decompress(algorithm.compressor)'
+    property_rwv :block_size, '[Cipher.block_size(algorithm.cipher), 8].max'
+    property_rwv :encrypt,    'Cipher.get_encrypt(algorithm.cipher, @keys)'
+    property_rwv :decrypt,    'Cipher.get_decrypt(algorithm.cipher, @keys)'
+    property_rwv :hmac,       'HMAC.get(algorithm.hmac, @keys)'
+    property_rwv :compress,   'Compressor.get_compress(algorithm.compressor)'
+    property_rwv :decompress, 'Compressor.get_decompress(algorithm.compressor)'
 
-    property_ro :block_align,'proc {|n| n.align(block_size) }'
-    property_ro :compute_mac,'proc {|pkt| hmac[ [seq_number, pkt].pack("Na*") ] }'
+    property_ro :block_align, 'proc {|n| n.align(block_size) }'
+    property_ro :compute_mac, 'proc {|pkt| hmac[ [seq_number, pkt].pack("Na*") ] }'
 
     public
     property_ro :algorithm,
@@ -106,10 +106,12 @@ module GMRW; module SSH2; module Protocol
 
       @keys = keys
 
-      @block_size =
-      @encrypt    = @decrypt =
-      @hmac       =
-      @compress   = @decompress = nil
+      block_size  nil
+      encrypt     nil
+      decrypt     nil
+      hmac        nil
+      compress    nil
+      decompress  nil
     end
   end
 end; end; end
