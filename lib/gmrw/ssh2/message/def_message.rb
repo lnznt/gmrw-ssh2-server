@@ -23,6 +23,15 @@ module GMRW; module SSH2; module Message
   end
 
   def def_message(tag, fields, info={})
+    fields.each do |ftype, fname, val,|
+      ok1a = [:boolean,:byte,:uint32,:uint64,:mpint,:string,:namelist].include?(ftype)
+      ok1b = ftype.kind_of?(Integer) && ftype > 0
+      ok2  = fname.kind_of?(Symbol)
+
+      ((ok1a || ok1b) && ok2) or
+          raise TypeError, "def_message :#{tag}: ftype=#{ftype} fname=#{fname}"
+    end
+
     options = fields.map {|_,fname,_,*a|
       [fname, {:requires  => a.grep(Hash )[0] || {},
                :choices   => a.grep(Array)[0],
