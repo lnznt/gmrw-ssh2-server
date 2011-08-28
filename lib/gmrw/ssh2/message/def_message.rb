@@ -29,35 +29,25 @@ module GMRW; module SSH2; module Message
     }.to_hash
 
     classes[tag] = Class.new(Hash) {
-      private
       define_method(:fields)    { fields.freeze }
       define_method(:requires)  {|fname| options[fname][:requires ] }
       define_method(:converter) {|fname| options[fname][:converter] }
 
-      def avail_fields
-        fields.select{|_,fname,| requires(fname).all?{|f,v| self[f] == v } }
+      def avail?(fname)
+        requires(fname).all? {|f,v| self[f] == v }
       end
 
-      def search_ftype(fname)
-        avail_fields.rassoc(fname).try(:[], 0)
-      end
-
-      def convert(ftype, fname, val)
-        converter(fname)[ val.nil? ? Field.default(ftype) : val ]
-      end
-
-      public
       def []=(fname, val) 
-        ftype = search_ftype(fname) or return
+        ftype = avail?(fname) && (fields.rassoc(fname) || [])[0] or return
 
-        val = convert(ftype, fname, val)
+        val = converter(fname)[ val.nil? ? Field.default(ftype) : val ]
 
         Field.validate(ftype, val) or raise TypeError, "#{fname}: #{val}"
         super
       end
 
       def initialize(data={})
-        avail_fields.each {|ftype, fname, fval,|
+        fields.each {|ftype, fname, fval,| next unless avail?(fname)
           self[fname], data = data.respond_to?(:to_str) ? Field.decode(ftype, data):
                               !data[fname].nil?         ? [data[fname],     data]  :
                               fval.respond_to?(:call)   ? [fval.call(self), data]  :
@@ -66,7 +56,9 @@ module GMRW; module SSH2; module Message
       end
 
       def dump
-        avail_fields.map{|ftype, fname,| Field.encode(ftype, self[fname]) }.join
+        fields.map {|ftype, fname,|
+          avail?(fname) ? Field.encode(ftype, self[fname]) : nil
+        }.compact.join
       end
 
       def tag      ; self.class.tag      ; end
