@@ -12,7 +12,7 @@ module GMRW::SSH2::Message
     [ :byte,    :type         ,50                                          ],
     [ :string,  :user_name                                                 ],
     [ :string,  :service_name                                              ],
-    [ :string,  :method_name, 'none', %w[publickey password hostbased none]],
+    [ :string,  :method_name                                               ],
 
     [ :boolean, :with_pk_signature, nil, { :method_name => 'publickey' }   ],
     [ :string,  :pk_algorithm,      nil, { :method_name => 'publickey' }   ],

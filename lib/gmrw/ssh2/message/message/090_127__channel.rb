@@ -86,19 +86,9 @@ module GMRW::SSH2::Message
 
   def_message :channel_request, [
     [ :byte,    :type              ,98 ],
-    [ :uint32,  :recipient_channel ],
-    [ :string,  :request_type, nil, %w[pty-req
-                                       x11-req
-                                       env
-                                       shell
-                                       exec
-                                       subsystem
-                                       window-change
-                                       xon-xoff
-                                       signal
-                                       exit-status
-                                       exit-signal] ],
-    [ :boolean, :want_reply ],
+    [ :uint32,  :recipient_channel     ],
+    [ :string,  :request_type          ],
+    [ :boolean, :want_reply            ],
 
     [ :string,  :term_env_var,      nil, {:request_type => 'pty-req'} ],
     [ :uint32,  :term_cols,         nil, {:request_type => 'pty-req'} ],

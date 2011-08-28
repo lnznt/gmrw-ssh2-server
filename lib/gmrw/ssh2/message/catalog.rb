@@ -15,16 +15,29 @@ class GMRW::SSH2::Message::Catalog
 
   alias initialize logger=
 
+  def transport_message?(number)  ; ( 1.. 49).include?(number) ; end
+  def userauth_message?(number)   ; (50.. 79).include?(number) ; end
+  def connection_message?(number) ; (80..127).include?(number) ; end
+
   property_ro :category,   '[nil  ] * 256'
   property_ro :permission, '[false] * 256'
 
-  def change_algorithm(hash)
-    hash.each_pair do |cate, algo|
-      category.fill(algo, {:kex => 30..49, :auth => 60..79}[cate] || cate)
-
-      debug( "message mode (#{cate}) => #{algo}" )
-    end
+  def change_kex_algorithm(algo)
+    category.fill(algo, 30..49)
+    debug( "message mode (kex) => #{algo}" )
   end
+
+  def change_auth_algorithm(algo)
+    category.fill(algo, 60..79)
+    debug( "message mode (auth) => #{algo}" )
+  end
+
+  #def change_algorithm(hash)
+  #  hash.each_pair do |cate, algo|
+  #    category.fill(algo, {:kex => 30..49, :auth => 60..79}[cate] || cate)
+  #    debug( "message mode (#{cate}) => #{algo}" )
+  #  end
+  #end
 
   def permit(*nums)
     (nums.presence || [0..255]).each do |num|

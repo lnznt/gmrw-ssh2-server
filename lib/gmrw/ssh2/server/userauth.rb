@@ -14,8 +14,8 @@ module GMRW; module SSH2; module Server; class UserAuth
 
   def_initialize :service
   forward [ :logger, :die,
-            :permit,
-            :send_message] => :service
+            :permit, :userauth_message?,
+            :send_message               ] => :service
   
   def service_request_received(message, *)
     debug( "in service: #{message[:service_name]}" )
@@ -27,8 +27,8 @@ module GMRW; module SSH2; module Server; class UserAuth
   def message_received(message, *a)
     handler = "#{message.tag}_received".intern
 
-    respond_to?(handler)  ? send(handler, message, *a)                    : 
-    message.ssh_userauth? ? die(:SERVICE_NOT_AVAILABLE, "#{message.tag}") : nil
+    respond_to?(handler)              ? send(handler, message, *a)                    : 
+    userauth_message?(message.number) ? die(:SERVICE_NOT_AVAILABLE, "#{message.tag}") : nil
   end
 
   def userauth_request_received(message, *a)

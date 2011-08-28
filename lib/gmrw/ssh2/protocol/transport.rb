@@ -45,7 +45,12 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Message Catalog
   #
   property_ro :message_catalog, 'SSH2::Message::Catalog.new(logger)'
-  forward [:permit, :change_algorithm] => :message_catalog
+  forward [ :permit,
+            :change_kex_algorithm,
+            :change_auth_algorithm,
+            :transport_message?,
+            :userauth_message?,
+            :connection_message? ] => :message_catalog
 
   #
   # :section: Memo (Algorithms)

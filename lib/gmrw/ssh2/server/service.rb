@@ -31,7 +31,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
     #   algorithm negotiation
     send_message :kexinit and negotiate_algorithms
-    change_algorithm :kex => algorithm.kex
+    change_kex_algorithm algorithm.kex
 
     #   key exchange
     permit(:kexinit) { false }
@@ -91,7 +91,8 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
         send_message :unimplemented, :packet_sequence_number => hints[:sequence_number]
 
       else
-        message.ssh_transport? ? :through : ssh_service.message_received(message, hints)
+        transport_message?(message.number) ? :through :
+                                             ssh_service.message_received(message, hints)
     end
   end
 
