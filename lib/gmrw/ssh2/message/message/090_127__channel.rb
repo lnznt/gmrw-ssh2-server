@@ -13,7 +13,7 @@ module GMRW::SSH2::Message
     [ :string,  :channel_type         ],  # session | x11 | forwarded-tcpip | direct-tcpip
     [ :uint32,  :sender_channel       ],
     [ :uint32,  :initial_window_size  ],
-    [ :uint32,  :maximum_window_size  ],
+    [ :uint32,  :maximum_packet_size  ],
 
     [ :string,  :x11_originator_address,      nil, {:channel_type => 'x11'}],
     [ :uint32,  :x11_originator_port,         nil, {:channel_type => 'x11'}],
@@ -34,7 +34,7 @@ module GMRW::SSH2::Message
     [ :uint32,  :recipient_channel       ],
     [ :uint32,  :sender_channel          ],
     [ :uint32,  :initial_window_size     ],
-    [ :uint32,  :maximum_window_size     ],
+    [ :uint32,  :maximum_packet_size     ],
 #   [ :...., :method_specific_field      ],
   ]
 
@@ -47,11 +47,13 @@ module GMRW::SSH2::Message
     }[tag] || tag
   end
 
+  channel_open_failure_description = proc {|tag| tag.to_s.downcase.gsub('_',' ') }
+
   def_message :channel_open_failure, [
     [ :byte,    :type              ,92 ],
     [ :uint32,  :recipient_channel     ],
-    [ :uint32,  :reason_code       ,nil, channel_open_failure_reason ],
-    [ :string,  :description           ],
+    [ :uint32,  :reason_code       ,nil, channel_open_failure_reason      ],
+    [ :string,  :description       ,"",  channel_open_failure_description ],
     [ :string,  :language_tag          ],
   ]
 

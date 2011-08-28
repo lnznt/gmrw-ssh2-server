@@ -41,10 +41,10 @@ class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
   def pack(payload)
     n1    = 4 # packect_length field size
     n2    = 1 # padding_length field size
-    m     = 4 # minimum padding size
+    mn    = 4 # minimum padding size
 
     zipped_data = compress[ payload ]
-    total_len   = block_align[ zipped_data.length + n1 + n2 + m ]
+    total_len   = block_align[ zipped_data.length + n1 + n2 + mn ]
     pack_len    = total_len - n1
     padd_len    = pack_len - n2 - zipped_data.length 
     padding     = OpenSSL::Random.random_bytes(padd_len)

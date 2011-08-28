@@ -91,8 +91,11 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
         send_message :unimplemented, :packet_sequence_number => hints[:sequence_number]
 
       else
-        transport_message?(message.number) ? :through :
-                                             ssh_service.message_received(message, hints)
+        transport_message?(message.number)  ? :through :
+        userauth_message?(message.number)   ? ssh_userauth.message_received(message, hints)   :
+        connection_message?(message.number) ? ssh_connection.message_received(message, hints) :
+                                              send_message(:unimplemented,
+                                                           :packet_sequence_number => hints[:sequence_number])
     end
   end
 

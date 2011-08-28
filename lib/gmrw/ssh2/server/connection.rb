@@ -8,6 +8,9 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 
+#
+# DUMMY
+#
 module GMRW; module SSH2; module Server; class Connection
   include GMRW
   include Utils::Loggable
@@ -15,6 +18,7 @@ module GMRW; module SSH2; module Server; class Connection
   def_initialize :service
   forward [ :logger, :die,
             :permit,
+            :userauth_message?,
             :send_message] => :service
   
   def service_request_received(message, *)
@@ -25,19 +29,53 @@ module GMRW; module SSH2; module Server; class Connection
   end
 
   def message_received(message, *a)
-    handler = "#{message.tag}_received".intern
+    handler = "#{message.tag}_received".to_sym
 
-    respond_to?(handler)  ? send(handler, message, *a)                    : 
-    message.ssh_userauth? ? die(:SERVICE_NOT_AVAILABLE, "#{message.tag}") : nil
+    respond_to?(handler)              ? send(handler, message, *a)                    : 
+    userauth_message?(message.number) ? die(:SERVICE_NOT_AVAILABLE, "#{message.tag}") : nil
   end
 
-  def userauth_request_received(message, *a)
-    case message[:method_name]
-      when 'none'
-        send_message :userauth_failure, :auths_can_continue => ['password']
-      when 'password'
-        permit(80..127) { true }
-        send_message :userauth_success
+  property :session, '{}'
+
+  def channel_open_received(message, *a)
+    case message[:channel_type]
+      when 'session'
+        session[:peer_channel ] = message[:sender_channel]
+        session[:local_channel] = message[:sender_channel] + 10
+        session[:initial_window_size] = message[:initial_window_size]
+        session[:maximum_packet_size] = message[:maximum_packet_size]
+
+        send_message :channel_open_confirmation,
+                      :recipient_channel  => session[:peer_channel],
+                      :sender_channel     => session[:local_channel],
+                      :initial_window_size => session[:initial_window_size],
+                      :maximum_packet_size => session[:maximum_packet_size]
+      else
+        send_message :channel_open_failure, :reason_code => :UNKNOWN_CHANNEL_TYPE,
+                                            :description => :UNKNOWN_CHANNEL_TYPE,
+                                            :recipient_channel => message[:sender_channel]
+    end
+  end
+
+  def channel_request_received(message, *a)
+    case message[:request_type]
+      when 'pty-req','env','shell'
+        send_message :channel_success, :recipient_channel => session[:peer_channel]
+    end
+  end
+
+  def channel_data_received(message, *a)
+    (session[:data] ||= "") << message[:data]
+
+    if session[:data] =~ /([^\r]+)\r/
+      cmd = $1
+      debug( "cmd: #{cmd}" )
+      result = `#{$1}` rescue ""
+      session[:data] = ""
+
+      send_message :channel_data, :recipient_channel => session[:peer_channel],
+                                  :data => result
+      send_message :channel_close, :recipient_channel => session[:peer_channel],
     end
   end
 end; end; end; end

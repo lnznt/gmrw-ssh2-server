@@ -8,6 +8,9 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 
+#
+# DUMMY
+#
 module GMRW; module SSH2; module Server; class UserAuth
   include GMRW
   include Utils::Loggable
@@ -25,7 +28,7 @@ module GMRW; module SSH2; module Server; class UserAuth
   end
 
   def message_received(message, *a)
-    handler = "#{message.tag}_received".intern
+    handler = "#{message.tag}_received".to_sym
 
     respond_to?(handler)              ? send(handler, message, *a)                    : 
     userauth_message?(message.number) ? die(:SERVICE_NOT_AVAILABLE, "#{message.tag}") : nil
