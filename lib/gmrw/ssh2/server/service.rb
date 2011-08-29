@@ -17,24 +17,101 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   alias client peer
   alias server local
 
+  #
+  # :section: SSH services
+  #
+  property_ro :ssh_userauth,   'SSH2::Server::UserAuth.new(self)'
+  property_ro :ssh_connection, 'SSH2::Server::Connection.new(self)'
+
+  property_ro :services, %(
+    {
+      'ssh-userauth'   => ssh_userauth,
+      'ssh-connection' => ssh_connection,
+    }
+  )
+
+  #
+  # :section: message delivery
+  #
+  property_ro :routings, %-
+    Hash.new{{}}.merge({
+      :dead_end  => dead_end,
+      :transport => transport_routing,
+      :kex       => kex_routing,
+      :service   => service_routing,
+    })
+  -
+
+  property_ro :dead_end, %-
+    Hash.new { proc {|m, hints|
+      send_message :unimplemented,
+                   :packet_sequence_number => hints[:sequence_number]
+    } }
+  -
+
+  property_ro :transport_routing, %-
+    {
+      :disconnect    => proc { raise "disconnect message received" },
+      :ignore        => proc {},  # through
+      :debug         => proc {},  # through
+      :unimplemented => proc {},  # through
+    }
+  -
+
+  property_ro :kex_routing, %-
+    {
+      :kexinit            => proc {},  # don't care
+      :newkeys            => proc {},  # don't care
+
+      :kexdh_init         => proc {},  # don't care
+      :kexdh_reply        => proc {},  # don't care
+
+      :kex_dh_gex_group   => proc {},  # don't care
+      :kex_dh_gex_request => proc {},  # don't care
+      :kex_dh_gex_init    => proc {},  # don't care
+      :kex_dh_gex_reply   => proc {},  # don't care
+    }
+  -
+
+  property_ro :service_routing, %-
+    {
+      :service_request    => method(:service_request_received),
+    }
+  -
+
+  property_ro :route, %-
+    [ :dead_end,
+      :transport,
+      :service,
+      :kex,
+      :userauth,
+      :connection ]
+  -
+
+  def message_received(message, hints={})
+    routing = route.map{|r| routings[r] }.compact.reduce{|rs, r| rs.merge(r) }
+
+    routing[message.tag][message, hints]
+  end
+
+  def service_request_received(message, hints={})
+    debug( "in service: #{message[:service_name]}" )
+
+    services[message[:service_name]].start
+    send_message :service_accept, :service_name => message[:service_name]
+  end
+
+  #
+  # :section: serve
+  #
   def serve
     SSH2.config(SSH2::Server::Config)
 
-    #
-    # :section: SSH Transport Layer Protocol (see RFC4253 for details)
-    #
     protocol_version_exchange
 
-    #   start binay packet protocol
-    permit                            { true  }
-    permit(50..127, :service_request) { false }
-
-    #   algorithm negotiation
-    send_message :kexinit and negotiate_algorithms
+    send_message :kexinit
+    negotiate_algorithms
     change_kex_algorithm algorithm.kex
-
-    #   key exchange
-    permit(:kexinit) { false }
 
     do_kex
 
@@ -43,62 +120,12 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
     keys_into_use
 
-    permit(:kexinit, :service_request) { true }
-
     loop { poll_message }
   end
 
   #
-  # :section: message handler
+  # :section: error handler
   #
-  class NotInService
-    def_initialize :service
-
-    def service_request_received(message, hints={})
-      service.die :SERVICE_NOT_AVAILABLE, "not in service: #{message[:service_name]}"
-    end
-
-    def message_received(message, hints={})
-      service.die :SERVICE_NOT_AVAILABLE, "#{message.tag}"
-    end
-  end
-
-  property_ro :not_in_service, 'NotInService.new(self)'
-  property    :ssh_userauth,   'SSH2::Server::UserAuth.new(self)'
-  property    :ssh_connection, 'SSH2::Server::Connection.new(self)'
-  property    :ssh_service,    :not_in_service
-
-  def message_received(message, hints={})
-    case message.tag
-      when :disconnect
-        raise "disconnect message received"
-
-      when :ignore, :debug
-        debug( "through: #{message.tag}" )
-
-      when :unimplemented
-        die :PROTOCOL_ERROR, "unimplemented message received"
-
-      when :service_request
-        ssh_service( {
-          'ssh-userauth'   => ssh_userauth,
-          'ssh-connection' => ssh_connection,
-        }[message[:service_name]] || not_in_service )
-
-        ssh_service.service_request_received(message, hints)
-
-      when :service_accept
-        send_message :unimplemented, :packet_sequence_number => hints[:sequence_number]
-
-      else
-        transport_message?(message.number)  ? :through :
-        userauth_message?(message.number)   ? ssh_userauth.message_received(message, hints)   :
-        connection_message?(message.number) ? ssh_connection.message_received(message, hints) :
-                                              send_message(:unimplemented,
-                                                           :packet_sequence_number => hints[:sequence_number])
-    end
-  end
-
   def message_forbidden(e, *)
     die :PROTOCOL_ERROR, "forbidden message received: #{e}"
   end

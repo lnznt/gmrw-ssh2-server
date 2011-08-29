@@ -13,23 +13,6 @@ module GMRW::Extension
     def at(pos)
       self[pos, 1]
     end
-
-    def camelize(first_letter_in_uppercase = true)
-      first_letter_in_uppercase ? upper_camelize : lower_camelize
-    end
-
-    private
-    def upper_camelize
-      lower_camelize.sub(/./) { $&.upcase }
-    end
-
-    def lower_camelize
-      path_to_namespace.gsub(/(?:_|(::))(.)/) { "#{$1}#{$2.upcase}" }
-    end
-
-    def path_to_namespace
-      gsub(/\//, '::')
-    end
   end
 
   mixin String do
@@ -71,7 +54,7 @@ module GMRW::Extension
     end
 
     def mapping(*names)
-      parse(yield).try(:mapping, *names)
+      (parsed = parse(yield)) && parsed.mapping(*names)
     end
   end
 end

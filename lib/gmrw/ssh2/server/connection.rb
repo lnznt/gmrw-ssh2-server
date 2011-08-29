@@ -8,33 +8,25 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 
-#
-# DUMMY
-#
 module GMRW; module SSH2; module Server; class Connection
   include GMRW
   include Utils::Loggable
 
   def_initialize :service
-  forward [ :logger, :die,
-            :permit,
-            :userauth_message?,
-            :send_message] => :service
-  
-  def service_request_received(message, *)
-    debug( "in service: #{message[:service_name]}" )
+  forward [:logger, :die, :routings, :send_message] => :service
 
-    permit(80..127) { true }
-    send_message :service_accept, :service_name => message[:service_name]
+  def start
+    routings[:connection] = {
+      :channel_open    => method(:channel_open_received),
+      :channel_request => method(:channel_request_received),
+      :channel_data    => method(:channel_data_received),
+    }
   end
 
-  def message_received(message, *a)
-    handler = "#{message.tag}_received".to_sym
-
-    respond_to?(handler)              ? send(handler, message, *a)                    : 
-    userauth_message?(message.number) ? die(:SERVICE_NOT_AVAILABLE, "#{message.tag}") : nil
-  end
-
+  ###########################################################################
+  #
+  # DUMMY implementention
+  #
   property :session, '{}'
 
   def channel_open_received(message, *a)
