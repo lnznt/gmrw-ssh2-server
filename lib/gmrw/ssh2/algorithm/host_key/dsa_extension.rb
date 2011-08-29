@@ -13,8 +13,6 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
   module DSAExtension
     include GMRW
 
-#    property_ro :digester, 'OpenSSL::Digest::DSS1'
-
     def dump
       SSH2::Message::Field.pack [:string, 'ssh-dss' ],
                                 [:mpint,  p         ],

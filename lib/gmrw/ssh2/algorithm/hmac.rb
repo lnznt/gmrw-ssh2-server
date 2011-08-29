@@ -11,22 +11,22 @@ module GMRW; module SSH2; module Algorithm
   module HMAC
     extend self
 
-    def get(name, keys)
-      name == 'none' ? proc {|s| "" } : get_mac(name, &keys[:mac])
+    def get(name, *a)
+      name == 'none' ? proc {|s| "" } : get_mac(name, *a)
     end
 
     private
-    def get_mac(name)
-      (d, key_len, mac_len = {
-        'hmac-md5'     => [OpenSSL::Digest::MD5,  16, 16],
-        'hmac-md5-96'  => [OpenSSL::Digest::MD5,  16, 12],
-        'hmac-sha1'    => [OpenSSL::Digest::SHA1, 20, 20],
-        'hmac-sha1-96' => [OpenSSL::Digest::SHA1, 20, 12],
-      }[name]) or raise "unknown hmac: #{name}"
+    def get_mac(name, keys)
+      m = {
+        'hmac-md5'     => {:digester => 'md5',  :key_len => 16, :mac_len => 16},
+        'hmac-md5-96'  => {:digester => 'md5',  :key_len => 16, :mac_len => 12},
+        'hmac-sha1'    => {:digester => 'sha1', :key_len => 20, :mac_len => 20},
+        'hmac-sha1-96' => {:digester => 'sha1', :key_len => 20, :mac_len => 12},
+      }[name] or raise "unknown hmac: #{name}"
 
-      key = yield(key_len)
+      key = keys[:mac][m[:key_len]]
 
-      proc {|s| OpenSSL::HMAC.digest(d.new, key, s)[0, mac_len] }
+      proc {|s| OpenSSL::HMAC.digest(m[:digester], key, s)[0...m[:mac_len]] }
     end
   end
 end; end; end

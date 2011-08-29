@@ -12,11 +12,7 @@ module GMRW; module SSH2; module Algorithm
     include GMRW
     extend self
 
-    def get_compress(*a)   ; get(:compress,   *a) ; end
-    def get_decompress(*a) ; get(:decompress, *a) ; end
-
-    private
-    def get(comp_or_decomp, name)
+    def get(name)
       compressor = {
         'zlib' => { :compress   => zlib_compressor    ,
                     :decompress => zlib_decompressor  },
@@ -24,7 +20,7 @@ module GMRW; module SSH2; module Algorithm
                     :decompress => proc {|s| s }      },
       }[name] or raise "unknown compressor: #{name}"
 
-      compressor[comp_or_decomp]
+      compressor[yield]
     end
 
     def zlib_compressor

@@ -88,11 +88,11 @@ module GMRW; module SSH2; module Protocol
     #
     include SSH2::Algorithm
     property_rwv :block_size, '[Cipher.block_size(algorithm.cipher), 8].max'
-    property_rwv :encrypt,    'Cipher.get_encrypt(algorithm.cipher, @keys)'
-    property_rwv :decrypt,    'Cipher.get_decrypt(algorithm.cipher, @keys)'
+    property_rwv :encrypt,    'Cipher.get(algorithm.cipher, @keys) {:encrypt}'
+    property_rwv :decrypt,    'Cipher.get(algorithm.cipher, @keys) {:decrypt}'
     property_rwv :hmac,       'HMAC.get(algorithm.hmac, @keys)'
-    property_rwv :compress,   'Compressor.get_compress(algorithm.compressor)'
-    property_rwv :decompress, 'Compressor.get_decompress(algorithm.compressor)'
+    property_rwv :compress,   'Compressor.get(algorithm.compressor) {:compress}'
+    property_rwv :decompress, 'Compressor.get(algorithm.compressor) {:decompress}'
 
     property_ro :block_align, 'proc {|n| n.align(block_size) }'
     property_ro :compute_mac, 'proc {|pkt| hmac[ [seq_number, pkt].pack("Na*") ] }'
