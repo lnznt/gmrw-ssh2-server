@@ -66,7 +66,6 @@ class GMRW::SSH2::Protocol::Transport
   def start
     info( "SSH service start" )
 
-    writer.add_observer(:send_message, &method(:message_sent))
     reader.add_observer(:recv_message, &method(:message_received))
     reader.add_observer(:forbidden_message_error, &method(:message_forbidden))
     reader.add_observer(:message_not_found_error, &method(:message_not_found))
@@ -95,7 +94,6 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Message Handlers
   #
-  def message_sent(*)      ; end
   def message_received(*)  ; end
   def message_forbidden(*) ; end
   def message_not_found(*) ; end
