@@ -13,7 +13,7 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
   module RSAExtension
     include GMRW
 
-    property_ro :digester, 'OpenSSL::Digest::SHA1'
+#    property_ro :digester, 'OpenSSL::Digest::SHA1'
 
     def dump
       SSH2::Message::Field.pack [:string, 'ssh-rsa'],
@@ -22,7 +22,7 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
     end
 
     def sign(s, extra=nil)
-      extra ? super : sign(digester.new, s)
+      extra ? super : sign('sha1', s)
     end
 
     def dumped_sign(*a)

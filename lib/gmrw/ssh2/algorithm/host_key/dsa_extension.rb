@@ -13,7 +13,7 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
   module DSAExtension
     include GMRW
 
-    property_ro :digester, 'OpenSSL::Digest::DSS1'
+#    property_ro :digester, 'OpenSSL::Digest::DSS1'
 
     def dump
       SSH2::Message::Field.pack [:string, 'ssh-dss' ],
@@ -24,7 +24,7 @@ module GMRW; module SSH2; module Algorithm ; module HostKey
     end
 
     def sign(s, extra=nil)
-      extra ? super : sign(digester.new, s)
+      extra ? super : sign('dss1', s)
     end
 
     def dumped_sign(*a)
