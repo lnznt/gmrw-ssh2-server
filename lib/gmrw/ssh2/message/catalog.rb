@@ -32,13 +32,6 @@ class GMRW::SSH2::Message::Catalog
     debug( "message mode (auth) => #{algo}" )
   end
 
-  #def change_algorithm(hash)
-  #  hash.each_pair do |cate, algo|
-  #    category.fill(algo, {:kex => 30..49, :auth => 60..79}[cate] || cate)
-  #    debug( "message mode (#{cate}) => #{algo}" )
-  #  end
-  #end
-
   def permit(*nums)
     (nums.presence || [0..255]).each do |num|
       num = SSH2::Message.classes[tag=num].try(:number) || num

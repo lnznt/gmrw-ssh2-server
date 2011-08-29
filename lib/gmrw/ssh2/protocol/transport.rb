@@ -150,14 +150,16 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   def keys_into_use
-    key = proc do |salt, len|
-      y =  kex.digest(@secret + @hash + salt + @session_id)
-      y << kex.digest(@secret + @hash + y)                  while y.length < len
-      y[0...len]
+    key = proc do |salt|
+      proc do |len|
+        y =  kex.digest(@secret + @hash + salt + @session_id)
+        y << kex.digest(@secret + @hash + y)                  while y.length < len
+        y[0...len]
+      end
     end
 
-    client.keys_into_use :iv => key<<"A", :key => key<<"C", :mac => key<<"E"
-    server.keys_into_use :iv => key<<"B", :key => key<<"D", :mac => key<<"F"
+    client.keys_into_use :iv => key["A"], :key => key["C"], :mac => key["E"]
+    server.keys_into_use :iv => key["B"], :key => key["D"], :mac => key["F"]
   end
 end
 
