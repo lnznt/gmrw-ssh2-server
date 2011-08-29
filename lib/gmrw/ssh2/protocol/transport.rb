@@ -23,10 +23,9 @@ class GMRW::SSH2::Protocol::Transport
   # :section: resources (Connection and Logger)
   #
   def_initialize :connection
-  property_ro :id, 'connection.object_id'
 
   def logger=(*)
-    super.tap {|l| l.format {|*s| "[#{id}] #{s.map(&:to_s) * ': '}" }}
+    super.tap {|l| l.format {|*s| "[#{connection.object_id}] #{s.map(&:to_s) * ': '}" }}
   end
 
   #
@@ -45,13 +44,11 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Message Catalog
   #
   property_ro :message_catalog, 'SSH2::Message::Catalog.new(logger)'
-  forward [:change_kex_algorithm, :change_auth_algorithm] => :message_catalog
+  forward [:change_algorithm] => :message_catalog
 
   #
   # :section: Memo (Algorithms)
   #
-  property_ro :algorithm, 'Struct.new(:kex, :host_key).new'
-
   property :kex
   property :host_key
 
@@ -108,8 +105,8 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Algorithm Negotiation
   #
   def negotiate_algorithms
-    algorithm.kex               = negotiate :kex_algorithms
-    algorithm.host_key          = negotiate :server_host_key_algorithms
+    algorithm_kex               = negotiate :kex_algorithms
+    algorithm_host_key          = negotiate :server_host_key_algorithms
     client.algorithm.cipher     = negotiate :encryption_algorithms_client_to_server
     server.algorithm.cipher     = negotiate :encryption_algorithms_server_to_client
     client.algorithm.hmac       = negotiate :mac_algorithms_client_to_server
@@ -117,8 +114,8 @@ class GMRW::SSH2::Protocol::Transport
     client.algorithm.compressor = negotiate :compression_algorithms_client_to_server
     server.algorithm.compressor = negotiate :compression_algorithms_server_to_client
 
-    debug( "kex               : #{algorithm.kex}"               )
-    debug( "host_key          : #{algorithm.host_key}"          )
+    debug( "kex               : #{algorithm_kex}"               )
+    debug( "host_key          : #{algorithm_host_key}"          )
     debug( "client.cipher     : #{client.algorithm.cipher}"     )
     debug( "server.cipher     : #{server.algorithm.cipher}"     )
     debug( "client.hmac       : #{client.algorithm.hmac}"       )
@@ -126,8 +123,9 @@ class GMRW::SSH2::Protocol::Transport
     debug( "client.compressor : #{client.algorithm.compressor}" )
     debug( "server.compressor : #{server.algorithm.compressor}" )
 
-    kex       SSH2::Algorithm::Kex.get(algorithm.kex)
-    host_key  SSH2::Algorithm::HostKey.get(algorithm.host_key)
+    kex       SSH2::Algorithm::Kex.get(algorithm_kex)
+    host_key  SSH2::Algorithm::HostKey.get(algorithm_host_key)
+    change_algorithm :kex => algorithm_kex
   end
 
   def negotiate(name)
@@ -138,7 +136,7 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Key Exchange
   #
-  def do_kex
+  def key_exchange
     @secret, @hash, = kex.key_exchange(self) ; @session_id ||= @hash
   end
 

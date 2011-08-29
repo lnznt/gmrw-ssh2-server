@@ -15,7 +15,7 @@ module GMRW; module SSH2; module Server; class Connection
   def_initialize :service
   forward [:logger, :die, :routings, :send_message] => :service
 
-  def start
+  def start(service_name)
     routings[:connection] = {
       :channel_open    => method(:channel_open_received),
       :channel_request => method(:channel_request_received),

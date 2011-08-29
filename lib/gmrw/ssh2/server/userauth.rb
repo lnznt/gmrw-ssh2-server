@@ -15,7 +15,7 @@ module GMRW; module SSH2; module Server; class UserAuth
   def_initialize :service
   forward [:logger, :die, :routings, :services, :send_message] => :service
   
-  def start
+  def start(service_name)
     routings[:userauth] = {
       :userauth_request => method(:userauth_request_received),
     }
@@ -30,7 +30,7 @@ module GMRW; module SSH2; module Server; class UserAuth
       when 'none'
         send_message :userauth_failure, :auths_can_continue => ['password']
       when 'password'
-        services[message[:service_name]].start
+        services[message[:service_name]].start(message[:service_name])
         send_message :userauth_success
     end
   end

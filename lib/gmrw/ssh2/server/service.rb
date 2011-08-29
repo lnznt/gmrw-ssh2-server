@@ -20,14 +20,24 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   #
   # :section: SSH services
   #
+  class NotInService
+    def_initialize :service
+    forward [:die] => :service
+
+    def start(service_name)
+      die :SERVICE_NOT_AVAILABLE, "not in service: #{service_name}"
+    end
+  end
+
+  property_ro :not_in_service, 'NotInService.new(self)'
   property_ro :ssh_userauth,   'SSH2::Server::UserAuth.new(self)'
   property_ro :ssh_connection, 'SSH2::Server::Connection.new(self)'
 
   property_ro :services, %(
-    {
+    Hash.new { not_in_service }.merge({
       'ssh-userauth'   => ssh_userauth,
       'ssh-connection' => ssh_connection,
-    }
+    })
   )
 
   #
@@ -97,7 +107,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   def service_request_received(message, hints={})
     debug( "in service: #{message[:service_name]}" )
 
-    services[message[:service_name]].start
+    services[message[:service_name]].start(message[:service_name])
     send_message :service_accept, :service_name => message[:service_name]
   end
 
@@ -111,9 +121,8 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
     send_message :kexinit
     negotiate_algorithms
-    change_kex_algorithm algorithm.kex
 
-    do_kex
+    key_exchange
 
     send_message :newkeys
     recv_message :newkeys

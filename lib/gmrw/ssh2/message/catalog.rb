@@ -17,14 +17,12 @@ class GMRW::SSH2::Message::Catalog
 
   property_ro :category, '[nil] * 256'
 
-  def change_kex_algorithm(algo)
-    category.fill(algo, 30..49)
-    debug( "message mode (kex) => #{algo}" )
-  end
-
-  def change_auth_algorithm(algo)
-    category.fill(algo, 60..79)
-    debug( "message mode (auth) => #{algo}" )
+  def change_algorithm(algos)
+    algos.each_pair do |cate, algo|
+      (range = {:kex => 30..49, :auth => 60..79}[cate]) and
+               category.fill(algo, range)               and
+               debug( "message mode (#{cate}) => #{algo}" )
+    end
   end
 
   def search(number)
