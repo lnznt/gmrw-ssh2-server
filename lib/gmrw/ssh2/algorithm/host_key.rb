@@ -5,9 +5,7 @@
 # License:: Ruby's
 #
 
-require 'openssl'
-require 'gmrw/ssh2/algorithm/host_key/rsa_extension'
-require 'gmrw/ssh2/algorithm/host_key/dsa_extension'
+require 'gmrw/ssh2/alternative/openssl'
 
 module GMRW; module SSH2; module Algorithm
   module HostKey
@@ -15,16 +13,13 @@ module GMRW; module SSH2; module Algorithm
     extend self
 
     def get(name)
-      open(SSH2.config.host_key_files[name]) do |f|
-        (pkey, extension = {
-          'ssh-rsa' => [OpenSSL::PKey::RSA, SSH2::Algorithm::HostKey::RSAExtension],
-          'ssh-dss' => [OpenSSL::PKey::DSA, SSH2::Algorithm::HostKey::DSAExtension],
-        }[name]) or raise "unknown host-key: #{name}"
+      pkey = {
+        'ssh-rsa' => OpenSSL::PKey::RSA,
+        'ssh-dss' => OpenSSL::PKey::DSA,
+      }[name] or raise "unknown host-key: #{name}"
 
-        pkey.new(f).extend(extension)
-      end 
+      pkey.new open(SSH2.config.host_key_files[name])
     end
-
   end
 end; end; end
 

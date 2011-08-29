@@ -5,7 +5,6 @@
 # License:: Ruby's
 #
 
-require 'openssl'
 require 'gmrw/ssh2/algorithm/kex/dh'
 require 'gmrw/ssh2/algorithm/kex/dh_gex'
 
