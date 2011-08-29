@@ -86,11 +86,13 @@ module GMRW; module SSH2; module Protocol
     #
     # :section: encryption / mac / compression
     #
+    property :keys, 'Hash.new {{}}'
+
     include SSH2::Algorithm
     property_rwv :block_size, '[Cipher.block_size(algorithm.cipher), 8].max'
-    property_rwv :encrypt,    'Cipher.get(algorithm.cipher, @keys) {:encrypt}'
-    property_rwv :decrypt,    'Cipher.get(algorithm.cipher, @keys) {:decrypt}'
-    property_rwv :hmac,       'HMAC.get(algorithm.hmac, @keys)'
+    property_rwv :encrypt,    'Cipher.get(algorithm.cipher, keys) {:encrypt}'
+    property_rwv :decrypt,    'Cipher.get(algorithm.cipher, keys) {:decrypt}'
+    property_rwv :hmac,       'HMAC.get(algorithm.hmac, keys)'
     property_rwv :compress,   'Compressor.get(algorithm.compressor) {:compress}'
     property_rwv :decompress, 'Compressor.get(algorithm.compressor) {:decompress}'
 
@@ -101,10 +103,10 @@ module GMRW; module SSH2; module Protocol
     property_ro :algorithm,
         'Struct.new(:cipher, :hmac, :compressor).new("none","none","none")'
 
-    def keys_into_use(keys)
+    def keys_into_use(new_keys)
       debug( "new keys into use" )
 
-      @keys = keys
+      keys(new_keys)
 
       block_size  nil
       encrypt     nil

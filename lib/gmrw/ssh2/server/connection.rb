@@ -75,7 +75,7 @@ module GMRW; module SSH2; module Server; class Connection
 
       send_message :channel_data, :recipient_channel => session[:peer_channel],
                                   :data => result
-      send_message :channel_close, :recipient_channel => session[:peer_channel],
+      send_message :channel_close, :recipient_channel => session[:peer_channel]
     end
   end
 end; end; end; end
