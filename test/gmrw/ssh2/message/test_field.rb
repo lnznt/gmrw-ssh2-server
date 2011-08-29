@@ -273,24 +273,24 @@ class TestField < Test::Unit::TestCase
 
   def test_decode__mpint
     try_assert_equal [
-      { Field.decode(:mpint, "\x00\x00\x00\x00") => [0,  ""]  },
+      { Field.decode(:mpint, [0].pack("N")) => [0,  ""]  },
 
-      { Field.decode(:mpint, "\x00\x00\x00\x02\x12\x34") => [0x1234,  ""]  },
-      { Field.decode(:mpint, "\x00\x00\x00\x02\xed\xcc") => [-0x1234, ""]  },
+      { Field.decode(:mpint, [2, 0x12, 0x34].pack("NC*")) => [0x1234,  ""]  },
+      { Field.decode(:mpint, [2, 0xed, 0xcc].pack("NC*")) => [-0x1234, ""]  },
 
-      { Field.decode(:mpint, "\x00\x00\x00\x03\x00\x80\x00") => [0x8000,  ""]  },
-      { Field.decode(:mpint, "\x00\x00\x00\x03\xff\x41\x11") => [-0xbeef, ""]  },
+      { Field.decode(:mpint, [3, 0x00, 0x80, 0x00].pack("NC*")) => [0x8000,  ""]  },
+      { Field.decode(:mpint, [3, 0xff, 0x41, 0x11].pack("NC*")) => [-0xbeef, ""]  },
 
-      { Field.decode(:mpint, "\x00\x00\x00\x02\x12\x34A") => [0x1234,  "A"]  },
-      { Field.decode(:mpint, "\x00\x00\x00\x02\xed\xccA") => [-0x1234, "A"]  },
+      { Field.decode(:mpint, [2, 0x12, 0x34, "A"].pack("NC2a")) => [0x1234,  "A"]  },
+      { Field.decode(:mpint, [2, 0xed, 0xcc, "A"].pack("NC2a")) => [-0x1234, "A"]  },
 
-      { Field.decode(:mpint, "\x00\x00\x00\x03\x00\x80\x00A") => [0x8000,  "A"]  },
-      { Field.decode(:mpint, "\x00\x00\x00\x03\xff\x41\x11A") => [-0xbeef, "A"]  },
+      { Field.decode(:mpint, [3, 0x00, 0x80, 0x00, "A"].pack("NC3a")) => [0x8000,  "A"]  },
+      { Field.decode(:mpint, [3, 0xff, 0x41, 0x11, "A"].pack("NC3a")) => [-0xbeef, "A"]  },
 
 
       { Field.decode(:mpint, "")                           => nil },
-      { Field.decode(:mpint, "\x00\x00\x00")               => nil },
-      { Field.decode(:mpint, "\x00\x00\x00\x03\x12\x34")   => nil },
+      { Field.decode(:mpint, [0x00, 0x00, 0x00].pack("C")) => nil },
+      { Field.decode(:mpint, [3, 0x12, 0x34].pack("NC*"))  => nil },
     ]
   end
 
@@ -376,11 +376,11 @@ class TestField < Test::Unit::TestCase
     try_assert_equal [
       { Field.encode(:mpint, 0) => [0].pack("N") },
 
-      { Field.encode(:mpint,  0x1234) => [2].pack("N") + "\x12\x34" },
-      { Field.encode(:mpint, -0x1234) => [2].pack("N") + "\xed\xcc" },
+      { Field.encode(:mpint,  0x1234) => [2, 0x12, 0x34].pack("NC*") },
+      { Field.encode(:mpint, -0x1234) => [2, 0xed, 0xcc].pack("NC*") },
 
-      { Field.encode(:mpint,  0x8000) => [3].pack("N") + "\x00\x80\x00" },
-      { Field.encode(:mpint, -0xbeef) => [3].pack("N") + "\xff\x41\x11" },
+      { Field.encode(:mpint,  0x8000) => [3, 0x00, 0x80, 0x00].pack("NC*") },
+      { Field.encode(:mpint, -0xbeef) => [3, 0xff, 0x41, 0x11].pack("NC*") },
     ]
   end
 

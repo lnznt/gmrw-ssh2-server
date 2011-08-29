@@ -21,10 +21,7 @@ module GMRW; module SSH2; module Protocol
 
     private
     def_initialize :service
-
-    forward [:connection,
-             :logger, :die,
-             :message_catalog] => :service
+    forward [:connection, :logger, :die, :message_catalog] => :service
 
     #
     # :section: connection read/write
@@ -63,7 +60,7 @@ module GMRW; module SSH2; module Protocol
     #
     # :section: messages / sequence number
     #
-    property :seq_number, 0
+    property :seq_number, '0'
 
     def received(message) ; memo(:recv_message, message) ; end
     def sent(message)     ; memo(:send_message, message) ; end

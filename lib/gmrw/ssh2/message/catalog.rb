@@ -15,7 +15,7 @@ class GMRW::SSH2::Message::Catalog
 
   alias initialize logger=
 
-  property_ro :category,   '[nil  ] * 256'
+  property_ro :category, '[nil] * 256'
 
   def change_kex_algorithm(algo)
     category.fill(algo, 30..49)
