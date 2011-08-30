@@ -47,7 +47,7 @@ class GMRW::SSH2::Protocol::Transport
   forward [:change_algorithm] => :message_catalog
 
   #
-  # :section: Memo (Algorithms)
+  # :section: Algorithms
   #
   property :kex
   property :host_key
@@ -64,15 +64,10 @@ class GMRW::SSH2::Protocol::Transport
 
     serve
 
-  rescue SSH2::Protocol::Exception::SSHError => e
-    e.call(self)
-    fatal( "#{e.class}: #{e}" )
-    debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
-
   rescue => e
-    connection.puts e.to_s
     fatal( "#{e.class}: #{e}" )
     debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
+    e.call(self)
 
   ensure
     connection.shutdown
@@ -95,7 +90,7 @@ class GMRW::SSH2::Protocol::Transport
   #
   def protocol_version_exchange
     local.version.compatible?(peer.version) or
-                        raise "Protocol mismatch: #{peer.version}"
+                        die "Protocol mismatch: #{peer.version}"
 
     info( "local version: #{local.version}" )
     info( "peer  version: #{peer. version}" )
@@ -105,32 +100,29 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Algorithm Negotiation
   #
   def negotiate_algorithms
-    algorithm_kex               = negotiate :kex_algorithms
-    algorithm_host_key          = negotiate :server_host_key_algorithms
-    client.algorithm.cipher     = negotiate :encryption_algorithms_client_to_server
-    server.algorithm.cipher     = negotiate :encryption_algorithms_server_to_client
-    client.algorithm.hmac       = negotiate :mac_algorithms_client_to_server
-    server.algorithm.hmac       = negotiate :mac_algorithms_server_to_client
-    client.algorithm.compressor = negotiate :compression_algorithms_client_to_server
-    server.algorithm.compressor = negotiate :compression_algorithms_server_to_client
+    negotiate = proc do |name|
+      client.message(:kexinit)[name].find   {|a|
+      server.message(:kexinit)[name].include?(a)}
+    end
 
-    debug( "kex               : #{algorithm_kex}"               )
-    debug( "host_key          : #{algorithm_host_key}"          )
-    debug( "client.cipher     : #{client.algorithm.cipher}"     )
-    debug( "server.cipher     : #{server.algorithm.cipher}"     )
-    debug( "client.hmac       : #{client.algorithm.hmac}"       )
-    debug( "server.hmac       : #{server.algorithm.hmac}"       )
-    debug( "client.compressor : #{client.algorithm.compressor}" )
-    debug( "server.compressor : #{server.algorithm.compressor}" )
+    algorithm_kex               = negotiate[ :kex_algorithms                          ]
+    algorithm_host_key          = negotiate[ :server_host_key_algorithms              ]
+    client.algorithm.cipher     = negotiate[ :encryption_algorithms_client_to_server  ]
+    server.algorithm.cipher     = negotiate[ :encryption_algorithms_server_to_client  ]
+    client.algorithm.hmac       = negotiate[ :mac_algorithms_client_to_server         ]
+    server.algorithm.hmac       = negotiate[ :mac_algorithms_server_to_client         ]
+    client.algorithm.compressor = negotiate[ :compression_algorithms_client_to_server ]
+    server.algorithm.compressor = negotiate[ :compression_algorithms_server_to_client ]
+
+    debug( "kex                : #{algorithm_kex}"      )
+    debug( "host_key           : #{algorithm_host_key}" )
+    debug( "client.aligorithms : #{client.algorithm}"   )
+    debug( "server.aligorithms : #{server.algorithm}"   )
 
     kex       SSH2::Algorithm::Kex.get(algorithm_kex)
     host_key  SSH2::Algorithm::HostKey.get(algorithm_host_key)
-    change_algorithm :kex => algorithm_kex
-  end
 
-  def negotiate(name)
-    client.message(:kexinit)[name].find   {|a|
-    server.message(:kexinit)[name].include?(a)}
+    change_algorithm :kex => algorithm_kex
   end
 
   #

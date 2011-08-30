@@ -52,14 +52,6 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
       padding     = buffered_read(padd_len.n),
     ].join
 
-    debug( "packet.length          : #{packet.length}"      )
-    debug( "packet_length.length   : #{pack_len.length}"    )
-    debug( "packet_length          : #{pack_len.n}"         )
-    debug( "padding_length.length  : #{padd_len.length}"    )
-    debug( "padding_length         : #{padd_len.n}"         )
-    debug( "compressed_data.length : #{zipped_data.length}" )
-    debug( "padding.length         : #{padding.length}"     )
-
     verify! packet
 
     decompress[ zipped_data ]

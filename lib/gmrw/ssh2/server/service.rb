@@ -18,7 +18,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   alias server local
 
   #
-  # :section: SSH services
+  # :section: services handling
   #
   class NotInService
     def_initialize :service
@@ -41,64 +41,35 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   )
 
   #
-  # :section: message delivery
+  # :section: message handling
   #
   property_ro :routings, %-
     Hash.new{{}}.merge({
-      :dead_end  => dead_end,
-      :transport => transport_routing,
-      :kex       => kex_routing,
-      :service   => service_routing,
+      :dead_end  => Hash.new { method(:unimplemented) },
+      :transport => {
+          :disconnect         => proc { raise "disconnect message received" },
+          :ignore             => proc {},  # through
+          :debug              => proc {},  # through
+          :unimplemented      => proc {},  # through
+
+          :service_request    => method(:service_request_received),
+
+          :kexinit            => proc {},  # don't care
+          :newkeys            => proc {},  # don't care
+
+          :kexdh_init         => proc {},  # don't care
+          :kexdh_reply        => proc {},  # don't care
+
+          :kex_dh_gex_group   => proc {},  # don't care
+          :kex_dh_gex_request => proc {},  # don't care
+          :kex_dh_gex_init    => proc {},  # don't care
+          :kex_dh_gex_reply   => proc {},  # don't care
+      },
     })
   -
 
-  property_ro :dead_end, %-
-    Hash.new { proc {|m, hints|
-      send_message :unimplemented,
-                   :packet_sequence_number => hints[:sequence_number]
-    } }
-  -
-
-  property_ro :transport_routing, %-
-    {
-      :disconnect    => proc { raise "disconnect message received" },
-      :ignore        => proc {},  # through
-      :debug         => proc {},  # through
-      :unimplemented => proc {},  # through
-    }
-  -
-
-  property_ro :kex_routing, %-
-    {
-      :kexinit            => proc {},  # don't care
-      :newkeys            => proc {},  # don't care
-
-      :kexdh_init         => proc {},  # don't care
-      :kexdh_reply        => proc {},  # don't care
-
-      :kex_dh_gex_group   => proc {},  # don't care
-      :kex_dh_gex_request => proc {},  # don't care
-      :kex_dh_gex_init    => proc {},  # don't care
-      :kex_dh_gex_reply   => proc {},  # don't care
-    }
-  -
-
-  property_ro :service_routing, %-
-    {
-      :service_request    => method(:service_request_received),
-    }
-  -
-
-  property_ro :route, %-
-    [ :dead_end,
-      :transport,
-      :service,
-      :kex,
-      :userauth,
-      :connection ]
-  -
-
   def message_received(message, hints={})
+    route   = [:dead_end, :transport, :userauth, :connection]
     routing = route.map{|r| routings[r] }.compact.reduce{|rs, r| rs.merge(r) }
 
     routing[message.tag][message, hints]
@@ -109,6 +80,11 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
     services[message[:service_name]].start(message[:service_name])
     send_message :service_accept, :service_name => message[:service_name]
+  end
+
+  def unimplemented(message, hints={})
+    send_message :unimplemented,
+                 :packet_sequence_number => hints[:sequence_number]
   end
 
   #
@@ -133,7 +109,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   end
 
   #
-  # :section: error handler
+  # :section: error handling
   #
   def message_forbidden(e, *)
     die :PROTOCOL_ERROR, "forbidden message received: #{e}"

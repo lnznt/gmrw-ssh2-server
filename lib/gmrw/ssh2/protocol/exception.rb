@@ -12,13 +12,15 @@ module GMRW::SSH2::Protocol
       property :params, '{}'
 
       def initialize(tag, *msgs)
-        params[:reason_code] = tag.to_sym
+        params[:reason_code] = tag
         params[:description] = msgs.map(&:to_s) * ': '
         super "#{params[:reason_code]}: #{params[:description]}"
       end
 
       def call(service)
-        service.send_message :disconnect, params
+        params[:reason_code].kind_of?(Symbol) ?
+            service.send_message(:disconnect, params) :
+            service.connection.puts(to_s)
       end
     end
 
