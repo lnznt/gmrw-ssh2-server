@@ -11,22 +11,16 @@ module GMRW; module SSH2; module Algorithm
   module HMAC
     extend self
 
-    def get(name, *a)
-      name == 'none' ? proc {|s| "" } : get_mac(name, *a)
-    end
+    def get(name, keys)
+      (digester, key, mac_len = case name
+        when 'hmac-md5'    ; ['md5',  keys[:mac][16], 16]
+        when 'hmac-md5-96' ; ['md5',  keys[:mac][16], 12]
+        when 'hmac-sha1'   ; ['sha1', keys[:mac][20], 20]
+        when 'hmac-sha1-96'; ['sha1', keys[:mac][20], 12]
+        when 'none'        ; return proc {|s| "" }
+      end) or raise "unknown hmac: #{name}"
 
-    private
-    def get_mac(name, keys)
-      m = {
-        'hmac-md5'     => {:digester => 'md5',  :key_len => 16, :mac_len => 16},
-        'hmac-md5-96'  => {:digester => 'md5',  :key_len => 16, :mac_len => 12},
-        'hmac-sha1'    => {:digester => 'sha1', :key_len => 20, :mac_len => 20},
-        'hmac-sha1-96' => {:digester => 'sha1', :key_len => 20, :mac_len => 12},
-      }[name] or raise "unknown hmac: #{name}"
-
-      key = keys[:mac][m[:key_len]]
-
-      proc {|s| OpenSSL::HMAC.digest(m[:digester], key, s)[0...m[:mac_len]] }
+      proc {|s| OpenSSL::HMAC.digest(digester, key, s)[0...mac_len] }
     end
   end
 end; end; end

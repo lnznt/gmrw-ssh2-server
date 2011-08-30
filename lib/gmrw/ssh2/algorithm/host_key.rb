@@ -13,12 +13,12 @@ module GMRW; module SSH2; module Algorithm
     extend self
 
     def get(name)
-      pkey = {
-        'ssh-rsa' => OpenSSL::PKey::RSA,
-        'ssh-dss' => OpenSSL::PKey::DSA,
-      }[name] or raise "unknown host-key: #{name}"
+      f = open(SSH2.config.host_key_files[name])
 
-      pkey.new open(SSH2.config.host_key_files[name])
+      case name
+        when 'ssh-rsa'; OpenSSL::PKey::RSA.new(f)
+        when 'ssh-dss'; OpenSSL::PKey::DSA.new(f)
+      end or raise "unknown host-key: #{name}"
     end
   end
 end; end; end
