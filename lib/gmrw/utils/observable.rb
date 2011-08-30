@@ -12,7 +12,7 @@ module GMRW::Utils::Observable
   property_ro :observers, 'Hash.new {|h,k| h[k] = GMRW::Utils::Command.new }'
 
   def add_observer(event, &block)
-    observers[event] << block
+    observers[event].add(&block)
   end
 
   def notify_observers(event, *a, &b)
