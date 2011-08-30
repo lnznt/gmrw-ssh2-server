@@ -42,8 +42,8 @@ module GMRW; module SSH2; module Protocol
       timeout(READ_WAIT_LIMIT) do
         (connection.gets or raise EOFError) - /#{EOL}\z/
       end
-    rescue EOFError       ; raise "connection EOF"
-    rescue Timeout::Error ; raise "connection timeout"
+    rescue EOFError       ; die "connection EOF"
+    rescue Timeout::Error ; die "connection timeout"
     end
 
     def read(n)
