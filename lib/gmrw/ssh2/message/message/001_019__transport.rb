@@ -41,8 +41,8 @@ module GMRW::SSH2::Message
   ]
 
   def_message :unimplemented, [
-    [ :byte,   :type                   ,3 ],
-    [ :uint32, :packet_sequence_number    ],
+    [ :byte,   :type            ,3 ],
+    [ :uint32, :sequence_number    ],
   ]
 
   def_message :debug, [

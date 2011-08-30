@@ -28,53 +28,25 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   #
   # :section: message delivery
   #
-  def message_received(message, hints={})
-    notify_observers(message.tag, message, hints)
+  def service_request_message_received(message, *)
+    notify_observers(message[:service_name], message[:service_name])
+    send_message :service_accept, :service_name => message[:service_name]
   end
 
-  def setup_message_routing
-    add_observer(:disconnect) { raise "disconnect message received" }
-
-    add_observer(:service_request) do |message,|
-      notify_observers(message[:service_name], message[:service_name])
-      send_message :service_accept, :service_name => message[:service_name]
-    end
+  #
+  # :section: start service
+  #
+  def start_service
+    SSH2.config(SSH2::Server::Config)
 
     add_observer('ssh-userauth',   &ssh_userauth.method(:start))
     add_observer('ssh-connection', &ssh_connection.method(:start))
-  end
-
-  #
-  # :section: serve
-  #
-  def serve
-    SSH2.config(SSH2::Server::Config)
-    setup_message_routing
 
     protocol_version_exchange
 
-    negotiate_algorithms
-
-    key_exchange
-
-    send_message :newkeys
-    recv_message :newkeys
-
-    keys_into_use
+    start_transport
 
     loop { poll_message }
-  end
-
-  #
-  # :section: error handling
-  #
-  def message_forbidden(e, *)
-    die :PROTOCOL_ERROR, "forbidden message received: #{e}"
-  end
-
-  def message_not_found(e, hints={})
-    info( "message unimplemented: #{e}" )
-    send_message :unimplemented, :packet_sequence_number => hints[:sequence_number]
   end
 end
 

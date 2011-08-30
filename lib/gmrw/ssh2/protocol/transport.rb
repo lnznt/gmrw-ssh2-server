@@ -58,11 +58,15 @@ class GMRW::SSH2::Protocol::Transport
   def start
     info( "SSH service start" )
 
-    reader.add_observer(:recv_message, &method(:message_received))
+    reader.add_observer(:recv_message,            &method(:message_received))
     reader.add_observer(:forbidden_message_error, &method(:message_forbidden))
     reader.add_observer(:message_not_found_error, &method(:message_not_found))
 
-    serve
+    add_observer(:disconnect,      &method(:disconnect_message_received))
+    add_observer(:service_request, &method(:service_request_message_received))
+    add_observer(:service_accept,  &method(:service_accept_message_received))
+
+    start_service
 
   rescue => e
     fatal( "#{e.class}: #{e}" )
@@ -76,14 +80,38 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   private
-  abstract_method :serve
+  abstract_method :start_service
 
   #
   # :section: Message Handlers
   #
-  def message_received(*)  ; end
-  def message_forbidden(*) ; end
-  def message_not_found(*) ; end
+  def message_received(message, hints={})
+    notify_observers(message.tag, message, hints)
+  end
+
+  def reply_unimplemented(message, hints={})
+    send_message :unimplemented, :sequence_number => hint[:sequence_number]
+  end
+
+  def disconnect_message_received(message, hints={})
+    raise "disconnect message received: #{message[:reason_code]}: #{message[:description]}"
+  end
+
+  def service_request_message_received(message, hints={})
+    reply_unimplemented(message, hints)
+  end
+
+  def service_accept_message_received(message, hints={})
+    reply_unimplemented(message, hints)
+  end
+
+  def message_forbidden(e, *)
+    die :PROTOCOL_ERROR, "forbidden message received: #{e}"
+  end
+
+  def message_not_found(e, hints={})
+    reply_unimplemented(e, hints)
+  end
 
   #
   # :section: Protocol Version Exchange
