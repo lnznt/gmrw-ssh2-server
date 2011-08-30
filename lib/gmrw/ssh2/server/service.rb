@@ -35,7 +35,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
   class Services < Hash
     def start_service(service_name)
-      fetch(service_name).start(service_name)
+      self[service_name].start(service_name)
     end
   end
 
