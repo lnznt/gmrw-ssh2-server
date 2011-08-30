@@ -35,26 +35,25 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     property_ro :groups,   'SSH2.config.oakley_group'
     property_ro :group,    'groups[initialize[:group]]'
 
-    property_ro :dh,       'OpenSSL::PKey::DH.new' 
+    property_ro :dh,       %-
+      OpenSSL::PKey::DH.new.tap do |d|
+        d.g = group[:g]
+        d.p = OpenSSL::BN.new(*group[:p])
+
+        d.generate_key! until (0...d.p).include?(d.pub_key) &&
+                              d.pub_key.to_i.count_bit > 1
+      end
+    -
 
     #
     # :section: protocol framework
     #
-    private
-    def ready
-      dh.g = group[:g]
-      dh.p = OpenSSL::BN.new(*group[:p])
-
-      dh.generate_key! until (0...dh.p).include?(dh.pub_key) &&
-                             dh.pub_key.to_i.count_bit > 1
-    end
-
     public
     def key_exchange(service)
       @service = service
 
       use_message :kex => messages
-      ready ; agree
+      agree
 
       [k, h]
     end
