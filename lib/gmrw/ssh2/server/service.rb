@@ -40,6 +40,10 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     })
   )
 
+  def start_service(service_name)
+    services[service_name].start(service_name)
+  end
+
   #
   # :section: message handling
   #
@@ -53,32 +57,37 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
           :unimplemented      => proc {},  # through
 
           :service_request    => method(:service_request_received),
-
+      },
+      :kex_algorithm => {
           :kexinit            => proc {},  # don't care
           :newkeys            => proc {},  # don't care
-
-          :kexdh_init         => proc {},  # don't care
-          :kexdh_reply        => proc {},  # don't care
-
-          :kex_dh_gex_group   => proc {},  # don't care
-          :kex_dh_gex_request => proc {},  # don't care
-          :kex_dh_gex_init    => proc {},  # don't care
-          :kex_dh_gex_reply   => proc {},  # don't care
       },
     })
   -
 
+  def set_route(route, routing)
+    routings[route] = routing
+  end
+
+  def use_message(usage)
+    usage.each_pair do |route, messages| 
+      set_route(route, messages.map{|message| [message, proc{}] }.to_hash)
+    end
+  end
+
   def message_received(message, hints={})
-    route   = [:dead_end, :transport, :userauth, :connection]
-    routing = route.map{|r| routings[r] }.compact.reduce{|rs, r| rs.merge(r) }
+    routes   = [ :dead_end,
+                 :transport,
+                 :kex_algorithm, :kex,
+                 'ssh-userauth', :auth,
+                 'ssh-connection' ]
+    routing = routes.map{|r| routings[r] }.compact.reduce{|rs, r| rs.merge(r) }
 
     routing[message.tag][message, hints]
   end
 
   def service_request_received(message, hints={})
-    debug( "in service: #{message[:service_name]}" )
-
-    services[message[:service_name]].start(message[:service_name])
+    start_service message[:service_name]
     send_message :service_accept, :service_name => message[:service_name]
   end
 

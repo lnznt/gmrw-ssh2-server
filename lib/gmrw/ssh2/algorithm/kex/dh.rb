@@ -17,10 +17,8 @@ module GMRW; module SSH2; module Algorithm ; module Kex
 
     private
     forward [:logger, :die,
-             :send_message,
-             :recv_message,
-             :client,
-             :server,
+             :send_message, :recv_message, :use_message,
+             :client, :server,
              :host_key     ] => :@service
             
     forward [:encode, :pack] => SSH2::Message::Field
@@ -55,6 +53,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     def key_exchange(service)
       @service = service
 
+      use_message :kex => messages
       ready ; agree
 
       [k, h]
@@ -82,6 +81,8 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     # :section: DH Key Agreement
     #
     private
+    property_ro :messages, '[:kexdh_init]'
+
     def agree
       send_message :kexdh_reply,
             :host_key_and_certificates => k_s,

@@ -13,24 +13,25 @@ module GMRW; module SSH2; module Server; class UserAuth
   include Utils::Loggable
 
   def_initialize :service
-  forward [:logger, :die, :routings, :services, :send_message] => :service
+  forward [:logger, :die, :set_route, :start_service, :send_message] => :service
   
   def start(service_name)
-    routings[:userauth] = {
-      :userauth_request => method(:userauth_request_received),
-    }
+    debug( "in service: #{service_name}" )
+
+    set_route service_name,
+        :userauth_request => method(:userauth_request_received)
   end
 
   #############################################################
   #
-  # DUMMY methods
+  # DUMMY
   #
   def userauth_request_received(message, *a)
     case message[:method_name]
       when 'none'
         send_message :userauth_failure, :auths_can_continue => ['password']
       when 'password'
-        services[message[:service_name]].start(message[:service_name])
+        start_service message[:service_name]
         send_message :userauth_success
     end
   end

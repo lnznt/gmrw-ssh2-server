@@ -20,6 +20,8 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     #
     # :section: DH Key Agreement
     #
+    property_ro :messages, '[:kex_dh_gex_request, :kex_dh_gex_init]'
+
     def agree
       send_message :kex_dh_gex_group, :p => dh.p, :g => dh.g
 
