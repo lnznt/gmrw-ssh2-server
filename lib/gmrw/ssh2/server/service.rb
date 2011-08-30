@@ -113,7 +113,6 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
     protocol_version_exchange
 
-    send_message :kexinit
     negotiate_algorithms
 
     key_exchange
