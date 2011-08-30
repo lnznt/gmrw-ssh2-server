@@ -97,6 +97,20 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   #
+  # :section: Transport Layer
+  #
+  def start_transport
+    negotiate_algorithms
+
+    key_exchange
+
+    peer. message :newkeys
+    local.message :newkeys
+
+    keys_into_use
+  end
+
+  #
   # :section: Algorithm Negotiation
   #
   def negotiate_algorithms
