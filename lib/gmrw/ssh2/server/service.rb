@@ -33,22 +33,47 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   property_ro :ssh_userauth,   'SSH2::Server::UserAuth.new(self)'
   property_ro :ssh_connection, 'SSH2::Server::Connection.new(self)'
 
+  class Services < Hash
+    def start_service(service_name)
+      fetch(service_name).start(service_name)
+    end
+  end
+
   property_ro :services, %(
-    Hash.new { not_in_service }.merge({
+    Services.new { not_in_service }.merge({
       'ssh-userauth'   => ssh_userauth,
       'ssh-connection' => ssh_connection,
     })
   )
-
-  def start_service(service_name)
-    services[service_name].start(service_name)
-  end
+  forward [:start_service] => :services
 
   #
   # :section: message handling
   #
+  class Routings < Hash
+    alias set_route []=
+
+    def use_message(usage)
+      usage.each_pair do |route, messages| 
+        set_route(route, messages.map{|message| [message, proc{}] }.to_hash)
+      end
+    end
+
+    property_ro :routes, %(
+      [ :dead_end,
+        :transport,
+        :kex_algorithm, :kex,
+        'ssh-userauth', :auth,
+        'ssh-connection']
+    )
+
+    def routing
+      routes.map{|r| self[r] }.compact.reduce{|rs, r| rs.merge(r) }
+    end
+  end
+
   property_ro :routings, %-
-    Hash.new{{}}.merge({
+    Routings.new{{}}.merge({
       :dead_end  => Hash.new { method(:unimplemented) },
       :transport => {
           :disconnect         => proc { raise "disconnect message received" },
@@ -64,26 +89,10 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
       },
     })
   -
-
-  def set_route(route, routing)
-    routings[route] = routing
-  end
-
-  def use_message(usage)
-    usage.each_pair do |route, messages| 
-      set_route(route, messages.map{|message| [message, proc{}] }.to_hash)
-    end
-  end
+  forward [:set_route, :use_message] => :routings
 
   def message_received(message, hints={})
-    routes   = [ :dead_end,
-                 :transport,
-                 :kex_algorithm, :kex,
-                 'ssh-userauth', :auth,
-                 'ssh-connection' ]
-    routing = routes.map{|r| routings[r] }.compact.reduce{|rs, r| rs.merge(r) }
-
-    routing[message.tag][message, hints]
+    routings.routing[message.tag][message, hints]
   end
 
   def service_request_received(message, hints={})
