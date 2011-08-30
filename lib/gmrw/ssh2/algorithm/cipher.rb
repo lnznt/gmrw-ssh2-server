@@ -13,32 +13,33 @@ module GMRW; module SSH2; module Algorithm
     include GMRW
     extend self
 
-    def block_size(name)
-      new(name).block_size
-    end
+    property_ro :block_size, %-
+      Hash.new {|h, name| h[name] = create(name).block_size }
+    -
 
     def get(name, keys)
-      cipher = new(name)
+      cipher = create(name)
       cipher.send(yield)
-      cipher.padding = 0
       cipher.iv  = keys[:iv ][cipher.iv_len ]
       cipher.key = keys[:key][cipher.key_len]
+      cipher.padding = 0
 
       proc {|s| (s && !s.empty?) ? cipher.update(s) : s }
     end
 
-    def new(name)
+    private
+    def create(name)
       name == 'none' ? none : OpenSSL::Cipher.new(SSH2.config.openssl_name[name])
     end
 
-    private
     property_ro :none, %-
-      null.dup.extend(Module.new {
-        def update(s)         ; s ; end
-        def block_size        ; 8 ; end
-        def iv_len            ; 8 ; end
-        def key_len           ; 8 ; end
-      })
+      Class.new {
+        def update(s)  ; s ; end
+        def block_size ; 8 ; end
+        def iv_len     ; 8 ; end
+        def key_len    ; 8 ; end
+        def method_missing(*) ; end
+      }.new
     -
   end
 end; end; end

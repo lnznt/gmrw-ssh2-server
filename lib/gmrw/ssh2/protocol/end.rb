@@ -86,7 +86,7 @@ module GMRW; module SSH2; module Protocol
     property :keys, 'Hash.new {{}}'
 
     include SSH2::Algorithm
-    property_rwv :block_size, '[Cipher.block_size(algorithm.cipher), 8].max'
+    property_rwv :block_size, '[Cipher.block_size[algorithm.cipher], 8].max'
     property_rwv :encrypt,    'Cipher.get(algorithm.cipher, keys) {:encrypt}'
     property_rwv :decrypt,    'Cipher.get(algorithm.cipher, keys) {:decrypt}'
     property_rwv :hmac,       'HMAC.get(algorithm.hmac, keys)'
