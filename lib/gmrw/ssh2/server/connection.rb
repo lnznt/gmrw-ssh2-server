@@ -13,15 +13,14 @@ module GMRW; module SSH2; module Server; class Connection
   include Utils::Loggable
 
   def_initialize :service
-  forward [:logger, :die, :set_route, :send_message] => :service
+  forward [:logger, :die, :send_message] => :service
 
   def start(service_name)
     debug( "in service: #{service_name}" )
 
-    set_route service_name,
-        :channel_open    => method(:channel_open_received),
-        :channel_request => method(:channel_request_received),
-        :channel_data    => method(:channel_data_received)
+    service.add_observer(:channel_open,    &method(:channel_open_received))
+    service.add_observer(:channel_request, &method(:channel_request_received))
+    service.add_observer(:channel_data,    &method(:channel_data_received))
   end
 
   ###########################################################################

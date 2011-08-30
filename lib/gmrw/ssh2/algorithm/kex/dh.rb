@@ -17,7 +17,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
 
     private
     forward [:logger, :die,
-             :send_message, :recv_message, :use_message,
+             :send_message, :recv_message,
              :client, :server,
              :host_key     ] => :@service
             
@@ -52,7 +52,6 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     def key_exchange(service)
       @service = service
 
-      use_message :kex => messages
       agree
 
       [k, h]

@@ -13,13 +13,12 @@ module GMRW; module SSH2; module Server; class UserAuth
   include Utils::Loggable
 
   def_initialize :service
-  forward [:logger, :die, :set_route, :start_service, :send_message] => :service
+  forward [:logger, :die, :services, :send_message] => :service
   
   def start(service_name)
     debug( "in service: #{service_name}" )
 
-    set_route service_name,
-        :userauth_request => method(:userauth_request_received)
+    service.add_observer(:userauth_request, &method(:userauth_request_received))
   end
 
   #############################################################
@@ -31,7 +30,7 @@ module GMRW; module SSH2; module Server; class UserAuth
       when 'none'
         send_message :userauth_failure, :auths_can_continue => ['password']
       when 'password'
-        start_service message[:service_name]
+        service.notify_observers(message[:service_name], message[:service_name])
         send_message :userauth_success
     end
   end

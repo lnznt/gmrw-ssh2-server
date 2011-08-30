@@ -6,6 +6,7 @@
 #
 
 require 'gmrw/extension/all'
+require 'gmrw/utils/observable'
 require 'gmrw/ssh2/protocol/transport'
 require 'gmrw/ssh2/server/config'
 require 'gmrw/ssh2/server/userauth'
@@ -13,6 +14,7 @@ require 'gmrw/ssh2/server/connection'
 
 class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   include GMRW
+  include Utils::Observable
 
   alias client peer
   alias server local
@@ -20,89 +22,26 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   #
   # :section: services handling
   #
-  class NotInService
-    def_initialize :service
-    forward [:die] => :service
-
-    def start(service_name)
-      die :SERVICE_NOT_AVAILABLE, "not in service: #{service_name}"
-    end
-  end
-
-  property_ro :not_in_service, 'NotInService.new(self)'
   property_ro :ssh_userauth,   'SSH2::Server::UserAuth.new(self)'
   property_ro :ssh_connection, 'SSH2::Server::Connection.new(self)'
 
-  class Services < Hash
-    def start_service(service_name)
-      self[service_name].start(service_name)
-    end
-  end
-
-  property_ro :services, %(
-    Services.new { not_in_service }.merge({
-      'ssh-userauth'   => ssh_userauth,
-      'ssh-connection' => ssh_connection,
-    })
-  )
-  forward [:start_service] => :services
-
   #
-  # :section: message handling
+  # :section: message delivery
   #
-  class Routings < Hash
-    alias set_route []=
-
-    def use_message(usage)
-      usage.each_pair do |route, messages| 
-        set_route(route, messages.map{|message| [message, proc{}] }.to_hash)
-      end
-    end
-
-    property_ro :routes, %(
-      [ :dead_end,
-        :transport,
-        :kex_algorithm, :kex,
-        'ssh-userauth', :auth,
-        'ssh-connection']
-    )
-
-    def routing
-      routes.map{|r| self[r] }.compact.reduce{|rs, r| rs.merge(r) }
-    end
-  end
-
-  property_ro :routings, %-
-    Routings.new{{}}.merge({
-      :dead_end  => Hash.new { method(:unimplemented) },
-      :transport => {
-          :disconnect         => proc { raise "disconnect message received" },
-          :ignore             => proc {},  # through
-          :debug              => proc {},  # through
-          :unimplemented      => proc {},  # through
-
-          :service_request    => method(:service_request_received),
-      },
-      :kex_algorithm => {
-          :kexinit            => proc {},  # don't care
-          :newkeys            => proc {},  # don't care
-      },
-    })
-  -
-  forward [:set_route, :use_message] => :routings
-
   def message_received(message, hints={})
-    routings.routing[message.tag][message, hints]
+    notify_observers(message.tag, message, hints)
   end
 
-  def service_request_received(message, hints={})
-    start_service message[:service_name]
-    send_message :service_accept, :service_name => message[:service_name]
-  end
+  def setup_message_routing
+    add_observer(:disconnect) { raise "disconnect message received" }
 
-  def unimplemented(message, hints={})
-    send_message :unimplemented,
-                 :packet_sequence_number => hints[:sequence_number]
+    add_observer(:service_request) do |message,|
+      notify_observers(message[:service_name], message[:service_name])
+      send_message :service_accept, :service_name => message[:service_name]
+    end
+
+    add_observer('ssh-userauth',   &ssh_userauth.method(:start))
+    add_observer('ssh-connection', &ssh_connection.method(:start))
   end
 
   #
@@ -110,6 +49,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   #
   def serve
     SSH2.config(SSH2::Server::Config)
+    setup_message_routing
 
     protocol_version_exchange
 
