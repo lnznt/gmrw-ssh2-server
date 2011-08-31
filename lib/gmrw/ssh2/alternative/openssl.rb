@@ -22,6 +22,13 @@ module GMRW::Extension
       GMRW::SSH2::Message::Field.pack [:string, 'ssh-rsa'],
                                       [:string, s        ]
     end
+
+    def unpack_and_verify(s)
+      vs, rem = GMRW::SSH2::Message::Field.unpack(s, [:string, :string])
+      id, sig = vs
+
+      id == 'ssh-rsa' && verify('sha1', sig, s) && rem.empty?
+    end
   end
 
   mixin OpenSSL::PKey::DSA do
@@ -34,15 +41,55 @@ module GMRW::Extension
     end
 
     def sign_and_pack(data)
-      s  = sign('dss1', data)
-      ss = OpenSSL::ASN1.decode(s).value.map {|v| v.value.to_s(2).rjust(20, "\0") }
+      a1 = OpenSSL::ASN1.decode(sign('dss1', data))
+      s  = a1.value.map {|v| v.value.to_s(2).rjust(20, "\0") }.join
 
-      !ss.find {|v| v.length > 20 } or raise OpenSSL::PKey::DSAError, "bad sig size"
+      s.length == 40 or raise OpenSSL::PKey::DSAError, "bad sig size"
 
       GMRW::SSH2::Message::Field.pack [:string, 'ssh-dss'],
-                                      [:string, ss.join  ]
+                                      [:string, s        ]
+    end
+
+    def unpack_and_verify(s)
+      vs, rem = GMRW::SSH2::Message::Field.unpack(s, [:string, :string])
+      id, sig = vs
+
+      a1  = sig.unpack("a20 a20").map {|v| OpenSSL::ASN1::Integer.new(OpenSSL::BN.new(v, 2)) }
+      sig = OpenSSL::ASN1::Sequence.new(a1).to_der
+
+      id == 'ssh-dss' && verify('dss1', sig, s) && rem.empty?
     end
   end
 end
+
+class OpenSSL::PKey::RSA
+  class << self
+    def parse(data)
+      vs, = GMRW::SSH2::Message::Field.unpack(data, [:string, :mpint, :mpint])
+      id, e, n = vs
+
+      id == 'ssh-rsa' or raise OpenSSL::PKey::RSAError, "not RSA key"
+
+      OpenSSL::PKey::RSA.new.tap {|key| key.e, key.n = e, n }
+    end
+  end
+end
+
+class OpenSSL::PKey::DSA
+  class << self
+    def parse(data)
+      vs, = GMRW::SSH2::Message::Field.unpack(data, [:string, :mpint, :mpint, :mpint, :mpint])
+      id, p_, q, g, pub_key = vs
+
+      id == 'ssh-dss' or raise OpenSSL::PKey::DSAError, "not DSA key"
+
+      OpenSSL::PKey::DSA.new.tap {|key| key.p, key.q, key.q, key.pub_key = p_, q, g, pub_key }
+    end
+  end
+end
+
+
+
+
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

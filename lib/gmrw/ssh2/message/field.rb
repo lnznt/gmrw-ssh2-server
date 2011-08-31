@@ -71,6 +71,12 @@ module GMRW; module SSH2; module Message; module Field
     fields.map {|ftype, val| encode(ftype, val) }.join
   end
 
+  def unpack(s, ftypes)
+    ftypes.reduce([[], s]) do |result, ftype|
+      v, s = decode(ftype, s) ; [result[0] << v, s] 
+    end
+  end
+
   private
   MSB = 7
 
