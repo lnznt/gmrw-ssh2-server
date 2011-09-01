@@ -225,7 +225,7 @@ class TestFields < Test::Unit::TestCase
       {  0.bit.div         =>  []           },
 
       {  6.bit.div(1)               =>  [0, 1, 1, 0] },
-      {  6.bit.div(1,:nopad=>true)  =>  [   1, 1, 0] },
+      {  6.bit.div(1,:nolead=>true) =>  [   1, 1, 0] },
 
       {  0x12.bit.div(8)   =>  [0x12]       },
       {  0x12.bit.div      =>  [0x12]       },
