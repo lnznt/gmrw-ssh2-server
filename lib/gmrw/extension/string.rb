@@ -64,11 +64,15 @@ module GMRW::Extension
         1 => [length].pack("C"),
         4 => [length].pack("N"),
         8 => [length.bit[63..32], length.bit[31..0]].pack("NN"),
-      }[length_field_size]
-      
-      length_field or raise ArgumentError, "#{length_field_size}"
+      }[length_field_size] or raise ArgumentError, "#{length_field_size}"
 
       length_field + self
+    end
+
+    def pack_mpi
+      negative = (unpack("C")[0] || 0)[msb=7] == 1
+      n        = unpack("C*").reduce(0) {|n,m| n << 8 | m }
+      negative ? -(n.bit.complement + 1) : n
     end
   end
 end

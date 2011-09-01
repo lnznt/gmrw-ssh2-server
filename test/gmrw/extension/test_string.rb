@@ -166,6 +166,18 @@ class TestFields < Test::Unit::TestCase
     ]
   end
 
+  def test_pack_mpi
+    try_assert_equal [
+      { "".pack_mpi                           =>  0      },
+      { [0x1].pack("C*").pack_mpi             =>  0x1    },
+      { [0x12].pack("C*").pack_mpi            =>  0x12   },
+      { [0x12,0x34].pack("C*").pack_mpi       =>  0x1234 },
+      { [0xed,0xcc].pack("C*").pack_mpi       => -0x1234 },
+      { [0x00,0x80,0x00].pack("C*").pack_mpi  =>  0x8000 },
+      { [0xff,0x41,0x11].pack("C*").pack_mpi  => -0xbeef },
+    ]
+  end
+
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

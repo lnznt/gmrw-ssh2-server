@@ -147,28 +147,6 @@ class TestFields < Test::Unit::TestCase
     ]
   end
 
-  def test_bit_msb?
-    try_assert_equal [
-      { 0x00.bit.msb?   => false },
-      { 0x01.bit.msb?   => false },
-      { 0x03.bit.msb?   => false },
-      { 0x10.bit.msb?   => false },
-      { 0x80.bit.msb?   => true },
-      { 0xff.bit.msb?   => true },
-
-      { 0x0.bit.msb?(4)  => false },
-      { 0x1.bit.msb?(4)  => false },
-      { 0x3.bit.msb?(4)  => false },
-      { 0x7.bit.msb?(4)  => false },
-      { 0x8.bit.msb?(4)  => true },
-      { 0xf.bit.msb?(4)  => true },
-
-      { 0x10.bit.msb?(4)  => false }, # bit.wise > bits
-      { 0x80.bit.msb?(4)  => false }, # bit.wise > bits
-      { 0xff.bit.msb?(4)  => false }, # bit.wise > bits
-    ]
-  end
-
   def test_bit_range
     try_assert_equal [
       {  0.bit[7..0]    =>  0 },  # 0000b

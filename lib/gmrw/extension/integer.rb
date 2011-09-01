@@ -66,14 +66,8 @@ module GMRW::Extension
           pad = this.negative? && ((this.abs.bit.wise.align(bits) / bits) - a.length).minimum(0)
           a = ([0] * (pad || 0)) + a
 
-          (                  this.negative? && !a[0].bit.msb?(bits) ? [bits.bit.mask] :
-           !opts[:nolead] && this.positive? &&  a[0].bit.msb?(bits) ? [0]             : []) + a
-        end
-
-        def msb?(bits=8)
-          bits > 0 or raise ArgumentError, "#{bits}"
-
-          (bits >= wise) && (self[bits-1] == 1)
+          (                  this.negative? && (a[0][bits-1] == 0) ? [bits.bit.mask] :
+           !opts[:nolead] && this.positive? && (a[0][bits-1] == 1) ? [0]             : []) + a
         end
 
         def complement(bits=8)
