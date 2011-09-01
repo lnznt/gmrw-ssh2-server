@@ -5,9 +5,9 @@
 # License:: Ruby's
 #
 
-require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
+require 'gmrw/ssh2/alternative/openssl'
 require 'gmrw/ssh2/message'
 
 module GMRW; module SSH2; module Algorithm ; module Kex
@@ -41,7 +41,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
         d.p = OpenSSL::BN.new(*group[:p])
 
         d.generate_key! until (0...d.p).include?(d.pub_key) &&
-                              d.pub_key.to_i.count_bit > 1
+                              d.pub_key.to_i.bit.count > 1
       end
     -
 
