@@ -8,7 +8,7 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/alternative/openssl'
-require 'gmrw/ssh2/message'
+require 'gmrw/ssh2/field'
 
 module GMRW; module SSH2; module Algorithm ; module Kex
   class DH
@@ -21,8 +21,6 @@ module GMRW; module SSH2; module Algorithm ; module Kex
              :client, :server,
              :host_key     ] => :@service
             
-    forward [:encode, :pack] => SSH2::Message::Field
-
     #
     # :section: digester / group / dh
     #
@@ -70,7 +68,7 @@ module GMRW; module SSH2; module Algorithm ; module Kex
 
     property_ro :shared_secret,        'dh.compute_key(e)'
     property_ro :binary_shared_secret, 'OpenSSL::BN.new(shared_secret, 2)'
-    property_ro :k,                    'encode(:mpint, binary_shared_secret)'
+    property_ro :k,                    'binary_shared_secret.ssh.encode(:mpint)'
 
     property_ro :h,                    'digest(h0)'
     property_ro :s,                    'host_key.sign_and_pack(h)'
@@ -91,13 +89,13 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     property_ro :e, 'client.message(:kexdh_init)[:e]'
 
     def h0
-      pack([:string, v_c ],
-           [:string, v_s ],
-           [:string, i_c ],
-           [:string, i_s ],
-           [:string, k_s ],
-           [:mpint , e   ],
-           [:mpint , f   ]) + k
+      SSH2::Field.pack([:string, v_c ],
+                       [:string, v_s ],
+                       [:string, i_c ],
+                       [:string, i_s ],
+                       [:string, k_s ],
+                       [:mpint , e   ],
+                       [:mpint , f   ]) + k
     end
   end
 end; end; end; end

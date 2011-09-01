@@ -38,18 +38,18 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     property_ro :e,   'client.message(:kex_dh_gex_init)[:e]'
 
     def h0
-      pack([:string, v_c  ],
-           [:string, v_s  ],
-           [:string, i_c  ],
-           [:string, i_s  ],
-           [:string, k_s  ],
-           [:uint32, min  ],
-           [:uint32, n    ],
-           [:uint32, max  ],
-           [:mpint , dh.p ],
-           [:mpint , dh.g ],
-           [:mpint , e    ],
-           [:mpint , f    ]) + k
+      SSH2::Field.pack([:string, v_c  ],
+                       [:string, v_s  ],
+                       [:string, i_c  ],
+                       [:string, i_s  ],
+                       [:string, k_s  ],
+                       [:uint32, min  ],
+                       [:uint32, n    ],
+                       [:uint32, max  ],
+                       [:mpint , dh.p ],
+                       [:mpint , dh.g ],
+                       [:mpint , e    ],
+                       [:mpint , f    ]) + k
     end
   end
 end; end; end; end

@@ -6,9 +6,11 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/ssh2/message/field'
+require 'gmrw/ssh2/field'
 
 module GMRW; module SSH2; module Message
+  include GMRW
+
   extend self
   property_ro :classes, '{}'
 
@@ -40,24 +42,24 @@ module GMRW; module SSH2; module Message
       def []=(fname, val) 
         ftype = avail?(fname) && (fields.rassoc(fname) || [])[0] or return
 
-        val = converter(fname)[ val.nil? ? Field.default(ftype) : val ]
+        val = converter(fname)[ val.nil? ? SSH2::Field.default(ftype) : val ]
 
-        Field.validate(ftype, val) or raise TypeError, "#{fname}: #{val}"
+        val.is.type? ftype or raise TypeError, "#{fname}: #{val}"
         super
       end
 
       def initialize(data={})
         fields.each {|ftype, fname, fval,| next unless avail?(fname)
-          self[fname], data = data.respond_to?(:to_str) ? Field.decode(ftype, data):
-                              !data[fname].nil?         ? [data[fname],     data]  :
-                              fval.respond_to?(:call)   ? [fval.call(self), data]  :
+          self[fname], data = data.respond_to?(:to_str) ? data.ssh.decode(ftype)  :
+                              !data[fname].nil?         ? [data[fname],     data] :
+                              fval.respond_to?(:call)   ? [fval.call(self), data] :
                                                           [fval,            data]
         }
       end
 
       def dump
         fields.map {|ftype, fname,|
-          avail?(fname) ? Field.encode(ftype, self[fname]) : nil
+          avail?(fname) ? self[fname].ssh.encode(ftype) : nil
         }.compact.join
       end
 

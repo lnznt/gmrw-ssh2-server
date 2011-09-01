@@ -7,24 +7,24 @@
 
 require 'openssl'
 require 'gmrw/extension/all'
-require 'gmrw/ssh2/message/field'
+require 'gmrw/ssh2/field'
 
 module GMRW::Extension
   mixin OpenSSL::PKey::RSA do
     def dump
-      GMRW::SSH2::Message::Field.pack [:string, 'ssh-rsa'],
-                                      [:mpint,  e        ],
-                                      [:mpint,  n        ]
+      GMRW::SSH2::Field.pack [:string, 'ssh-rsa'],
+                             [:mpint,  e        ],
+                             [:mpint,  n        ]
     end
 
     def sign_and_pack(data)
       s = sign('sha1', data)
-      GMRW::SSH2::Message::Field.pack [:string, 'ssh-rsa'],
-                                      [:string, s        ]
+      GMRW::SSH2::Field.pack [:string, 'ssh-rsa'],
+                             [:string, s        ]
     end
 
     def unpack_and_verify(s)
-      vs, rem = GMRW::SSH2::Message::Field.unpack(s, [:string, :string])
+      vs, rem = GMRW::SSH2::Field.unpack(s, [:string, :string])
       id, sig = vs
 
       id == 'ssh-rsa' && verify('sha1', sig, s) && rem.empty?
@@ -33,11 +33,11 @@ module GMRW::Extension
 
   mixin OpenSSL::PKey::DSA do
     def dump
-      GMRW::SSH2::Message::Field.pack [:string, 'ssh-dss' ],
-                                      [:mpint,  p         ],
-                                      [:mpint,  q         ],
-                                      [:mpint,  g         ],
-                                      [:mpint,  pub_key   ]
+      GMRW::SSH2::Field.pack [:string, 'ssh-dss' ],
+                             [:mpint,  p         ],
+                             [:mpint,  q         ],
+                             [:mpint,  g         ],
+                             [:mpint,  pub_key   ]
     end
 
     def sign_and_pack(data)
@@ -46,12 +46,12 @@ module GMRW::Extension
 
       s.length == 40 or raise OpenSSL::PKey::DSAError, "bad sig size"
 
-      GMRW::SSH2::Message::Field.pack [:string, 'ssh-dss'],
-                                      [:string, s        ]
+      GMRW::SSH2::Field.pack [:string, 'ssh-dss'],
+                             [:string, s        ]
     end
 
     def unpack_and_verify(s)
-      vs, rem = GMRW::SSH2::Message::Field.unpack(s, [:string, :string])
+      vs, rem = GMRW::SSH2::Field.unpack(s, [:string, :string])
       id, sig = vs
 
       a1  = sig.unpack("a20 a20").map {|v| OpenSSL::ASN1::Integer.new(OpenSSL::BN.new(v, 2)) }
@@ -65,7 +65,7 @@ end
 class OpenSSL::PKey::RSA
   class << self
     def parse(data)
-      vs, = GMRW::SSH2::Message::Field.unpack(data, [:string, :mpint, :mpint])
+      vs, = GMRW::SSH2::Field.unpack(data, [:string, :mpint, :mpint])
       id, e, n = vs
 
       id == 'ssh-rsa' or raise OpenSSL::PKey::RSAError, "not RSA key"
@@ -78,7 +78,7 @@ end
 class OpenSSL::PKey::DSA
   class << self
     def parse(data)
-      vs, = GMRW::SSH2::Message::Field.unpack(data, [:string, :mpint, :mpint, :mpint, :mpint])
+      vs, = GMRW::SSH2::Field.unpack(data, [:string, :mpint, :mpint, :mpint, :mpint])
       id, p_, q, g, pub_key = vs
 
       id == 'ssh-dss' or raise OpenSSL::PKey::DSAError, "not DSA key"
