@@ -155,6 +155,17 @@ class TestFields < Test::Unit::TestCase
       
     ]
   end
+
+  def test_to_packet
+    try_assert_equal [
+      { "hello".to_packet     =>  [5, "hello"].pack("Na*")    },
+      { "hello".to_packet(4)  =>  [5, "hello"].pack("Na*")    },
+      { "hello".to_packet(0)  =>  "hello"                     },
+      { "hello".to_packet(1)  =>  [5, "hello"].pack("Ca*")    },
+      { "hello".to_packet(8)  =>  [0,5, "hello"].pack("NNa*") },
+    ]
+  end
+
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

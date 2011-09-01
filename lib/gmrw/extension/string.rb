@@ -6,7 +6,8 @@
 #
 
 require 'gmrw/extension/extension'
-require 'gmrw/extension/all'
+require 'gmrw/extension/array'
+require 'gmrw/extension/integer'
 
 module GMRW::Extension
   compatibility String do
@@ -55,6 +56,19 @@ module GMRW::Extension
 
     def mapping(*names)
       (parsed = parse(yield)) && parsed.mapping(*names)
+    end
+
+    def to_packet(length_field_size=4)
+      length_field = {
+        0 => "",
+        1 => [length].pack("C"),
+        4 => [length].pack("N"),
+        8 => [length.bit[63..32], length.bit[31..0]].pack("NN"),
+      }[length_field_size]
+      
+      length_field or raise ArgumentError, "#{length_field_size}"
+
+      length_field + self
     end
   end
 end
