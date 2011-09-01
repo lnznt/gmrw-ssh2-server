@@ -24,51 +24,75 @@ module GMRW; module SSH2; module Message
     classes.fetch(tag).new(data)
   end
 
+  class Field
+    def initialize(spec)
+      @type, @name, @default, *opts = *spec[:field]
+      @cond                         = opts.grep(Hash)[0] || {}
+      @conv                         = opts.grep(Proc)[0] || proc {|v| v }
+      @message                      = spec[:message]
+    end
+
+    attr_reader :type, :name, :value
+
+    def avail?
+      @cond.all? {|f,v| @message[f] == v }
+    end
+
+    def default
+      @default.nil?               ? SSH2::Field.default(@type) :
+      @default.respond_to?(:call) ? @default[ @message ]       : @default
+    end
+
+    def value=(val)
+      val = @conv[ val.nil? ? default : val ]
+      val.is.type?(@type) or raise TypeError, "#{@name}: #{val}"
+      @value = val
+    end
+
+    def dump
+      @value.ssh.encode(@type)
+    end
+
+    def inspect
+      avail? ? "#{@name}:#{@type} => #{@value}" : "(#{@name}:#{@type})"
+    end
+  end
+
   def def_message(tag, fields, info={})
-    options = fields.map {|_,fname,_,*a|
-      [fname, {:requires  => a.grep(Hash )[0] || {},
-               :converter => a.grep(Proc )[0] || proc {|v| v }} ]
-    }.to_hash
+    classes[tag] = Class.new {
+      define_method(:tag) { tag }
 
-    classes[tag] = Class.new(Hash) {
-      define_method(:fields)    { fields.freeze }
-      define_method(:requires)  {|fname| options[fname][:requires ] }
-      define_method(:converter) {|fname| options[fname][:converter] }
-
-      def avail?(fname)
-        requires(fname).all? {|f,v| self[f] == v }
+      define_method(:fields) do
+        @fields ||= fields.map {|f| Field.new(:field => f, :message => self) }
       end
 
-      def []=(fname, val) 
-        ftype = avail?(fname) && (fields.rassoc(fname) || [])[0] or return
-
-        val = converter(fname)[ val.nil? ? SSH2::Field.default(ftype) : val ]
-
-        val.is.type? ftype or raise TypeError, "#{fname}: #{val}"
-        super
+      def field(name)
+        fields.find {|f| f.avail? && f.name == name }
       end
 
-      def initialize(data={})
-        fields.each {|ftype, fname, fval,| next unless avail?(fname)
-          self[fname], data = data.respond_to?(:to_str) ? data.ssh.decode(ftype)  :
-                              !data[fname].nil?         ? [data[fname],     data] :
-                              fval.respond_to?(:call)   ? [fval.call(self), data] :
-                                                          [fval,            data]
-        }
+      def [](name)
+        (f = field(name)) && f.value
+      end
+
+      def []=(name, value)
+        (f = field(name)) && (f.value = value)
+      end
+
+      def each_field(&block)
+        fields.each {|f| f.avail? ? block[f] : nil }
       end
 
       def dump
-        fields.map {|ftype, fname,|
-          avail?(fname) ? self[fname].ssh.encode(ftype) : nil
-        }.compact.join
+        s = "" ; each_field {|f| s << f.dump } ; s
       end
 
-      def tag      ; self.class.tag      ; end
-      def number   ; self.class.number   ; end
-      def category ; self.class.category ; end
-
+      def initialize(data={})
+        each_field do |f|
+          f.value, data = data.kind_of?(String) ? data.ssh.decode(f.type) :
+                                                  [data[f.name], data]
+        end
+      end
     }.tap do |mclass| (class << mclass ; self ; end).tap do |c|
-      c.send(:define_method, :tag)      { tag                      }
       c.send(:define_method, :number)   { fields[0][2]             }
       c.send(:define_method, :category) { info[:category] || [nil] }
     end end
