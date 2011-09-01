@@ -249,43 +249,6 @@ class TestFields < Test::Unit::TestCase
     ]
   end
 
-  def test_pack_bin
-    try_assert_equal [
-      {  0.pack_bin         =>  ""                       },
-      {  0xff.pack_bin      =>  [0x00, 0xff].pack("C*")  },
-      {  0x1234.pack_bin    =>  [0x12, 0x34].pack("C*")  },
-    ]
-  end
-
-  def test_pack_byte
-    try_assert_equal [
-      {   0.pack_byte      =>  [0x00].pack("C")          },
-      {   1.pack_byte      =>  [0x01].pack("C")          },
-      { 255.pack_byte      =>  [0xff].pack("C")          },
-    ]
-  end
-
-  def test_pack_uint32
-    try_assert_equal [
-      {   0.pack_uint32           =>  [0x00].pack("N")          },
-      {   1.pack_uint32           =>  [0x01].pack("N")          },
-      { 255.pack_uint32           =>  [0xff].pack("N")          },
-      { 0xffff_ffff.pack_uint32   =>  [0xffff_ffff].pack("N")   },
-    ]
-  end
-
-  def test_pack_uint64
-    try_assert_equal [
-      {   0.pack_uint64           =>  [0,0x00].pack("NN")          },
-      {   1.pack_uint64           =>  [0,0x01].pack("NN")          },
-      { 255.pack_uint64           =>  [0,0xff].pack("NN")          },
-      { 0xffff_ffff.pack_uint64   =>  [0,0xffff_ffff].pack("NN")   },
-
-      { 0xffff_ffff_ffff_ffff.pack_uint64  =>
-              [0xffff_ffff, 0xffff_ffff].pack("NN")   },
-    ]
-  end
-
   def test_bit_complement
     try_assert_equal [
       {  0.bit.complement(1)  =>  1            },

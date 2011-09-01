@@ -34,26 +34,6 @@ module GMRW::Extension
       negative? ? -1 : 0
     end
 
-    def pack_byte
-      [self].pack("C")
-    end
-
-    def pack_uint32
-      [self].pack("N")
-    end
-
-    def pack_uint64
-      [bit[63..32], bit[31..0]].pack("NN")
-    end
-
-    def pack_bin
-      bit.div(8).pack("C*")
-    end
-
-    def msb?(*a)
-      bit.msb?(*a)
-    end
-
     def bit
       @bit ||= Class.new {
         attr_accessor :this ; alias initialize this=
@@ -86,8 +66,8 @@ module GMRW::Extension
           pad = this.negative? && ((this.abs.bit.wise.align(bits) / bits) - a.length).minimum(0)
           a = ([0] * (pad || 0)) + a
 
-          (                  this.negative? && !a[0].msb?(bits) ? [bits.bit.mask] :
-           !opts[:nolead] && this.positive? &&  a[0].msb?(bits) ? [0]             : []) + a
+          (                  this.negative? && !a[0].bit.msb?(bits) ? [bits.bit.mask] :
+           !opts[:nolead] && this.positive? &&  a[0].bit.msb?(bits) ? [0]             : []) + a
         end
 
         def msb?(bits=8)
