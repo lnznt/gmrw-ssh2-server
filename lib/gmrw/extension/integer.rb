@@ -21,6 +21,27 @@ module GMRW::Extension
       self < n ? n : self
     end
 
+    def negative?
+      self < 0
+    end
+
+    def positive?
+      self > 0
+    end
+
+    def signum
+      positive? ?  1 :
+      negative? ? -1 : 0
+    end
+
+    def to_bin
+      bit.div(8).pack("C*")
+    end
+
+    def msb?(*a)
+      bit.msb?(*a)
+    end
+
     def bit
       @bit ||= Class.new {
         attr_accessor :this ; alias initialize this=
@@ -33,17 +54,42 @@ module GMRW::Extension
         end
 
         def count
-          sprintf("%b", this).count("1")
+          sprintf("%b", this).count("1") * this.signum
         end
 
-        def div(bits)
+        def wise
+          sprintf("%b", this).sub(/^\.+/, '').length * this.signum
+        end
+
+        def mask
+          (1 << this) - 1
+        end
+
+        def div(bits=8, opts={})
           bits > 0 or raise ArgumentError, "#{bits}"
 
-          mask = (1 << bits) - 1
-          n = this
-          a = []
-          (a << (n & mask) ; n >>= bits) while n > 0
-          a.empty? ? [0] : a.reverse
+          n = this.negative? ? this.abs.bit.complement(bits) + 1 : this
+          a = [] ; (a.unshift(n & bits.bit.mask) ; n >>= bits) while n > 0
+
+          pad = this.negative? && ((this.abs.bit.wise.align(bits) / bits) - a.length).minimum(0)
+          a = ([0] * (pad || 0)) + a
+
+          (                 this.negative? && !a[0].msb?(bits) ? [bits.bit.mask] :
+           !opts[:nopad] && this.positive? &&  a[0].msb?(bits) ? [0]             : []) + a
+        end
+
+        def msb?(bits=8)
+          bits > 0 or raise ArgumentError, "#{bits}"
+
+          (bits >= wise) && (self[bits-1] == 1)
+        end
+
+        def complement(bits=8)
+          bits > 0 or raise ArgumentError, "#{bits}"
+
+          bs = div(bits, :nopad => true)
+          ns = bs.empty? ? [0] : bs
+          ns.map {|n| n ^ bits.bit.mask }.reduce(0) {|n, b| n << bits | b }
         end
       }.new(self)
     end

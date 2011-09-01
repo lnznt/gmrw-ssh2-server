@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-#
+# -*- coding: utf-8 -*- #
 # Author:: lnznt
 # Copyright:: (C) 2011 lnznt.
 # License:: Ruby's
@@ -62,6 +61,35 @@ class TestFields < Test::Unit::TestCase
     ]
   end
 
+  def test_negative?
+    try_assert_equal [
+      { -1.negative?   =>  true },
+      {  0.negative?   =>  false },
+      {  1.negative?   =>  false },
+    ]
+  end
+
+  def test_posive?
+    try_assert_equal [
+      {  1.positive?   =>  true },
+      {  0.positive?   =>  false },
+      { -1.positive?   =>  false },
+    ]
+  end
+
+  def test_signum
+    try_assert_equal [
+      {  1.signum   =>   1 },
+      {  0.signum   =>   0 },
+      { -1.signum   =>  -1 },
+
+      {  100.signum =>   1 },
+      {  200.signum =>   1 },
+      { -100.signum =>  -1 },
+      { -200.signum =>  -1 },
+    ]
+  end
+
   def test_bit_count
     try_assert_equal [
       {  0.bit.count    =>  0 },  # 0000b
@@ -73,6 +101,71 @@ class TestFields < Test::Unit::TestCase
       {  6.bit.count    =>  2 },  # 0110b
       {  7.bit.count    =>  3 },  # 0111b
       {  8.bit.count    =>  1 },  # 1000b
+
+      {  -1.bit.count    =>  -1 },  # .... ...1b(complement) # 0xFF
+      {  -2.bit.count    =>  -1 },  # .... ..10b(complement) # 0xFE
+      {  -3.bit.count    =>  -2 },  # .... .101b(complement) # 0xFD
+      {  -4.bit.count    =>  -1 },  # .... .100b(complement) # 0xFC
+      {  -5.bit.count    =>  -3 },  # .... 1011b(complement) # 0xFB
+      {  -6.bit.count    =>  -2 },  # .... 1010b(complement) # 0xFA
+      {  -7.bit.count    =>  -2 },  # .... 1001b(complement) # 0xF9
+      {  -8.bit.count    =>  -1 },  # .... 1000b(complement) # 0xF8
+    ]
+  end
+
+  def test_bit_wise
+    try_assert_equal [
+      {  0.bit.wise    =>  0 },  # 0000b
+      {  1.bit.wise    =>  1 },  # 0001b
+      {  2.bit.wise    =>  2 },  # 0010b
+      {  3.bit.wise    =>  2 },  # 0011b
+      {  4.bit.wise    =>  3 },  # 0100b
+      {  5.bit.wise    =>  3 },  # 0101b
+      {  6.bit.wise    =>  3 },  # 0110b
+      {  7.bit.wise    =>  3 },  # 0111b
+      {  8.bit.wise    =>  4 },  # 1000b
+
+      { 0xff.bit.wise  =>  8 },  # 11111111b
+
+      {  -1.bit.wise   =>  -1 },  # .... ...1b(complement) # 0xFF
+      {  -2.bit.wise   =>  -2 },  # .... ..10b(complement) # 0xFE
+      {  -3.bit.wise   =>  -3 },  # .... .101b(complement) # 0xFD
+      {  -4.bit.wise   =>  -3 },  # .... .100b(complement) # 0xFC
+      {  -5.bit.wise   =>  -4 },  # .... 1011b(complement) # 0xFB
+      {  -6.bit.wise   =>  -4 },  # .... 1010b(complement) # 0xFA
+      {  -7.bit.wise   =>  -4 },  # .... 1001b(complement) # 0xF9
+      {  -8.bit.wise   =>  -4 },  # .... 1000b(complement) # 0xF8
+    ]
+  end
+
+  def test_bit_mask
+    try_assert_equal [
+      {  4.bit.mask    => 0xf  },
+      {  8.bit.mask    => 0xff },
+      { 16.bit.mask    => 0xffff },
+      { 32.bit.mask    => 0xffff_ffff },
+    ]
+  end
+
+  def test_bit_msb?
+    try_assert_equal [
+      { 0x00.bit.msb?   => false },
+      { 0x01.bit.msb?   => false },
+      { 0x03.bit.msb?   => false },
+      { 0x10.bit.msb?   => false },
+      { 0x80.bit.msb?   => true },
+      { 0xff.bit.msb?   => true },
+
+      { 0x0.bit.msb?(4)  => false },
+      { 0x1.bit.msb?(4)  => false },
+      { 0x3.bit.msb?(4)  => false },
+      { 0x7.bit.msb?(4)  => false },
+      { 0x8.bit.msb?(4)  => true },
+      { 0xf.bit.msb?(4)  => true },
+
+      { 0x10.bit.msb?(4)  => false }, # bit.wise > bits
+      { 0x80.bit.msb?(4)  => false }, # bit.wise > bits
+      { 0xff.bit.msb?(4)  => false }, # bit.wise > bits
     ]
   end
 
@@ -127,13 +220,58 @@ class TestFields < Test::Unit::TestCase
 
   def test_bit_div
     try_assert_equal [
-      {  0.bit.div(1)      =>  [0]          },
-      {  6.bit.div(1)      =>  [1, 1, 0]    },
+      {  0.bit.div(1)      =>  []           },
+      {  0.bit.div(8)      =>  []           },
+      {  0.bit.div         =>  []           },
+
+      {  6.bit.div(1)               =>  [0, 1, 1, 0] },
+      {  6.bit.div(1,:nopad=>true)  =>  [   1, 1, 0] },
+
       {  0x12.bit.div(8)   =>  [0x12]       },
+      {  0x12.bit.div      =>  [0x12]       },
       {  0x1234.bit.div(8) =>  [0x12, 0x34] },
+      {  0x1234.bit.div    =>  [0x12, 0x34] },
       {  0x1234.bit.div(4) =>  [1, 2, 3, 4] },
       {  0x1234567890123456.bit.div(8)  =>  [0x12, 0x34, 0x56, 0x78, 0x90, 0x12, 0x34, 0x56] },
       {  0x1234567890123456.bit.div(32) =>  [0x12345678, 0x90123456] },
+
+      {  -6.bit.div(1)      =>  [1, 0, 1, 0]    },
+      {  -6.bit.div(8)      =>  [0xfa]          },
+      {  -6.bit.div         =>  [0xfa]          },
+      {  -1.bit.div(8)      =>  [0xff]          },
+      {  -255.bit.div(8)    =>  [0xff, 0x01]    },
+
+      {  0.bit.div(8)       =>  [] },
+      {  0x1234.bit.div(8)  =>  [0x12, 0x34] },
+      {  -0x1234.bit.div(8) =>  [0xed, 0xcc] },
+      {  0x8000.bit.div(8)  =>  [0x00, 0x80, 0x00] },
+      { -0xbeef.bit.div(8)  =>  [0xff, 0x41, 0x11] },
+    ]
+  end
+
+  def test_to_bin
+    try_assert_equal [
+      {  0.to_bin         =>  ""                       },
+      {  0xff.to_bin      =>  [0x00, 0xff].pack("C*")  },
+      {  0x1234.to_bin    =>  [0x12, 0x34].pack("C*")  },
+    ]
+  end
+
+  def test_bit_complement
+    try_assert_equal [
+      {  0.bit.complement(1)  =>  1            },
+      {  0.bit.complement(8)  =>  0xff         },
+      {  0.bit.complement     =>  0xff         },
+      {  0.bit.complement(4)  =>  0xf          },
+      {  0.bit.complement(6)  =>  0x3f         },
+      {  0.bit.complement(16) =>  0xffff       },
+      {  0.bit.complement(64) =>  0xffff_ffff_ffff_ffff },
+
+      {  1.bit.complement(1)  =>  0 },
+      {  1.bit.complement(64) =>  0xffff_ffff_ffff_fffe },
+
+      {  0x12.bit.complement(8)  =>  0xed },
+      {  0x12.bit.complement     =>  0xed },
     ]
   end
 end
