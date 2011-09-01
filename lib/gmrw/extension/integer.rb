@@ -34,7 +34,19 @@ module GMRW::Extension
       negative? ? -1 : 0
     end
 
-    def to_bin
+    def pack_byte
+      [self].pack("C")
+    end
+
+    def pack_uint32
+      [self].pack("N")
+    end
+
+    def pack_uint64
+      [bit[63..32], bit[31..0]].pack("NN")
+    end
+
+    def pack_bin
       bit.div(8).pack("C*")
     end
 
