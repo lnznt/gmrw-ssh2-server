@@ -63,7 +63,7 @@ module GMRW; module SSH2; module Message
 
     def value=(val)
       val = @conv[ val.nil? ? default : val ]
-      val.is.type?(@type) or raise TypeError, "#{@name}: #{val}"
+      val.ssh.type?(@type) or raise TypeError, "#{@name}: #{val}"
       @value = val
     end
 

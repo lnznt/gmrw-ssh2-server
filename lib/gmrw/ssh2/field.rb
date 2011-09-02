@@ -6,7 +6,6 @@
 #
 require 'openssl'
 require 'gmrw/extension/all'
-require 'gmrw/ssh2/field/is_field'
 require 'gmrw/ssh2/field/ssh_field'
 
 module GMRW; module SSH2; module Field
@@ -52,7 +51,6 @@ end; end; end
 module GMRW::Extension
   mixin Object do
     include GMRW
-    property_ro :is,  'SSH2::Field::IsField.new(self)'
     property_ro :ssh, 'SSH2::Field::SSHField.new(self)'
   end
 end

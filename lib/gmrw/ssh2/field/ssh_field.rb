@@ -6,15 +6,14 @@
 #
 require 'openssl'
 require 'gmrw/extension/all'
+require 'gmrw/ssh2/field/is_type'
 
 module GMRW; module SSH2; module Field
   include GMRW
 
   class SSHField
-    private
-    def_initialize :this
+    include IsType
 
-    public
     def encode(type)
       case type
         when :boolean  ; [this ? 1 : 0].pack("C")
@@ -28,7 +27,16 @@ module GMRW; module SSH2; module Field
       end
     end
 
+    def decode(type)
+      s, rem = sep(type)
+      s && rem or raise "cannot separate: #{type}: #{this}"
+
+      [s.ssh.dec(type), rem]
+    end
+
     private
+    def_initialize :this
+
     def sep(type, s=this)
       len = SSH2::Field.field_size(type)
       len ? (s / len) : sep(*s.unpack("Na*"))
@@ -46,14 +54,6 @@ module GMRW; module SSH2; module Field
         when Integer   ; this.unpack("C*")
         when :mpint    ; OpenSSL::BN.new(this.pack_mpi.to_s)
       end
-    end
-
-    public
-    def decode(type)
-      s, rem = sep(type)
-      s && rem or raise "cannot separate: #{type}: #{this}"
-
-      [s.ssh.dec(type), rem]
     end
   end
 end;end;end
