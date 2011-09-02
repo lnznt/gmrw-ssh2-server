@@ -10,7 +10,6 @@ require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
 require 'gmrw/ssh2/protocol/exception'
-require 'gmrw/ssh2/message/catalog'
 require 'gmrw/ssh2/algorithm/kex'
 require 'gmrw/ssh2/algorithm/host_key'
 
@@ -43,8 +42,7 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Message Catalog
   #
-  property_ro :message_catalog, 'SSH2::Message::Catalog.new(logger)'
-  forward [:change_algorithm] => :message_catalog
+  property_ro :message_catalog, 'SSH2::Message.create_catalog'
 
   #
   # :section: Algorithms
@@ -164,7 +162,7 @@ class GMRW::SSH2::Protocol::Transport
     kex       SSH2::Algorithm::Kex.get(algorithm_kex)
     host_key  SSH2::Algorithm::HostKey.get(algorithm_host_key)
 
-    change_algorithm :kex => algorithm_kex
+    message_catalog.kex = algorithm_kex
   end
 
   #

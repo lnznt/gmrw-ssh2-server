@@ -13,10 +13,29 @@ module GMRW; module SSH2; module Message
 
   extend self
   property_ro :classes, '{}'
+  property_ro :catalog, 'Hash.new {|h,k| h[k] = {}}'
 
-  def build(payload)
+  #
+  # :section: catalog search
+  #
+  def create_catalog
+    Struct.new(:kex, :auth).new
+  end
+
+  def search(number)
+    cate = case number
+      when 30..49 ; yield[:kex]
+      when 60..79 ; yield[:auth]
+    end
+    catalog[number][cate]
+  end
+
+  #
+  # :section: message build
+  #
+  def build(payload, &block)
     number = payload.unpack("C")[0]
-    tag    = yield.search(number)
+    tag    = search(number, &block)
     create(tag, payload)
   end
 
@@ -24,6 +43,9 @@ module GMRW; module SSH2; module Message
     classes.fetch(tag).new(data)
   end
 
+  #
+  # :section: field
+  #
   class Field
     def inspect
       avail? ? "#{@name}:#{@type} => #{@value}" : "(#{@name}:#{@type})"
@@ -59,7 +81,15 @@ module GMRW; module SSH2; module Message
     end
   end
 
+  #
+  # :section: message
+  #
   def def_message(tag, fields, info={})
+    number = fields[0][2]
+    (info[:category] || [nil]).each do |cate|
+      catalog[number][cate] = tag
+    end
+
     classes[tag] = Class.new do
       define_method(:tag) { tag }
 
@@ -95,11 +125,6 @@ module GMRW; module SSH2; module Message
         end
       end
     end 
-
-    (class << classes[tag] ; self ; end).tap do |c|
-      c.send(:define_method, :number)   { fields[0][2]             }
-      c.send(:define_method, :category) { info[:category] || [nil] }
-    end
   end
 end; end; end
 
