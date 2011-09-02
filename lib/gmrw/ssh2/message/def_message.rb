@@ -25,11 +25,8 @@ module GMRW; module SSH2; module Message
   end
 
   class Field
-    def initialize(spec)
-      @type, @name, @default, *opts = *spec[:field]
-      @cond                         = opts.grep(Hash)[0] || {}
-      @conv                         = opts.grep(Proc)[0] || proc {|v| v }
-      @message                      = spec[:message]
+    def inspect
+      avail? ? "#{@name}:#{@type} => #{@value}" : "(#{@name}:#{@type})"
     end
 
     attr_reader :type, :name, :value
@@ -38,9 +35,8 @@ module GMRW; module SSH2; module Message
       @cond.all? {|f,v| @message[f] == v }
     end
 
-    def default
-      @default.nil?               ? SSH2::Field.default(@type) :
-      @default.respond_to?(:call) ? @default[ @message ]       : @default
+    def dump
+      @value.ssh.encode(@type)
     end
 
     def value=(val)
@@ -49,54 +45,61 @@ module GMRW; module SSH2; module Message
       @value = val
     end
 
-    def dump
-      @value.ssh.encode(@type)
+    private
+    def default
+      @default.nil?               ? SSH2::Field.default(@type) :
+      @default.respond_to?(:call) ? @default[ @message ]       : @default
     end
 
-    def inspect
-      avail? ? "#{@name}:#{@type} => #{@value}" : "(#{@name}:#{@type})"
+    def initialize(spec)
+      @type, @name, @default, *opts = *spec[:field]
+      @cond                         = opts.grep(Hash)[0] || {}
+      @conv                         = opts.grep(Proc)[0] || proc {|v| v }
+      @message                      = spec[:message]
     end
   end
 
   def def_message(tag, fields, info={})
-    classes[tag] = Class.new {
+    classes[tag] = Class.new do
       define_method(:tag) { tag }
 
-      define_method(:fields) do
-        @fields ||= fields.map {|f| Field.new(:field => f, :message => self) }
-      end
-
-      def field(name)
-        fields.find {|f| f.avail? && f.name == name }
-      end
-
       def [](name)
-        (f = field(name)) && f.value
+        (field(name) || null).value
       end
 
-      def []=(name, value)
-        (f = field(name)) && (f.value = value)
-      end
-
-      def each_field(&block)
-        fields.each {|f| f.avail? ? block[f] : nil }
-      end
+#      def []=(name, val)
+#        (field(name) || null).value = val
+#      end
 
       def dump
         s = "" ; each_field {|f| s << f.dump } ; s
       end
 
+      private
+      define_method(:fields) do
+        @fields ||= fields.map {|f| Field.new(:field => f, :message => self) }
+      end
+
+      def field(name)
+        (f = fields.find {|f| f.name == name }) && f.avail? && f
+      end
+
+      def each_field(&block)
+        fields.each {|f| f.avail? && block[f] }
+      end
+
       def initialize(data={})
         each_field do |f|
-          f.value, data = data.kind_of?(String) ? data.ssh.decode(f.type) :
-                                                  [data[f.name], data]
+          f.value, data = data.is.string? ? data.ssh.decode(f.type) :
+                                            [data[f.name], data]
         end
       end
-    }.tap do |mclass| (class << mclass ; self ; end).tap do |c|
+    end 
+
+    (class << classes[tag] ; self ; end).tap do |c|
       c.send(:define_method, :number)   { fields[0][2]             }
       c.send(:define_method, :category) { info[:category] || [nil] }
-    end end
-
+    end
   end
 end; end; end
 

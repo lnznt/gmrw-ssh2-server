@@ -44,9 +44,7 @@ module GMRW; module SSH2; module Field
         when :string   ; this
         when :namelist ; this.split(",")
         when Integer   ; this.unpack("C*")
-        when :mpint
-          n = this.pack_mpi
-          OpenSSL::BN.new(n.abs.to_s) * n.signum
+        when :mpint    ; OpenSSL::BN.new(this.pack_mpi.to_s)
       end
     end
 
