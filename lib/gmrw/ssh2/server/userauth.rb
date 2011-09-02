@@ -14,7 +14,7 @@ module GMRW; module SSH2; module Server; class UserAuth
   include Utils::Loggable
 
   def_initialize :service
-  forward [:logger, :die, :send_message] => :service
+  forward [:logger, :die, :send_message, :message_catalog] => :service
   
   def start(service_name)
     debug( "in service: #{service_name}" )
@@ -42,6 +42,7 @@ module GMRW; module SSH2; module Server; class UserAuth
   end
 
   def userauth_request_received(message, *a)
+    message_catalog.auth = message[:method_name]
     auth = authentications[message[:method_name]]
     auth ? auth.authenticate(message) : please_retry
   end
