@@ -16,6 +16,10 @@ module GMRW::Extension
     def mapping(*keys)
       (keys.empty? ? (0...count) : keys).zip(self).to_hash
     end
+
+    def rjust(len, pad=nil)
+      ([pad] * ((len > length) ? (len - length) : 0)) + self
+    end
   end
 end
 

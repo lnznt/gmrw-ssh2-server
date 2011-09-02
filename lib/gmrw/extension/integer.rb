@@ -6,11 +6,16 @@
 #
 
 require 'gmrw/extension/extension'
+require 'gmrw/extension/array'
 
 module GMRW::Extension
   mixin Integer do
+    def count_per(n)
+      (self + (n - 1)) / n
+    end
+
     def align(n)
-      (self + (n - 1)).div(n) * n
+      count_per(n) * n
     end
 
     def maximum(n)
@@ -42,7 +47,15 @@ module GMRW::Extension
           first = (range.respond_to?(:first) && range.first) || range
           last  = (range.respond_to?(:last ) && range.last ) || range
 
-          [first, last].max.downto([first, last].min).reduce(0) {|n, i| n << 1 | this[i] }
+          ([first, last].max).downto([first, last].min).reduce(0) {|n, i| n << 1 | this[i] }
+        end
+
+        def set?(pos)
+          this.bit[pos] == 1
+        end
+
+        def clear?(pos)
+          this.bit[pos] == 0
         end
 
         def count
@@ -63,11 +76,13 @@ module GMRW::Extension
           n = this.negative? ? this.abs.bit.complement(bits) + 1 : this
           a = [] ; (a.unshift(n & bits.bit.mask) ; n >>= bits) while n > 0
 
-          pad = this.negative? && ((this.abs.bit.wise.align(bits) / bits) - a.length).minimum(0)
-          a = ([0] * (pad || 0)) + a
+          this.negative? && (a = a.rjust(this.abs.bit.wise.count_per(bits), 0))
 
-          (                  this.negative? && (a[0][bits-1] == 0) ? [bits.bit.mask] :
-           !opts[:nolead] && this.positive? && (a[0][bits-1] == 1) ? [0]             : []) + a
+          msb  = (bits - 1)
+          lead = (!opts[:nolead] && this.positive? && a[0].bit.set?(msb))   ? [0]             :
+                 (                  this.negative? && a[0].bit.clear?(msb)) ? [bits.bit.mask] : []
+
+          lead + a
         end
 
         def complement(bits=8)

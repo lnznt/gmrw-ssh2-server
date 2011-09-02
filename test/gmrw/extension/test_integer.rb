@@ -15,6 +15,21 @@ class TestFields < Test::Unit::TestCase
     end
   end
 
+  def test_count_per
+    try_assert_equal [
+      {  0.count_per(8)      =>  0 },
+
+      {  1.count_per(8)      =>  1 },
+      {  7.count_per(8)      =>  1 },
+      {  8.count_per(8)      =>  1 },
+
+      {  9.count_per(8)      =>  2 },
+      { 10.count_per(8)      =>  2 },
+
+      { 20.count_per(8)      =>  3 },
+    ]
+  end
+
   def test_align
     try_assert_equal [
       {  0.align(8)      =>  0 },
@@ -193,6 +208,50 @@ class TestFields < Test::Unit::TestCase
       {  5.bit[3..1] =>  2 },  # 0101b
       {  6.bit[3..1] =>  3 },  # 0110b
       {  7.bit[3..1] =>  3 },  # 0111b
+    ]
+  end
+
+  def test_bit_set?
+    try_assert_equal [
+      {  0.bit.set?(0) =>  false },  # 0000b
+      {  1.bit.set?(0) =>  true  },  # 0001b
+      {  2.bit.set?(0) =>  false },  # 0010b
+      {  3.bit.set?(0) =>  true  },  # 0011b
+      {  4.bit.set?(0) =>  false },  # 0100b
+      {  5.bit.set?(0) =>  true  },  # 0101b
+      {  6.bit.set?(0) =>  false },  # 0110b
+      {  7.bit.set?(0) =>  true  },  # 0111b
+
+      {  0.bit.set?(1) =>  false },  # 0000b
+      {  1.bit.set?(1) =>  false },  # 0001b
+      {  2.bit.set?(1) =>  true  },  # 0010b
+      {  3.bit.set?(1) =>  true  },  # 0011b
+      {  4.bit.set?(1) =>  false },  # 0100b
+      {  5.bit.set?(1) =>  false },  # 0101b
+      {  6.bit.set?(1) =>  true  },  # 0110b
+      {  7.bit.set?(1) =>  true  },  # 0111b
+    ]
+  end
+
+  def test_bit_clear?
+    try_assert_equal [
+      {  0.bit.clear?(0) =>  true  },  # 0000b
+      {  1.bit.clear?(0) =>  false },  # 0001b
+      {  2.bit.clear?(0) =>  true  },  # 0010b
+      {  3.bit.clear?(0) =>  false },  # 0011b
+      {  4.bit.clear?(0) =>  true  },  # 0100b
+      {  5.bit.clear?(0) =>  false },  # 0101b
+      {  6.bit.clear?(0) =>  true  },  # 0110b
+      {  7.bit.clear?(0) =>  false },  # 0111b
+
+      {  0.bit.clear?(1) =>  true  },  # 0000b
+      {  1.bit.clear?(1) =>  true  },  # 0001b
+      {  2.bit.clear?(1) =>  false },  # 0010b
+      {  3.bit.clear?(1) =>  false },  # 0011b
+      {  4.bit.clear?(1) =>  true  },  # 0100b
+      {  5.bit.clear?(1) =>  true  },  # 0101b
+      {  6.bit.clear?(1) =>  false },  # 0110b
+      {  7.bit.clear?(1) =>  false },  # 0111b
     ]
   end
 

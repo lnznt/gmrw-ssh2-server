@@ -43,6 +43,22 @@ class TestFields < Test::Unit::TestCase
       { [].mapping(:foo,:bar,:baz)  => {:foo => nil, :bar => nil, :baz => nil} },
     ]
   end
+
+  def test_rjust
+    try_assert_equal [
+      { [1,2,3].rjust(5)      => [nil, nil, 1, 2, 3] },
+      { [1,2,3].rjust(7)      => [nil, nil, nil, nil, 1, 2, 3] },
+      { [1,2,3].rjust(3)      => [1, 2, 3] },
+      { [1,2,3].rjust(2)      => [1, 2, 3] },
+      { [1,2,3].rjust(0)      => [1, 2, 3] },
+
+      { [1,2,3].rjust(5,0)    => [0, 0, 1, 2, 3] },
+      { [1,2,3].rjust(7,0)    => [0, 0, 0, 0, 1, 2, 3] },
+      { [1,2,3].rjust(3,0)    => [1, 2, 3] },
+      { [1,2,3].rjust(2,0)    => [1, 2, 3] },
+      { [1,2,3].rjust(0,0)    => [1, 2, 3] },
+    ]
+  end
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:
