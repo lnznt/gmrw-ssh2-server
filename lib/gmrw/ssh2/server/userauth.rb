@@ -9,13 +9,15 @@ require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/server/userauth/user'
 require 'gmrw/ssh2/server/userauth/password_auth'
+require 'gmrw/ssh2/server/userauth/publickey_auth'
 
 module GMRW; module SSH2; module Server; class UserAuth
   include GMRW
   include Utils::Loggable
 
   def_initialize :service
-  forward [:logger, :die, :send_message, :message_catalog] => :service
+  forward [:logger, :die,
+           :session_id, :send_message, :message_catalog] => :service
   
   def start(service_name)
     debug( "in service: #{service_name}" )
@@ -28,9 +30,12 @@ module GMRW; module SSH2; module Server; class UserAuth
 
   property_ro :authentications, %-
   {
-    "password" => PasswordAuth.new(self),
+    "password"  => PasswordAuth.new(self),
+    "publickey" => PublicKeyAuth.new(self),
   }
   -
+
+  property_ro :auths_list, 'SSH2.config.authentication'
 
   #
   # :section: reply message
@@ -45,7 +50,7 @@ module GMRW; module SSH2; module Server; class UserAuth
   def please_retry(partial_success=false)
     user.count_check!
 
-    send_message :userauth_failure, :auths_can_continue => ['password'],
+    send_message :userauth_failure, :auths_can_continue => auths_list,
                                     :partial_success    => partial_success
   end
 

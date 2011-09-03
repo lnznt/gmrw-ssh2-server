@@ -168,6 +168,8 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Key Exchange
   #
+  attr_reader :session_id
+
   def key_exchange
     @secret, @hash, = kex.key_exchange(self) ; @session_id ||= @hash
   end

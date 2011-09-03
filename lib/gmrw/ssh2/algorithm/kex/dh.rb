@@ -5,9 +5,9 @@
 # License:: Ruby's
 #
 
+require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/ssh2/alternative/openssl'
 require 'gmrw/ssh2/field'
 
 module GMRW; module SSH2; module Algorithm ; module Kex

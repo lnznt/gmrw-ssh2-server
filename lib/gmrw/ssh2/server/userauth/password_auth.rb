@@ -26,6 +26,8 @@ module GMRW; module SSH2; module Server; class UserAuth ; class PasswordAuth
 
     ok = !chpw && (users[user] || {})[:password] == pass
 
+    debug( "password auth : #{ok}" )
+
     ok ? welcome(message) : please_retry
   end
 end; end; end; end; end

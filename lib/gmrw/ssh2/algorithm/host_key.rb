@@ -5,20 +5,20 @@
 # License:: Ruby's
 #
 
-require 'gmrw/ssh2/alternative/openssl'
+require 'gmrw/extension/all'
+require 'gmrw/ssh2/algorithm/host_key/rsa'
+require 'gmrw/ssh2/algorithm/host_key/dsa'
 
 module GMRW; module SSH2; module Algorithm
   module HostKey
     include GMRW
     extend self
 
-    def get(name)
-      f = open(SSH2.config.host_key_files[name])
+    property_ro :algorithms, '{ "ssh-rsa" => RSAKey, "ssh-dss" => DSAKey }'
 
-      case name
-        when 'ssh-rsa'; OpenSSL::PKey::RSA.new(f)
-        when 'ssh-dss'; OpenSSL::PKey::DSA.new(f)
-      end or raise "unknown host-key: #{name}"
+    def get(name)
+      s = SSH2.config.host_key_files[name]
+      algorithms[name].load(s) rescue raise "cannot create key #{name}"
     end
   end
 end; end; end
