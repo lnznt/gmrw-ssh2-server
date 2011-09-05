@@ -74,6 +74,10 @@ module GMRW::Extension
       n        = unpack("C*").reduce(0) {|n,m| n << 8 | m }
       negative ? -(n.bit.complement + 1) : n
     end
+
+    def bin
+      unpack("C*").pack("C*")
+    end
   end
 end
 

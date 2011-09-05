@@ -7,6 +7,7 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
+require 'gmrw/ssh2/server/connection/session'
 
 module GMRW; module SSH2; module Server; class Connection
   include GMRW
@@ -25,133 +26,41 @@ module GMRW; module SSH2; module Server; class Connection
   end
 
   def global_request_received(message, *)
+    # NOT SUPPORT
     message[:want_reply] && send_message(:request_failure)
   end
 
-  ###########################################################################
-  #
-  # DUMMY
-  #
-  property :session, '{}'
+  property_ro :channels, '{ "session" => Session }'
+  property_ro :slot, '[]'
 
-  def channel_open_received(message, *a)
-    case message[:channel_type]
-      when 'session'
-        session[:peer_channel ] = message[:sender_channel]
-        session[:local_channel] = message[:sender_channel] + 10
-        session[:initial_window_size] = message[:initial_window_size]
-        session[:maximum_packet_size] = message[:maximum_packet_size]
-
-        send_message :channel_open_confirmation,
-                      :recipient_channel  => session[:peer_channel],
-                      :sender_channel     => session[:local_channel],
-                      :initial_window_size => session[:initial_window_size],
-                      :maximum_packet_size => session[:maximum_packet_size]
-      else
-        send_message :channel_open_failure, :reason_code => :UNKNOWN_CHANNEL_TYPE,
-                                            :description => :UNKNOWN_CHANNEL_TYPE,
-                                            :recipient_channel => message[:sender_channel]
-    end
+  def open_channel(channel)
+    (slot.index(nil) || slot.length).tap {|idx| slot[idx] = channel }
   end
 
-  def channel_request_received(message, *a)
-    case message[:request_type]
-      when 'env','shell'
-        send_message :channel_success, :recipient_channel => session[:peer_channel]
-      when 'pty-req'
-        parse_term_modes message[:term_modes]
-        send_message :channel_success, :recipient_channel => session[:peer_channel]
-    end
+  def close_channel(channel)
+    debug( "channle closeing: #{channel.local.channel}" )
+    channel.closing.call
+    slot[channel.index] = nil
+    send_message :channel_close, :recipient_channel => channel.peer.channel
   end
 
-  def parse_term_modes(modes)
-    commands = {
-        0  => :TTY_OP_END,
-        1  => :VINTR,
-        2  => :VQUIT,
-        3  => :VERASE,
-        4  => :VKILL,
-        5  => :VEOF,
-        6  => :VEOL,
-        7  => :VEOL2,
-        8  => :VSTART,
-        9  => :VSTOP,
-        10 => :VSUSP,
-        11 => :VDSUSP,
-        12 => :VREPRINT,
-        13 => :VWERASE,
-        14 => :VLNEXT,
-        15 => :VFLUSH,
-        16 => :VSWTCH,
-        17 => :VSTATUS,
-        18 => :VDISCARD,
-
-        30 => :IGNPAR,
-        31 => :PARMRK,
-        32 => :INPCK,
-        33 => :ISTRIP,
-        34 => :INLCR,
-        35 => :IGNCR,
-        36 => :ICRNL,
-        37 => :IUCLC,
-        38 => :IXON,
-        39 => :IXANY,
-        40 => :IXOFF,
-        41 => :IMAXBEL,
-
-        50 => :ISIG,
-        51 => :ICANON,
-        52 => :XCASE,
-        53 => :ECHO,
-        54 => :ECHOE,
-        55 => :ECHOK,
-        56 => :ECHONL,
-        57 => :NOFLSH,
-        58 => :TOSTOP,
-        59 => :IEXTEN,
-        60 => :ECHOCTL,
-        61 => :ECHOKE,
-        62 => :PENDIN,
-
-        70 => :OPOST,
-        71 => :OLCUC,
-        72 => :ONLCR,
-        73 => :OCRNL,
-        74 => :ONOCR,
-        75 => :ONLRET,
-
-        90 => :CS7,
-        91 => :CS8,
-        92 => :PARENB,
-        93 => :PARODD,
-
-       128 => :TTY_OP_ISPEED,
-       129 => :TTY_OP_OSPEED,
-    }
-
-    parsed = []
-
-    until modes.unpack("C")[0] == 0
-      c, n, modes = modes.unpack("CNa*")
-      parsed << [commands[c], n]
-    end
-
-    debug( "#{parsed}" )
+  def channel_open_received(message, *)
+    channel = channels[message[:channel_type]]
+    channel ? channel.new(self).channel_open_received(message) :
+              send_message(:channel_open_failure,
+                           :reason_code => :UNKNOWN_CHANNEL_TYPE,
+                           :description => :UNKNOWN_CHANNEL_TYPE,
+                           :recipient_channel => message[:sender_channel])
   end
 
-  def channel_data_received(message, *a)
-    (session[:data] ||= "") << message[:data]
+  def channel_request_received(message, *)
+    channel = slot[message[:recipient_channel]]
+    channel && channel.channel_request_received(message)
+  end
 
-    if session[:data] =~ /([^\r]+)\r/
-      cmd = $1
-      debug( "cmd: #{cmd}" )
-      result = `#{$1}` rescue ""
-      session[:data] = ""
-
-      send_message :channel_data, :recipient_channel => session[:peer_channel],
-                                  :data => result
-      send_message :channel_close, :recipient_channel => session[:peer_channel]
-    end
+  def channel_data_received(message, *)
+    channel = slot[message[:recipient_channel]]
+    channel && channel.channel_data_received(message)
   end
 end; end; end; end
 
