@@ -19,20 +19,28 @@ module GMRW; module SSH2; module Server; class Connection
     forward [ :logger, :die,
               :send_message,
               :open_channel, :close_channel] => :service
-    
-    property    :open_message
-    property_ro :end_point, 'Struct.new(:channel, :window_size, :maximum_packet_size)'
+
+    #
+    # :section: opening
+    #
     property_ro :initial_window_size, '1024 * 1024'
     property_ro :maximum_packet_size, '  16 * 1024'
 
-    property_ro :local, %-
-      end_point.new(open_channel(self), initial_window_size, maximum_packet_size)
-    -
-    property_ro :peer, %-
-      end_point.new(open_message[:sender_channel],
-                    open_message[:initial_window_size],
-                    open_message[:maximum_packet_size])
-    -
+    property_ro :end_point, 'Struct.new(:channel, :window_size, :maximum_packet_size)'
+    property :local
+    property :peer
+
+    def channel_open_received(message)
+      local end_point.new(open_channel(self),
+                          initial_window_size,
+                          maximum_packet_size)
+
+      peer end_point.new(message[:sender_channel],
+                         message[:initial_window_size],
+                         message[:maximum_packet_size])
+
+      reply :channel_open_confirmation
+    end
 
     #
     # :section: reply
@@ -64,27 +72,26 @@ module GMRW; module SSH2; module Server; class Connection
 
     def reply_exit_status(status)
       reply :channel_request,
-              :request_type  => status.signaled? ? 'exit-signal' :
-                                                   'exit-status',
-              :exit_status   => status.exitstatus,
-              :exit_signal   => status.termsig.to_s,
-              :core_dumped   => status.coredump?,
-              :error_message => status.to_s
+            :request_type  => status.signaled? ? 'exit-signal' :
+                                                 'exit-status',
+            :exit_status   => status.exitstatus,
+            :exit_signal   => Signal.list.key(status.termsig||0).dup,
+            :core_dumped   => status.coredump?,
+            :error_message => status.to_s
     end
 
     def reply_window_ajudt(status)
-      reply :channel_window_ajust,
-            :bytes_to_add => (initial_window_size - local.window_size).minimum(0)
-      local.window_size = initial_window_size
+      bytes_to_add = (initial_window_size - local.window_size).minimum(0)
+      reply :channel_window_ajust, :bytes_to_add => bytes_to_add
+      local.window_size += bytes_to_add
     end
 
     #
-    # :section: message handling
+    # :section: request handling
     #
-    def channel_open_received(message)
-      open_message(message)
-      reply :channel_open_confirmation
-    end
+    property    :session
+    property_ro :shell, 'Shell.new(self)'
+    property    :term,  'Hash.new {|h,k| h[k] = {}}'
 
     property_ro :requests, %|
       Hash.new{ :not_support_request }.merge({
@@ -93,10 +100,6 @@ module GMRW; module SSH2; module Server; class Connection
         "shell"   => :shell_request_received,
       })
     |
-
-    property    :term,  'Hash.new {|h,k| h[k] = {}}'
-    property_ro :shell, 'Shell.new(self)'
-    property    :session
 
     def channel_request_received(message)
       request = requests[message[:request_type]]
@@ -128,20 +131,20 @@ module GMRW; module SSH2; module Server; class Connection
       yield( :channel_success )
     end
 
+    #
+    # :section: data transfer
+    #
     def channel_data_received(message, *)
       session << message[:data]
-      local.window_size - message[:data].length
+      local.window_size -= message[:data].length
       local.window_size > local.maximum_packet_size or reply_window_ajust
     end
     
-    def channel_extended_data_received(*a)
-      channel_data_received(*a)
-    end
+    alias channel_extended_data_received channel_data_received
 
     def channel_window_adjust_received(message, *)
       peer.window_size += messgae[:bytes_to_add]
     end
-
   end
 end; end; end; end
 
