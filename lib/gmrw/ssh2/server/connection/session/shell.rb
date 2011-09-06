@@ -16,7 +16,7 @@ module GMRW; module SSH2; module Server; class Connection; class Session
 
     def_initialize :service
     forward [ :logger, :die,
-              :reply,
+              :reply_data, :reply_eof, :reply_exit_status,
               :close_channel,
               :local, :peer] => :service
 
@@ -29,42 +29,8 @@ module GMRW; module SSH2; module Server; class Connection; class Session
     property_ro :exit_status, 'exit_info[1]'
     property_roa :read_thread
 
-    private
-    def reply_data(data)
-      packet_size = [peer.maximum_packet_size, peer.window_size].min
-
-      data.scan(/.{1,#{packet_size}}/m).each do |s|
-        reply :channel_data, :data => s
-        peer.window_size = (peer.window_size - s.length).minimum(0)
-      end
-    end
-
-    def reply_eof
-      reply :channel_eof
-    end
-
-    def reply_exit_status(status)
-      reply :channel_request,
-              :request_type  => status.signaled? ? 'exit-signal' :
-                                                   'exit-status', 
-              :exit_status   => status.exitstatus,
-              :exit_signal   => status.termsig.to_s,
-              :core_dumped   => status.coredump?,
-              :error_message => status.to_s 
-    end
-
-    def reply_window_ajudt(status)
-      reply :channel_window_ajust,
-            :bytes_to_add => (initial_window_size - local.window_size).minimum(0)
-      local.window_size = initial_window_size
-    end
-
-    public
     def <<(data)
       to_shell.write data
-
-      local.window_size - data.length
-      local.window_size > local.maximum_packet_size or reply_window_ajust
     end
 
     def start(term)
