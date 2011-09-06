@@ -7,6 +7,7 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
+require 'gmrw/ssh2/server/connection/session/shell'
 
 module GMRW; module SSH2; module Server; class Connection
   class Session
@@ -14,25 +15,25 @@ module GMRW; module SSH2; module Server; class Connection
     include Utils::Loggable
 
     def_initialize :service
-    forward [ :logger, :die, :send_message,
+    forward [ :logger, :die,
+              :send_message,
               :open_channel, :close_channel] => :service
-
+    
     property    :open_message
     property_ro :end_point, 'Struct.new(:channel, :window_size, :maximum_packet_size)'
+    property_ro :initial_window_size, '1024 * 1024'
+    property_ro :maximum_packet_size, '  16 * 1024'
+
     property_ro :local, %-
-      end_point.new(open_channel(self),
-                    open_message[:initial_window_size],
-                    open_message[:maximum_packet_size])
+      end_point.new(open_channel(self), initial_window_size, maximum_packet_size)
     -
     property_ro :peer, %-
       end_point.new(open_message[:sender_channel],
                     open_message[:initial_window_size],
                     open_message[:maximum_packet_size])
     -
-    property_ro :index,   'local.channel'
-    property_ro :closing, 'proc {}'
 
-    property_ro :env, '{}'
+    property_ro :mutex, 'Mutex.new'
 
     def reply(tag, params={})
       common_params = {
@@ -41,7 +42,7 @@ module GMRW; module SSH2; module Server; class Connection
         :initial_window_size => local.window_size,
         :maximum_packet_size => local.maximum_packet_size,
       }
-      send_message(tag, common_params.merge(params))
+      mutex.synchronize { send_message(tag, common_params.merge(params)) }
     end
 
     def channel_open_received(message)
@@ -57,108 +58,44 @@ module GMRW; module SSH2; module Server; class Connection
       })
     |
 
-    def not_support(message)
+    def not_support(*)
       yield( :channel_failure )
     end
 
-    property    :term_modes, '{}'
-    property_ro :shell_command, '"bash"'
-    property_ro :shell, 'Struct.new(:to, :from, :err, :pid, :wait_th, :read_th, :err_th).new'
+    property    :term,  'Hash.new {|h,k| h[k] = {}}'
+    property_ro :shell, 'Shell.new(self)'
 
     def env_request_received(message)
-      env[message[:env_var_name]] = message[:env_var_value]
+      term[:env][message[:env_var_name]] = message[:env_var_value]
       yield( :channel_success )
     end
 
     def pty_req_request_received(message)
-      env['TERM'] = message[:term_env_var]
-      parse_term_modes(message[:term_modes])
+      term[:env]['TERM']     = message[:term_env_var]
+      term[:size][:cols]     = message[:term_cols]
+      term[:size][:rows]     = message[:term_rows]
+      term[:pixels][:width]  = message[:term_width]
+      term[:pixels][:height] = message[:term_height]
+      term[:modes]           = parse_term_modes(message[:term_modes])
+      term[:stty]            = parse_term_modes_as_stty(term[:modes])
       yield( :channel_success )
     end
 
     def shell_request_received(message)
-      from_parent, shell.to  = IO.pipe ; shell.to.sync  = true
-      shell.from,  to_parent = IO.pipe ; to_parent.sync = true
-      shell.err,   error_to  = IO.pipe ; error_to.sync  = true
-
-      debug( "shell:env: #{env}" )
-      shell.pid = Process.spawn(env, shell_command, :in => from_parent, :out => to_parent, :err => error_to)
-      debug( "spawn: #{shell.pid}" )
-      shell.wait_th = Process.detach(shell.pid)
-      from_parent.close ; to_parent.close ; error_to.close
-
-      shell.read_th = Thread.fork do
-        debug( "shell.read_th: started" )
-        begin
-          loop do
-            f, = IO.select([shell.from])[0]
-            !f.eof? or raise EOFError
-
-            s = f.gets
-            debug( "shell.read_th:s.encoding: #{s.encoding}" )
-            debug( "shell.read_th:s: #{s}" )
-            reply :channel_data, :data => s.gsub("\n","\r\n")
-          end
-        rescue EOFError
-          debug( "shell.read_th: EOF" )
-          shell.err.close
-          reply :channel_eof
-
-          exit_status = shell.wait_th.value.exitstatus
-          debug( "shell: exit_status: #{exit_status}" )
-          reply :channel_request, :request_type => 'exit-status', 
-                                  :exit_status => exit_status
-
-          closing { shell.read_th.kill }
-          sleep 1
-          close_channel(self)
-        rescue => e
-          error( "shell.read_th: #{e}" )
-          e.backtrace.each {|bt| debug( bt >> 2 ) }
-        ensure
-          debug( "shell.read_th: terminated" )
-        end
-      end
-
-      shell.err_th = Thread.fork do
-        debug( "shell.err_th: started" )
-        begin
-          loop do
-            f, = IO.select([shell.err])[0]
-            !f.eof? or raise EOFError
-
-            s = f.gets
-            debug( "shell.err_th:s.encoding: #{s.encoding}" )
-            debug( "shell.err_th:s: #{s}" )
-
-            reply :channel_extended_data,
-                  :data_type => 1,  # SSH_EXTENDED_DATA_STDERR
-                  :data      => s.gsub("\n", "\r\n")
-          end
-        rescue EOFError
-          debug( "shell.err_th: EOF" )
-        rescue => e
-          error( "shell.err_th: #{e}" )
-          e.backtrace.each {|bt| debug( bt >> 2 ) }
-        ensure
-          debug( "shell.err_th: terminated" )
-        end
-      end
-
-      debug( "term_modes: #{term_modes}" )
-      modes = parse_term_modes_as_stty_format.join(";")
-      debug( "modes: #{modes}" )
-      #shell.to.write modes + "\n"
-
+      shell.start(term)
       yield( :channel_success )
     end
 
     def channel_data_received(message, *)
-      debug( "shell.wait_th: #{shell.wait_th} (#{shell.wait_th.status})" )
-      debug( "shell.read_th: #{shell.read_th} (#{shell.read_th.status})" )
-      debug( "shell.err_th:  #{shell.err_th}  (#{shell.err_th.status})" )
+      shell << message[:data]
+    end
+    
+    def channel_extended_data_received(message, *)
+      shell << message[:data]
+    end
 
-      shell.to.write message[:data].gsub("\r\n","\n").gsub("\r","\n")
+    def channel_window_adjust_received(message, *)
+      peer.window_size += messgae[:bytes_to_add]
     end
 
     def channel_request_received(message)
@@ -231,82 +168,84 @@ module GMRW; module SSH2; module Server; class Connection
          129 => :TTY_OP_OSPEED,
       }
 
+      parsed = {}
       while (1..159).include?(modes.unpack("C")[0])
         c, n, modes = modes.unpack("CNa*")
-        term_modes[mode_codes[c]] = n
+        parsed[mode_codes[c]] = n
       end
 
-      debug( "#{term_modes}" )
+      debug( "#{parsed.inspect}" )
+      parsed
     end
 
-    def parse_term_modes_as_stty_format
+    def parse_term_modes_as_stty(parsed_modes)
       character = proc {|m,v| "stty #{m} 0x%02x" % v }
       number    = proc {|m,v| "stty #{m} %d" % v }
       flag      = proc {|m,v| "stty %s#{m}" % (v == 0 ? "-" : "") }
       is_or_not = proc {|m,v| v == 0 ? "" : "stty #{m}" }
 
-      term_modes.map {|mode, val|
+      parsed_modes.map {|mode, val|
         {
           :VINTR      => character[ :intr,    val ],
-#          :VQUIT      => character[ :quit,    val ],
-#          :VERASE     => character[ :erase,   val ],
-#          :VKILL      => character[ :kill,    val ],
-#          :VEOF       => character[ :eof,     val ],
-#          :VEOL       => character[ :eol,     val ],
-#          :VEOL2      => character[ :eol2,    val ],
-#          :VSTART     => character[ :start,   val ],
-#          :VSTOP      => character[ :stop,    val ],
-#          :VSUSP      => character[ :susp,    val ],
-##          :VDSUSP     => character[ :dsusp,   val ],
-#          :VREPRINT   => character[ :rprnt,   val ],
-#          :VWERASE    => character[ :werase,  val ],
-#          :VLNEXT     => character[ :lnext,   val ],
-#          :VFLUSH     => character[ :flush,   val ],
-#          :VSWTCH     => character[ :swtch,   val ],
-##          :VSTATUS    => character[ :status,  val ],
-##          :VDISCARD   => character[ :discard, val ],
+          :VQUIT      => character[ :quit,    val ],
+          :VERASE     => character[ :erase,   val ],
+          :VKILL      => character[ :kill,    val ],
+          :VEOF       => character[ :eof,     val ],
+          :VEOL       => character[ :eol,     val ],
+          :VEOL2      => character[ :eol2,    val ],
+          :VSTART     => character[ :start,   val ],
+          :VSTOP      => character[ :stop,    val ],
+          :VSUSP      => character[ :susp,    val ],
+          #:VDSUSP     => character[ :dsusp,   val ],
+          :VREPRINT   => character[ :rprnt,   val ],
+          :VWERASE    => character[ :werase,  val ],
+          :VLNEXT     => character[ :lnext,   val ],
+          :VFLUSH     => character[ :flush,   val ],
+          :VSWTCH     => character[ :swtch,   val ],
+          #:VSTATUS    => character[ :status,  val ],
+          #:VDISCARD   => character[ :discard, val ],
 
-#          :IGNPAR     => flag[ :ignpar,  val ],
-#          :PARMRK     => flag[ :parmrk,  val ],
-#          :INPCK      => flag[ :inpck,   val ],
-#          :ISTRIP     => flag[ :istrip,  val ],
-#          :INLCR      => flag[ :inlcr,   val ],
-#          :IGNCR      => flag[ :igncr,   val ],
-#          :ICRNL      => flag[ :icrnl,   val ],
-#          :IUCLC      => flag[ :iuclc,   val ],
-#          :IXON       => flag[ :ixon,    val ],
-#          :IXANY      => flag[ :ixany,   val ],
-#          :IXOFF      => flag[ :ixoff,   val ],
-#          :IMAXBEL    => flag[ :imaxbel, val ],
+          :IGNPAR     => flag[ :ignpar,  val ],
+          :PARMRK     => flag[ :parmrk,  val ],
+          :INPCK      => flag[ :inpck,   val ],
+          :ISTRIP     => flag[ :istrip,  val ],
+          :INLCR      => flag[ :inlcr,   val ],
+          :IGNCR      => flag[ :igncr,   val ],
+          :ICRNL      => flag[ :icrnl,   val ],
+          :IUCLC      => flag[ :iuclc,   val ],
+          :IXON       => flag[ :ixon,    val ],
+          :IXANY      => flag[ :ixany,   val ],
+          :IXOFF      => flag[ :ixoff,   val ],
+          :IMAXBEL    => flag[ :imaxbel, val ],
 
-#          :ISIG       => flag[ :isig,    val ],
-#          :ICANON     => flag[ :icanon,  val ],
-#          :XCASE      => flag[ :xcase,   val ],
-#          :ECHO       => flag[ :echo,    val ],
-#          :ECHOE      => flag[ :echoe,   val ],
-#          :ECHOK      => flag[ :echok,   val ],
-#          :ECHONL     => flag[ :echonl,  val ],
-#          :NOFLSH     => flag[ :noflsh,  val ],
-#          :TOSTOP     => flag[ :tostop,  val ],
-#          :IEXTEN     => flag[ :iexten,  val ],
-#          :ECHOCTL    => flag[ :echoctl, val ],
-#          :ECHOKE     => flag[ :echoke,  val ],
-##          :PENDIN     => flag[ :pendin,  val ],
+          :ISIG       => flag[ :isig,    val ],
+          :ICANON     => flag[ :icanon,  val ],
+          :XCASE      => flag[ :xcase,   val ],
+          :ECHO       => flag[ :echo,    val ],
+          :ECHOE      => flag[ :echoe,   val ],
+          :ECHOK      => flag[ :echok,   val ],
+          :ECHONL     => flag[ :echonl,  val ],
+          :NOFLSH     => flag[ :noflsh,  val ],
+          :TOSTOP     => flag[ :tostop,  val ],
+          :IEXTEN     => flag[ :iexten,  val ],
+          :ECHOCTL    => flag[ :echoctl, val ],
+          :ECHOKE     => flag[ :echoke,  val ],
+          #:PENDIN     => flag[ :pendin,  val ],
 
-#          :OPOST      => flag[ :opost,  val ],
-#          :OLCUC      => flag[ :olcuc,  val ],
-#          :ONLCR      => flag[ :onlcr,  val ],
-#          :OCRNL      => flag[ :ocrnl,  val ],
-#          :ONOCR      => flag[ :onocr,  val ],
-#          :ONLRET     => flag[ :onlret, val ],
+          :OPOST      => flag[ :opost,  val ],
+          :OLCUC      => flag[ :olcuc,  val ],
+          :ONLCR      => flag[ :onlcr,  val ],
+          :OCRNL      => flag[ :ocrnl,  val ],
+          :ONOCR      => flag[ :onocr,  val ],
+          :ONLRET     => flag[ :onlret, val ],
 
-##          :CS7        => is_or_not[ :cs7, val ],
-#          :CS8        => is_or_not[ :cs8, val ],
-#          :PARENB     => flag[ :parenb, val ],
-#          :PARODD     => flag[ :parodd, val ],
+          #:CS7        => is_or_not[ :cs7, val ],
+          :CS8        => is_or_not[ :cs8, val ],
+          :PARENB     => flag[ :parenb, val ],
+          :PARODD     => flag[ :parodd, val ],
 
-#          :TTY_OP_ISPEED => number[ :ispeed, val ],
-#          :TTY_OP_OSPEED => number[ :ospeed, val ],
+          :TTY_OP_ISPEED => number[ :ispeed, val ],
+          :TTY_OP_OSPEED => number[ :ospeed, val ],
         }[mode]
       }.compact
     end

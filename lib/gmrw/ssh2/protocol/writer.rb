@@ -48,7 +48,7 @@ class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
     pack_len    = total_len - n1
     padd_len    = pack_len - n2 - zipped_data.length 
     padding     = OpenSSL::Random.random_bytes(padd_len)
-    packet      = [pack_len, padd_len].pack("NC") + zipped_data.bin + padding
+    packet      = [pack_len, padd_len].pack("NC") + zipped_data + padding
 
     encrypt[ packet ] + compute_mac[ packet ]
   end

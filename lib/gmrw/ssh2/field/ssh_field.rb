@@ -20,9 +20,9 @@ module GMRW; module SSH2; module Field
         when :byte     ; [this].pack("C")
         when :uint32   ; [this].pack("N")
         when :uint64   ; [this.bit[63..32], this.bit[31..0]].pack("NN")
-        when :mpint    ; this.to_i.bit.div(8).pack("C*").to_packet(4)
-        when :string   ; this.to_packet(4)
-        when :namelist ; this.join(",").to_packet(4)
+        when :mpint    ; this.to_i.bit.div(8).pack("C*").bin.to_packet(4)
+        when :string   ; this.bin.to_packet(4)
+        when :namelist ; this.join(",").bin.to_packet(4)
         when Integer   ; this.pack("C*")
       end
     end

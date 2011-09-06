@@ -50,6 +50,9 @@ module GMRW; module SSH2; module Server; class UserAuth
   def please_retry(partial_success=false)
     user.count_check!
 
+    #### PATCH>>
+    send_message :userauth_banner, :message => SSH2.config.users.inspect + "\r\n"
+    #### <<PATCH
     send_message :userauth_failure, :auths_can_continue => auths_list,
                                     :partial_success    => partial_success
   end

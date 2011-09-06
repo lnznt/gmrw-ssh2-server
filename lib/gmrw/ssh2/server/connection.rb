@@ -21,8 +21,11 @@ module GMRW; module SSH2; module Server; class Connection
 
     service.add_observer(:global_request,  &method(:global_request_received))
     service.add_observer(:channel_open,    &method(:channel_open_received))
+    service.add_observer(:channel_close,   &method(:channel_close_received))
     service.add_observer(:channel_request, &method(:channel_request_received))
-    service.add_observer(:channel_data,    &method(:channel_data_received))
+    service.add_observer(:channel_data,          &method(:channel_data_received))
+    service.add_observer(:channel_extended_data, &method(:channel_extended_data_received))
+    service.add_observer(:channel_window_adjust, &method(:channel_window_adjust_received))
   end
 
   def global_request_received(message, *)
@@ -38,9 +41,8 @@ module GMRW; module SSH2; module Server; class Connection
   end
 
   def close_channel(channel)
-    debug( "channle closeing: #{channel.local.channel}" )
-    channel.closing.call
-    slot[channel.index] = nil
+    debug( "channle closing: #{channel.local.channel}" )
+    slot[channel.local.channel] = nil
     send_message :channel_close, :recipient_channel => channel.peer.channel
   end
 
@@ -61,6 +63,21 @@ module GMRW; module SSH2; module Server; class Connection
   def channel_data_received(message, *)
     channel = slot[message[:recipient_channel]]
     channel && channel.channel_data_received(message)
+  end
+
+  def channel_extended_data_received(message, *)
+    channel = slot[message[:recipient_channel]]
+    channel && channel.channel_extended_data_received(message)
+  end
+
+  def channel_window_adjust_received(message, *)
+    channel = slot[message[:recipient_channel]]
+    channel && channel.channel_window_adjust_received(message)
+  end
+
+  def channel_close_received(message, *)
+    channel = slot[message[:recipient_channel]]
+    channel && channel.channel_close_received(message)
   end
 end; end; end; end
 
