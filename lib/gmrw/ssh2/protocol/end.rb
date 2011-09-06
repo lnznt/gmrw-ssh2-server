@@ -71,7 +71,7 @@ module GMRW; module SSH2; module Protocol
 
       notify_observers(label, message, :seq_number => seq_number)
 
-      seq_number(seq_number.next % 0xffff_ffff)
+      seq_number((seq_number + 1) % 0xffff_ffff)
 
       self[message.tag] = message
     end
