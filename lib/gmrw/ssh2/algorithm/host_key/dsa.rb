@@ -46,7 +46,7 @@ module GMRW; module SSH2; module Algorithm; module HostKey
 
         id == 'ssh-dss' or raise "not DSA key"
 
-        new.tap {|key| key.p, key.q, key.q, key.pub_key = p_, q, g, pub_key }
+        new.tap {|key| key.p, key.q, key.g, key.pub_key = p_, q, g, pub_key }
       end
 
       def load(s)
