@@ -98,7 +98,7 @@ module GMRW; module SSH2
     - 16
 
 :authentication:
-#  - publickey
+  - publickey
   - password
 
 :users:

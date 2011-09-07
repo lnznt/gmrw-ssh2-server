@@ -23,7 +23,6 @@ module GMRW; module SSH2; module Server; class UserAuth ; class PublicKeyAuth
   property_ro :users, 'SSH2.config.users'
 
   def authenticate(message)
-=begin
     algo = message[:pk_algorithm]
     blob = message[:pk_key_blob]
     sig  = message[:with_pk_signature] && message[:pk_signature]
@@ -40,17 +39,15 @@ module GMRW; module SSH2; module Server; class UserAuth ; class PublicKeyAuth
                                                     [:string,  message[:user_name        ]],
                                                     [:string,  message[:service_name     ]],
                                                     [:string,  message[:method_name      ]],
-                                                    [:boolean, message[:with_ok_signature]],
-                                                    [:boolean, message[:pk_algorithm     ]],
-                                                    [:boolean, message[:pk_key_blob      ]]))
+                                                    [:boolean, message[:with_pk_signature]],
+                                                    [:string,  message[:pk_algorithm     ]],
+                                                    [:string,  message[:pk_key_blob      ]]))
     debug( "publickey auth: #{ok}" )
 
     ok   ? welcome(message) :
     sig  ? please_retry     :
            send_message(:userauth_pk_ok, :pk_algorithm => algo,
                                          :pk_key_blob  => blob)
-=end
-please_retry
   end
 end; end; end; end; end
 
