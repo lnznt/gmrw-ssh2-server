@@ -7,7 +7,6 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/ssh2/server/connection/session/shell'
 
 module GMRW; module SSH2; module Server; class Connection; class Session
   module TerminalMode

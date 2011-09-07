@@ -109,7 +109,7 @@ module GMRW::SSH2::Message
 
     [ :string,  :command,           nil, {:request_type => 'exec'} ],
 
-    [ :string,  :subsystem_name,    nil, {:request_type => 'subsystem'} ],
+    [ :string,  :subsystem,         nil, {:request_type => 'subsystem'} ],
 
     [ :uint32,  :win_cols,          nil, {:request_type => 'window-change'} ],
     [ :uint32,  :win_rows,          nil, {:request_type => 'window-change'} ],

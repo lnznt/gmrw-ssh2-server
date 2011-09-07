@@ -8,7 +8,7 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/server/connection/session/terminal_mode'
-require 'gmrw/ssh2/server/connection/session/shell'
+require 'gmrw/ssh2/server/connection/session/exec'
 
 module GMRW; module SSH2; module Server; class Connection
   class Session
@@ -26,11 +26,12 @@ module GMRW; module SSH2; module Server; class Connection
     property_ro :initial_window_size, '1024 * 1024'
     property_ro :maximum_packet_size, '  16 * 1024'
 
-    property_ro :end_point, 'Struct.new(:channel, :window_size, :maximum_packet_size)'
     property :local
     property :peer
 
     def channel_open_received(message)
+      end_point = Struct.new(:channel, :window_size, :maximum_packet_size)
+
       local end_point.new(open_channel(self),
                           initial_window_size,
                           maximum_packet_size)
@@ -89,15 +90,15 @@ module GMRW; module SSH2; module Server; class Connection
     #
     # :section: request handling
     #
-    property    :session
-    property_ro :shell, 'Shell.new(self)'
-    property    :term,  'Hash.new {|h,k| h[k] = {}}'
+    property_ro :program,   'Exec.new(self)'
+    property    :term,      'Hash.new {|h,k| h[k] = {}}'
 
     property_ro :requests, %|
       Hash.new{ :not_support_request }.merge({
-        "env"     => :env_request_received,
-        "pty-req" => :pty_req_request_received,
-        "shell"   => :shell_request_received,
+        "env"       => :env_request_received,
+        "pty-req"   => :pty_req_request_received,
+        "exec"      => :exec_request_received,
+        "shell"     => :shell_request_received,
       })
     |
 
@@ -126,8 +127,13 @@ module GMRW; module SSH2; module Server; class Connection
       yield( :channel_success )
     end
 
+    def exec_request_received(message)
+      program.start(:command => message[:command], :term => term)
+      yield( :channel_success )
+    end
+
     def shell_request_received(message)
-      session(shell).start(term)
+      program.start(:term => term)
       yield( :channel_success )
     end
 
@@ -135,7 +141,7 @@ module GMRW; module SSH2; module Server; class Connection
     # :section: data transfer
     #
     def channel_data_received(message, *)
-      session << message[:data]
+      program << message[:data]
       local.window_size -= message[:data].length
       local.window_size > local.maximum_packet_size or reply_window_ajust
     end
