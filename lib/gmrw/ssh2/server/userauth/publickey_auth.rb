@@ -31,7 +31,7 @@ module GMRW; module SSH2; module Server; class UserAuth ; class PublicKeyAuth
     debug( "publickey auth: sig       = #{sig}" )
 
     key = SSH2::Algorithm::HostKey.algorithms[algo].create(blob) rescue nil
-    debug( "publickey auth: rsa key   = #{key}" )
+    debug( "publickey auth: key       = #{key}" )
 
     ok = key && sig && key.unpack_and_verify(sig, SSH2::Field.pack(
                                                     [:string,  session_id                 ],
