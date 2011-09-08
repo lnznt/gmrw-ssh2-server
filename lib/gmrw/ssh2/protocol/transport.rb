@@ -7,6 +7,7 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
+require 'gmrw/utils/command'
 require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
 require 'gmrw/ssh2/protocol/exception'
@@ -53,6 +54,8 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Starting Transport
   #
+  property_ro :at_close, 'Utils::Command.new'
+
   def start
     info( "SSH service start" )
 
@@ -72,6 +75,7 @@ class GMRW::SSH2::Protocol::Transport
     e.call(self)
 
   ensure
+    at_close.call
     connection.shutdown
     connection.close
     info( "SSH service terminated" )

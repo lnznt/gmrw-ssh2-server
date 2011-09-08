@@ -14,7 +14,7 @@ module GMRW; module SSH2; module Server; class Connection
   include Utils::Loggable
 
   def_initialize :service
-  forward [:logger, :die, :send_message] => :service
+  forward [:logger, :die, :send_message, :at_close] => :service
 
   def start(service_name)
     debug( "in service: #{service_name}" )

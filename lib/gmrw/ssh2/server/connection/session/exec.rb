@@ -17,7 +17,7 @@ module GMRW; module SSH2; module Server; class Connection; class Session
     def_initialize :service
     forward [ :logger, :die,
               :reply_data, :reply_eof, :reply_exit_status,
-              :close_channel,
+              :close_channel, :at_close,
               :local, :peer] => :service
 
     property :program, '[null, null, nil]'
@@ -37,6 +37,8 @@ module GMRW; module SSH2; module Server; class Connection; class Session
 
       read_thread(start_read_thread)
       wait_thread(start_wait_thread)
+
+      at_close << method(:kill)
 
       info( "program: pid: #{program_pid}" )
     end
@@ -76,6 +78,7 @@ module GMRW; module SSH2; module Server; class Connection; class Session
     end
 
     def kill
+      debug( "program killed" )
       Process.kill(:TERM, program_pid) rescue nil
       Process.kill(:KILL, program_pid) rescue nil
       read_thread.exit

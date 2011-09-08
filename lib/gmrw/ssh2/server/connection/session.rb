@@ -17,7 +17,7 @@ module GMRW; module SSH2; module Server; class Connection
     def_initialize :service
     forward [ :logger, :die,
               :send_message,
-              :open_channel, :close_channel] => :service
+              :open_channel, :close_channel, :at_close] => :service
 
     #
     # :section: opening
