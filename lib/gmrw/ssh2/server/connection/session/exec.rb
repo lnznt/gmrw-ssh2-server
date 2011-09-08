@@ -31,9 +31,8 @@ module GMRW; module SSH2; module Server; class Connection; class Session
     def start(opts={})
       info( "program: opts: #{opts.inspect}" )
 
-      env     = opts[:env]
       command = opts[:command] || ENV["SHELL"] || "bash"
-      program(PTY.spawn(env, command))
+      program(PTY.spawn(command))
 
       read_thread(start_read_thread)
       wait_thread(start_wait_thread)
