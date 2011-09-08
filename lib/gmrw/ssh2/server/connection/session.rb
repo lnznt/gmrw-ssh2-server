@@ -7,7 +7,6 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/ssh2/server/connection/session/terminal_mode'
 require 'gmrw/ssh2/server/connection/session/exec'
 
 module GMRW; module SSH2; module Server; class Connection
@@ -24,23 +23,73 @@ module GMRW; module SSH2; module Server; class Connection
     # :section: opening
     #
     property_ro :initial_window_size, '1024 * 1024'
-    property_ro :maximum_packet_size, '  16 * 1024'
+    property_ro :maximum_packet_size, '  64 * 1024'
 
     property :local
     property :peer
 
+    class Window
+      def_initialize :params
+      property_ro :init,      'params[:init]'
+      property_ro :threshold, 'params[:threshold] || 0'
+
+      property :size, :init
+
+      def want_size
+        (init - size).minimum(0)
+      end
+
+      def short?(n=threshold)
+        size < n
+      end
+
+      def >>(n)
+        size (size - n).minimum(0)
+      end
+
+      def <<(n)
+        size (size + n)
+      end
+    end
+
     def channel_open_received(message)
-      end_point = Struct.new(:channel, :window_size, :maximum_packet_size)
+      end_point = Struct.new(:channel, :maximum_packet_size, :window) do
+        private
+
+        def send_unit(s)
+          sleep 1 while window.short?(s.length)
+          window >> s.length
+
+          yield s
+        end
+
+        def unit_size
+          [maximum_packet_size, window.size].min
+        end
+
+        public
+        def send_data(data, &block)
+          data.bin.scan(/.{1,#{unit_size}}/m).each {|s| send_unit(s, &block) }
+        end
+
+        def window_adjust(size=window.want_size)
+          block_given? && yield(size)
+          window << size
+        end
+      end
 
       local end_point.new(open_channel(self),
-                          initial_window_size,
-                          maximum_packet_size)
+                          maximum_packet_size,
+                          Window.new(:init => initial_window_size,
+                                     :threshold => maximum_packet_size))
 
       peer end_point.new(message[:sender_channel],
-                         message[:initial_window_size],
-                         message[:maximum_packet_size])
+                         message[:maximum_packet_size],
+                         Window.new(:init => message[:initial_window_size]))
 
-      reply :channel_open_confirmation
+      reply :channel_open_confirmation,
+            :initial_window_size => local.window.size,
+            :maximum_packet_size => local.maximum_packet_size
     end
 
     #
@@ -50,21 +99,14 @@ module GMRW; module SSH2; module Server; class Connection
 
     def reply(tag, params={})
       common_params = {
-        :recipient_channel   => peer.channel,
-        :sender_channel      => local.channel,
-        :initial_window_size => local.window_size,
-        :maximum_packet_size => local.maximum_packet_size,
+        :recipient_channel => peer.channel,
+        :sender_channel    => local.channel,
       }
       mutex.synchronize { send_message(tag, common_params.merge(params)) }
     end
 
     def reply_data(data)
-      packet_size = [peer.maximum_packet_size, peer.window_size].min
-
-      data.scan(/.{1,#{packet_size}}/m).each do |s|
-        reply :channel_data, :data => s
-        peer.window_size = (peer.window_size - s.length).minimum(0)
-      end
+      peer.send_data(data) {|s| reply :channel_data, :data => s }
     end
 
     def reply_eof
@@ -81,17 +123,33 @@ module GMRW; module SSH2; module Server; class Connection
             :error_message => status.to_s
     end
 
-    def reply_window_ajudt(status)
-      bytes_to_add = (initial_window_size - local.window_size).minimum(0)
-      reply :channel_window_ajust, :bytes_to_add => bytes_to_add
-      local.window_size += bytes_to_add
+    #
+    # :section: data transfer
+    #
+    def channel_data_received(message, *)
+      program << message[:data]
+
+      local.window >> message[:data].length
+      debug( "local window : short?: #{local.window.short?}" )
+      debug( "local window : size:   #{local.window.size}" )
+      debug( "local window : init:   #{local.window.init}" )
+
+      local.window.short? and
+        local.window_adjust {|size| reply :channel_window_adjust, :bytes_to_add => size }
+    end
+    
+    alias channel_extended_data_received channel_data_received
+
+    def channel_window_adjust_received(message, *)
+      peer.window_adjust(messgae[:bytes_to_add])
     end
 
     #
     # :section: request handling
     #
     property_ro :program,   'Exec.new(self)'
-    property    :term,      'Hash.new {|h,k| h[k] = {}}'
+    property    :term,      '{}'
+    property    :env,       '{}'
 
     property_ro :requests, %|
       Hash.new{ :not_support_request }.merge({
@@ -112,44 +170,28 @@ module GMRW; module SSH2; module Server; class Connection
     end
 
     def env_request_received(message)
-      term[:env][message[:env_var_name]] = message[:env_var_value]
+      env[message[:env_var_name]] = message[:env_var_value]
       yield( :channel_success )
     end
 
     def pty_req_request_received(message)
-      term[:env]['TERM']     = message[:term_env_var]
-      term[:size][:cols]     = message[:term_cols]
-      term[:size][:rows]     = message[:term_rows]
-      term[:pixels][:width]  = message[:term_width]
-      term[:pixels][:height] = message[:term_height]
-      term[:modes]           = TerminalMode.parse(message[:term_modes])
-      term[:stty]            = TerminalMode.parse_for_stty(term[:modes])
+      env['TERM']   = message[:term_env_var]
+      term[:cols]   = message[:term_cols]
+      term[:rows]   = message[:term_rows]
+      term[:width]  = message[:term_width]
+      term[:height] = message[:term_height]
+      term[:modes]  = message[:term_modes]
       yield( :channel_success )
     end
 
     def exec_request_received(message)
-      program.start(:command => message[:command], :term => term)
+      program.start(:command => message[:command], :term => term, :env => env)
       yield( :channel_success )
     end
 
     def shell_request_received(message)
-      program.start(:term => term)
+      program.start(:term => term, :env => env)
       yield( :channel_success )
-    end
-
-    #
-    # :section: data transfer
-    #
-    def channel_data_received(message, *)
-      program << message[:data]
-      local.window_size -= message[:data].length
-      local.window_size > local.maximum_packet_size or reply_window_ajust
-    end
-    
-    alias channel_extended_data_received channel_data_received
-
-    def channel_window_adjust_received(message, *)
-      peer.window_size += messgae[:bytes_to_add]
     end
   end
 end; end; end; end

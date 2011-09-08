@@ -20,48 +20,66 @@ module GMRW; module SSH2; module Server; class Connection; class Session
               :close_channel,
               :local, :peer] => :service
 
-    property_ro  :shell,         'ENV["SHELL"] || "bash"'
-    property     :command
-    property_ro  :program,       'PTY.spawn(command)'
-    property_ro  :from_program,  'program[0]'
-    property_ro  :to_program,    'program[1]'
-    property_ro  :program_pid,   'program[2]'
-    property_ro  :exit_info,     'Process.waitpid2(program_pid)'
-    property_ro  :exit_status,   'exit_info[1]'
-    property_roa :read_thread,   :null
-    property_roa :write_stream,  :null
-    forward [:<<] => :write_stream
+    property :program, '[null, null, nil]'
+    def from_program ; program[0] ; end
+    def to_program   ; program[1] ; end ; forward [:<<] => :to_program
+    def program_pid  ; program[2] ; end
+
+    property :read_thread, :null
+    property :wait_thread, :null
 
     def start(opts={})
       info( "program: opts: #{opts.inspect}" )
 
-      command(opts[:command] || shell)
-      info( "program: command: #{command}"     )
-      info( "program: pid:     #{program_pid}" )
+      env     = opts[:env]
+      command = opts[:command] || ENV["SHELL"] || "bash"
+      program(PTY.spawn(env, command))
 
-      self.write_stream = to_program
-      self.read_thread  = Thread.fork do
+      read_thread(start_read_thread)
+      wait_thread(start_wait_thread)
+
+      info( "program: pid: #{program_pid}" )
+    end
+
+    def start_read_thread
+      Thread.fork do
         debug( "program.read_thread: started" )
         begin
-          sleep 1 until peer.window_size > 0
-          loop { reply_data from_program.readpartial(peer.window_size) }
+          loop { reply_data from_program.readpartial(peer.window.size) }
 
         rescue => e
           info( "program.read_thread: #{e}" )
-          reply_eof
-          reply_exit_status(exit_status)
 
         ensure
+          reply_eof
           debug( "program.read_thread: terminated" )
-          close_channel(self)
         end
       end
     end
 
+    def start_wait_thread
+      Thread.fork do
+       debug( "program.wait_thread: start" )
+        _, status = Process.waitpid2(program_pid)
+       debug( "program: exit: #{status}" )
+
+       to_program.close rescue nil
+
+       read_thread.join
+       debug( "program: read_thread: join" )
+
+       reply_exit_status(status)
+       close_channel(self)
+
+       debug( "program.wait_thread: terminated" )
+      end
+    end
+
     def kill
-      Thread.kill(readh_thread)        rescue nil
       Process.kill(:TERM, program_pid) rescue nil
       Process.kill(:KILL, program_pid) rescue nil
+      read_thread.exit
+      wait_thread.exit
     end
   end
 end; end; end; end; end
