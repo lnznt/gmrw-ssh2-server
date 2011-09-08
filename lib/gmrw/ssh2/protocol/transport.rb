@@ -5,6 +5,8 @@
 # License:: Ruby's
 #
 
+require 'openssl'
+require 'zlib'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/utils/command'
@@ -18,6 +20,14 @@ class GMRW::SSH2::Protocol::Transport
   include GMRW
   include Utils::Loggable
   include SSH2::Protocol::Exception::Handling
+
+  def print_software_version
+    debug "RUBY_VERSION             : " + RUBY_VERSION
+    debug "OpenSSL::VERSION         : " + OpenSSL::VERSION
+    debug "OpenSSL::OPENSSL_VERSION : " + OpenSSL::OPENSSL_VERSION
+    debug "Zlib::VERSION            : " + Zlib::VERSION
+    debug "Zlib::ZLIB_VERSION       : " + Zlib::ZLIB_VERSION
+  end
 
   #
   # :section: resources (Connection and Logger)
@@ -57,6 +67,8 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :at_close, 'Utils::Command.new'
 
   def start
+    print_software_version
+
     info( "SSH service start" )
 
     reader.add_observer(:recv_message,            &method(:message_received))
@@ -72,7 +84,7 @@ class GMRW::SSH2::Protocol::Transport
   rescue => e
     fatal( "#{e.class}: #{e}" )
     debug{|l| e.backtrace.each {|bt| l << ( bt >> 2 ) } }
-    e.call(self)
+    e.call(self) rescue nil
 
   ensure
     at_close.call
