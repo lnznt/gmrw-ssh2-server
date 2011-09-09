@@ -10,15 +10,15 @@ require 'gmrw/extension/all'
 module GMRW; module SSH2; module Field
   module IsType
     def type?(type)
-      case type
+      case n=type
         when :boolean  ; this.is.boolean?
         when :byte     ; this.is.byte?
         when :uint32   ; this.is.uint32?
         when :uint64   ; this.is.uint64?
         when :mpint    ; this.kind_of?(OpenSSL::BN)
         when :string   ; this.is.string?
-        when :namelist ; this.is.array?       {|s| name?(s)   }
-        when Integer   ; this.is.array?(type) {|b| b.is.byte? } && type > 0
+        when :namelist ; this.is.array?    {|s| name?(s)   }
+        when Integer   ; this.is.array?(n) {|b| b.is.byte? } && n > 0
       end or false
     end
 

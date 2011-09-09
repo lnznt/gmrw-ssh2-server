@@ -77,8 +77,6 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     # :section: DH Key Agreement
     #
     private
-    property_ro :messages, '[:kexdh_init]'
-
     def agree
       send_message :kexdh_reply,
             :host_key_and_certificates => k_s,
