@@ -17,8 +17,9 @@ module GMRW; module SSH2; module Algorithm
     property_ro :algorithms, '{ "ssh-rsa" => RSAKey, "ssh-dss" => DSAKey }'
 
     def get(name)
-      s = SSH2.config.host_key_files[name]
-      algorithms[name].load(s) rescue raise "cannot create key #{name}"
+      algorithms[name].load(SSH2.config.host_key_files[name])
+    rescue
+      raise "cannot create key #{name}"
     end
   end
 end; end; end
