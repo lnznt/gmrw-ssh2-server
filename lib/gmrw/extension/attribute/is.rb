@@ -5,9 +5,9 @@
 # License:: Ruby's
 #
 
-require 'gmrw/extension/extension'
+require 'gmrw/extension/attribute'
 
-module GMRW::Extension ; class Attribute
+class GMRW::Extension::Attribute
   module Is
     def boolean?            ; this == true || this == false          ; end
 
@@ -53,6 +53,6 @@ module GMRW::Extension ; class Attribute
       (!block || block[this])
     end
   end
-end; end
+end
 
 # vim:set ts=2 sw=2 et fenc=UTF-8:

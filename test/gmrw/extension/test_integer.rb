@@ -221,6 +221,7 @@ class TestFields < Test::Unit::TestCase
       {  5.bit.set?(0) =>  true  },  # 0101b
       {  6.bit.set?(0) =>  false },  # 0110b
       {  7.bit.set?(0) =>  true  },  # 0111b
+      {  8.bit.set?(0) =>  false },  # 1000b
 
       {  0.bit.set?(1) =>  false },  # 0000b
       {  1.bit.set?(1) =>  false },  # 0001b
@@ -230,6 +231,17 @@ class TestFields < Test::Unit::TestCase
       {  5.bit.set?(1) =>  false },  # 0101b
       {  6.bit.set?(1) =>  true  },  # 0110b
       {  7.bit.set?(1) =>  true  },  # 0111b
+      {  8.bit.set?(1) =>  false },  # 1000b
+
+      {  0.bit.set?(1..0) =>  false },  # 0000b
+      {  1.bit.set?(1..0) =>  true  },  # 0001b
+      {  2.bit.set?(1..0) =>  true  },  # 0010b
+      {  3.bit.set?(1..0) =>  true  },  # 0101b
+      {  4.bit.set?(1..0) =>  false },  # 0100b
+      {  5.bit.set?(1..0) =>  true  },  # 0101b
+      {  6.bit.set?(1..0) =>  true  },  # 0110b
+      {  7.bit.set?(1..0) =>  true  },  # 0111b
+      {  8.bit.set?(1..0) =>  false },  # 1000b
     ]
   end
 
@@ -243,6 +255,7 @@ class TestFields < Test::Unit::TestCase
       {  5.bit.clear?(0) =>  false },  # 0101b
       {  6.bit.clear?(0) =>  true  },  # 0110b
       {  7.bit.clear?(0) =>  false },  # 0111b
+      {  8.bit.clear?(0) =>  true  },  # 1000b
 
       {  0.bit.clear?(1) =>  true  },  # 0000b
       {  1.bit.clear?(1) =>  true  },  # 0001b
@@ -252,6 +265,33 @@ class TestFields < Test::Unit::TestCase
       {  5.bit.clear?(1) =>  true  },  # 0101b
       {  6.bit.clear?(1) =>  false },  # 0110b
       {  7.bit.clear?(1) =>  false },  # 0111b
+      {  8.bit.clear?(1) =>  true  },  # 1000b
+
+      {  0.bit.clear?(1..0) =>  true  },  # 0000b
+      {  1.bit.clear?(1..0) =>  false },  # 0001b
+      {  2.bit.clear?(1..0) =>  false },  # 0010b
+      {  3.bit.clear?(1..0) =>  false },  # 0101b
+      {  4.bit.clear?(1..0) =>  true  },  # 0100b
+      {  5.bit.clear?(1..0) =>  false },  # 0101b
+      {  6.bit.clear?(1..0) =>  false },  # 0110b
+      {  7.bit.clear?(1..0) =>  false },  # 0111b
+      {  8.bit.clear?(1..0) =>  true  },  # 1000b
+    ]
+  end
+
+  def test_bit_set
+    try_assert_equal [
+      {  0.bit.set(3) =>   8  },  # *000b
+      {  0.bit.set(2) =>   4  },  # 0*00b
+      {  3.bit.set(0) =>   3  },  # 001*b
+    ]
+  end
+
+  def test_bit_clear
+    try_assert_equal [
+      {  8.bit.clear(3) =>   0  },  # *000b
+      {  4.bit.clear(2) =>   0  },  # 0*00b
+      {  3.bit.clear(0) =>   2  },  # 001*b
     ]
   end
 
@@ -283,6 +323,17 @@ class TestFields < Test::Unit::TestCase
       {  -0x1234.bit.div(8) =>  [0xed, 0xcc] },
       {  0x8000.bit.div(8)  =>  [0x00, 0x80, 0x00] },
       { -0xbeef.bit.div(8)  =>  [0xff, 0x41, 0x11] },
+    ]
+  end
+
+  def test_bit_bits
+    try_assert_equal [
+      {  0.bit.bits                     =>  []             },
+      {  0x12.bit.bits                  =>  [0,1,0,0,1,0]  },
+      {  0x12.bit.bits(:nolead=>true)   =>  [1,0,0,1,0]    },
+      {  0x0a.bit.bits                  =>  [0,1,0,1,0]    },
+      {  0x0a.bit.bits(:nolead=>true)   =>  [1,0,1,0]      },
+      {  -6.bit.bits                    =>  [1,0,1,0]      },
     ]
   end
 
