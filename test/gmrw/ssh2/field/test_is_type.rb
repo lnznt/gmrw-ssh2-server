@@ -27,7 +27,7 @@ class TestField < Test::Unit::TestCase
     @bn_1234h = OpenSSL::BN.new((-0x1234).to_s)
     @bn_beefh = OpenSSL::BN.new((-0xbeef).to_s)
   end
-
+=begin
   def test_boolean?
     try_assert_equal [
       { true.ssh.boolean?              =>  true   },
@@ -244,7 +244,7 @@ class TestField < Test::Unit::TestCase
       { nil.ssh.bytes?        =>  false  },
     ]
   end
-
+=end
   def test_type__boolean?
     try_assert_equal [
       { true.ssh.type?(:boolean)  =>  true  },
