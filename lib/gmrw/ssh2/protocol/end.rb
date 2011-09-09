@@ -76,10 +76,6 @@ module GMRW; module SSH2; module Protocol
       self[message.tag] = message
     end
 
-    def forget(*tags)
-      tags.each {|tag| delete(tag) }
-    end
-
     #
     # :section: encryption / mac / compression
     #

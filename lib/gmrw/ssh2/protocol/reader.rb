@@ -18,12 +18,11 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   property_ro :version,     'gets'
   property_ro :ssh_version, 'version.mapping(:ssh_version) {/^(SSH-.+?)-/}'
 
-
   #
   # :section: Receive Methods
   #
   def recv_message(tag)
-    forget(tag) ; message(tag)
+    delete(tag) ; message(tag)
   end
 
   def message(tag)
@@ -46,26 +45,20 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   #
   private
   def payload
-    packet = [
+    verify! packet = [
       pack_len    = buffered_read(4).tap{|s| def s.n; unpack("N")[0]; end },
       padd_len    = buffered_read(1).tap{|s| def s.n; unpack("C")[0]; end },
       zipped_data = buffered_read(pack_len.n - padd_len.length - padd_len.n),
       padding     = buffered_read(padd_len.n),
     ].join
 
-    verify! packet
-
     decompress[ zipped_data ]
   end
 
   def verify!(packet)
-    xdump = proc {|m| m.each_byte.map {|b| "%02x" % b.ord } * ':' }
-
     mac0 = compute_mac[ packet ]
     mac1 = read(mac0.length)
-    mac0 == mac1 or die :MAC_ERROR, "#{xdump[mac0]} : #{xdump[mac1]}"
-
-    debug( "MAC                    : #{xdump[mac0]}" )
+    mac0 == mac1 or die :MAC_ERROR, "#{mac0.dump} : #{mac1.dump}"
   end
 
   def buffered_read(bytes)
