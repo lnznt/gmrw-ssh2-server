@@ -27,10 +27,6 @@ module GMRW::Extension
 
     private
     property_ro :null, 'Null.instance'
-
-    def nvl(val, replacement)
-      val.nil? ? replacement : val
-    end
   end
 end
 

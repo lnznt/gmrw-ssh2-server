@@ -9,6 +9,7 @@ require 'gmrw/extension/extension'
 require 'gmrw/extension/object'
 require 'gmrw/extension/array'
 require 'gmrw/extension/integer'
+require 'gmrw/extension/attribute/string_to'
 
 module GMRW::Extension
   compatibility String do
@@ -56,22 +57,33 @@ module GMRW::Extension
     end
 
     def mapping(*names)
-      (parsed = parse(yield)) && parsed.mapping(*names)
+      parse(yield).try(:mapping, *names)
     end
 
+    def bin
+      to.bin
+    end
+
+    attribute :to, Attribute::StringTo
+=begin
     def to_packet(length_field_type=:uint32)
-      nvl(length.pack.try_send(length_field_type), "") + self
+      (length.pack.try_send(length_field_type) || "") + self
+    end
+
+    def to_bytes
+      unpack("C*")
     end
 
     def pack_mpi
-      negative = (unpack("C")[0] || 0)[msb=7] == 1
-      n        = unpack("C*").reduce(0) {|n,m| n << 8 | m }
+      negative = (to_bytes[0] || 0).bit.set?(msb=7)
+      n        = to_bytes.reduce(0) {|n,m| n << 8 | m }
       negative ? -(n.bit.complement + 1) : n
     end
 
     def bin
-      unpack("C*").pack("C*")
+      to_bytes.pack("C*")
     end
+=end
   end
 end
 

@@ -20,9 +20,9 @@ module GMRW; module SSH2; module Field
         when :byte     ; this.pack.byte
         when :uint32   ; this.pack.uint32
         when :uint64   ; this.pack.uint64
-        when :mpint    ; this.to_i.pack.bin.to_packet
-        when :string   ; this.bin.to_packet
-        when :namelist ; this.join(",").bin.to_packet
+        when :mpint    ; this.to_i.pack.bin.to.packet
+        when :string   ; this.bin.to.packet
+        when :namelist ; this.join(",").bin.to.packet
         when Integer   ; this.pack("C*")
       end
     end
@@ -45,14 +45,14 @@ module GMRW; module SSH2; module Field
     protected
     def dec(type)
       case type
-        when :boolean  ; this.unpack("C")[0] != 0
-        when :byte     ; this.unpack("C")[0]
-        when :uint32   ; this.unpack("N")[0]
-        when :uint64   ; this.unpack("NN").reduce {|n,m| n << 32 | m }
+        when :boolean  ; this.to.byte != 0
+        when :byte     ; this.to.byte
+        when :uint32   ; this.to.uint32
+        when :uint64   ; this.to.uint64
         when :string   ; this
         when :namelist ; this.split(",")
-        when Integer   ; this.unpack("C*")
-        when :mpint    ; OpenSSL::BN.new(this.pack_mpi.to_s)
+        when Integer   ; this.to.bytes
+        when :mpint    ; OpenSSL::BN.new(this.to.mpi.to_s)
       end
     end
   end

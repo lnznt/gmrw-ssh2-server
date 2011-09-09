@@ -158,23 +158,37 @@ class TestFields < Test::Unit::TestCase
 
   def test_to_packet
     try_assert_equal [
-      { "hello".to_packet           =>  [5, "hello"].pack("Na*")    },
-      { "hello".to_packet(:uint32)  =>  [5, "hello"].pack("Na*")    },
-      { "hello".to_packet(:none)    =>  "hello"                     },
-      { "hello".to_packet(:octet)   =>  [5, "hello"].pack("Ca*")    },
-      { "hello".to_packet(:uint64)  =>  [0,5, "hello"].pack("NNa*") },
+      { "hello".to.packet           =>  [5, "hello"].pack("Na*")    },
+      { "hello".to.packet(:uint32)  =>  [5, "hello"].pack("Na*")    },
+      { "hello".to.packet(:none)    =>  "hello"                     },
+      { "hello".to.packet(:octet)   =>  [5, "hello"].pack("Ca*")    },
+      { "hello".to.packet(:uint64)  =>  [0,5, "hello"].pack("NNa*") },
     ]
   end
 
-  def test_pack_mpi
+  def test_to_mpi
     try_assert_equal [
-      { "".pack_mpi                           =>  0      },
-      { [0x1].pack("C*").pack_mpi             =>  0x1    },
-      { [0x12].pack("C*").pack_mpi            =>  0x12   },
-      { [0x12,0x34].pack("C*").pack_mpi       =>  0x1234 },
-      { [0xed,0xcc].pack("C*").pack_mpi       => -0x1234 },
-      { [0x00,0x80,0x00].pack("C*").pack_mpi  =>  0x8000 },
-      { [0xff,0x41,0x11].pack("C*").pack_mpi  => -0xbeef },
+      { "".to.mpi                           =>  0      },
+      { [0x1].pack("C*").to.mpi             =>  0x1    },
+      { [0x12].pack("C*").to.mpi            =>  0x12   },
+      { [0x12,0x34].pack("C*").to.mpi       =>  0x1234 },
+      { [0xed,0xcc].pack("C*").to.mpi       => -0x1234 },
+      { [0x00,0x80,0x00].pack("C*").to.mpi  =>  0x8000 },
+      { [0xff,0x41,0x11].pack("C*").to.mpi  => -0xbeef },
+    ]
+  end
+
+  def test_to_bytes
+    try_assert_equal [
+      { "".to.bytes     =>  []                },
+      { "ABC".to.bytes  =>  [0x41,0x42,0x43]  },
+    ]
+  end
+
+  def test_to_bin
+    try_assert_equal [
+      { "".to.bin     =>  [].pack("C*")                },
+      { "ABC".to.bin  =>  [0x41,0x42,0x43].pack("C*")  },
     ]
   end
 
