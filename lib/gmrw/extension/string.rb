@@ -6,6 +6,7 @@
 #
 
 require 'gmrw/extension/extension'
+require 'gmrw/extension/object'
 require 'gmrw/extension/array'
 require 'gmrw/extension/integer'
 
@@ -58,15 +59,8 @@ module GMRW::Extension
       (parsed = parse(yield)) && parsed.mapping(*names)
     end
 
-    def to_packet(length_field_size=4)
-      length_field = {
-        0 => "",
-        1 => [length].pack("C"),
-        4 => [length].pack("N"),
-        8 => [length.bit[63..32], length.bit[31..0]].pack("NN"),
-      }[length_field_size] or raise ArgumentError, "#{length_field_size}"
-
-      length_field + self
+    def to_packet(length_field_type=:uint32)
+      nvl(length.pack.try_send(length_field_type), "") + self
     end
 
     def pack_mpi

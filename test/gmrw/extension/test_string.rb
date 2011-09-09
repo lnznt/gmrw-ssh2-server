@@ -158,11 +158,11 @@ class TestFields < Test::Unit::TestCase
 
   def test_to_packet
     try_assert_equal [
-      { "hello".to_packet     =>  [5, "hello"].pack("Na*")    },
-      { "hello".to_packet(4)  =>  [5, "hello"].pack("Na*")    },
-      { "hello".to_packet(0)  =>  "hello"                     },
-      { "hello".to_packet(1)  =>  [5, "hello"].pack("Ca*")    },
-      { "hello".to_packet(8)  =>  [0,5, "hello"].pack("NNa*") },
+      { "hello".to_packet           =>  [5, "hello"].pack("Na*")    },
+      { "hello".to_packet(:uint32)  =>  [5, "hello"].pack("Na*")    },
+      { "hello".to_packet(:none)    =>  "hello"                     },
+      { "hello".to_packet(:octet)   =>  [5, "hello"].pack("Ca*")    },
+      { "hello".to_packet(:uint64)  =>  [0,5, "hello"].pack("NNa*") },
     ]
   end
 

@@ -16,13 +16,13 @@ module GMRW; module SSH2; module Field
 
     def encode(type)
       case type
-        when :boolean  ; [this ? 1 : 0].pack("C")
-        when :byte     ; [this].pack("C")
-        when :uint32   ; [this].pack("N")
-        when :uint64   ; [this.bit[63..32], this.bit[31..0]].pack("NN")
-        when :mpint    ; this.to_i.bit.div(8).pack("C*").bin.to_packet(4)
-        when :string   ; this.bin.to_packet(4)
-        when :namelist ; this.join(",").bin.to_packet(4)
+        when :boolean  ; (this ? 1 : 0).pack.byte
+        when :byte     ; this.pack.byte
+        when :uint32   ; this.pack.uint32
+        when :uint64   ; this.pack.uint64
+        when :mpint    ; this.to_i.pack.bin.to_packet
+        when :string   ; this.bin.to_packet
+        when :namelist ; this.join(",").bin.to_packet
         when Integer   ; this.pack("C*")
       end
     end

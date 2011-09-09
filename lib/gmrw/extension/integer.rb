@@ -6,7 +6,8 @@
 #
 
 require 'gmrw/extension/extension'
-require 'gmrw/extension/attribute/bit'
+require 'gmrw/extension/attribute/integer_bit'
+require 'gmrw/extension/attribute/integer_pack'
 
 module GMRW::Extension
   mixin Integer do
@@ -39,7 +40,8 @@ module GMRW::Extension
       negative? ? -1 : 0
     end
 
-    attribute :bit, Attribute::Bit
+    attribute :bit,  Attribute::IntegerBit
+    attribute :pack, Attribute::IntegerPack
   end
 end
 

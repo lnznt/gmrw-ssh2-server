@@ -9,7 +9,7 @@ require 'gmrw/extension/array'
 require 'gmrw/extension/attribute'
 
 class GMRW::Extension::Attribute
-  module Bit
+  module IntegerBit
     def [](range)
       first = range.respond_to?(:first) ? range.first : range
       last  = range.respond_to?(:last ) ? range.last  : range
