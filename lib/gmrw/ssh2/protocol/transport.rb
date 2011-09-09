@@ -131,7 +131,7 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Protocol Version Exchange
   #
   def protocol_version_exchange
-    local.version.compatible?(peer.version) or
+    local.ssh_version == peer.ssh_version or
                         die "Protocol mismatch: #{peer.version}"
 
     info( "local version: #{local.version}" )

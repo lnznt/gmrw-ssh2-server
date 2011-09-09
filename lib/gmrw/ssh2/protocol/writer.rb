@@ -8,7 +8,6 @@
 require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/ssh2/protocol/end'
-require 'gmrw/ssh2/protocol/version_string'
 require 'gmrw/ssh2/message'
 
 class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
@@ -17,11 +16,8 @@ class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
   #
   # :section: Protocol Version
   #
-  property_ro :version, %-
-    puts SSH2::Protocol::VersionString.new(
-                :software_version => SSH2.config.version[:software_version],
-                :commnet          => SSH2.config.version[:commnet])
-  -
+  property_ro :version,     'puts SSH2.config.version'
+  property_ro :ssh_version, 'version.mapping(:ssh_version) {/^(SSH-.+?)-/}'
 
   #
   # :section: Send Methods

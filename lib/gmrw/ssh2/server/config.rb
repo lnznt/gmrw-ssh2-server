@@ -22,8 +22,7 @@ module GMRW; module SSH2
     end
 
     Default = <<-DEFAULT
-:version:
-  :software_version: ruby/gmrw_ssh2_server(v0.00a)
+:version: SSH-2.0-gmrw_ssh2_server_v0.00a
 
 :listen:
   :port: 50022
