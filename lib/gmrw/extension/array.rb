@@ -17,8 +17,12 @@ module GMRW::Extension
       (keys.empty? ? (0...count) : keys).zip(self).to_hash
     end
 
+    def cons(*a)
+      Array(a) + self
+    end
+
     def rjust(len, pad=nil)
-      ([pad] * ((len > length) ? (len - length) : 0)) + self
+      cons *(len > length ? [pad] * (len - length) : [])
     end
   end
 end

@@ -7,29 +7,16 @@
 
 require 'gmrw/extension/extension'
 require 'gmrw/extension/module'
+require 'gmrw/extension/attribute'
+require 'gmrw/extension/attribute/is'
+require 'gmrw/extension/null'
 
 module GMRW::Extension
   mixin Object do
-    def is
-      @is ||= Class.new {
-        def boolean? ; this == true || this == false                          ; end
-        def byte?    ; this.kind_of?(Integer) && (0...(1<< 8)).include?(this) ; end
-        def uint32?  ; this.kind_of?(Integer) && (0...(1<<32)).include?(this) ; end
-        def uint64?  ; this.kind_of?(Integer) && (0...(1<<64)).include?(this) ; end
-        def integer? ; this.kind_of?(Integer)                                 ; end
-        def string?  ; this.kind_of?(String)                                  ; end
-        def array?   ; this.kind_of?(Array)                                   ; end
-        def hash?    ; this.kind_of?(Hash)                                    ; end
-        def symbol?  ; this.kind_of?(Symbol)                                  ; end
-        def proc?    ; this.kind_of?(Proc)                                    ; end
-
-        private
-        attr_accessor :this ; alias initialize this=
-      }.new(self)
-    end
+    attribute :is, Attribute::Is
 
     private
-    property_ro :null, 'Class.new{ def method_missing(*) ; end }.new'
+    property_ro :null, 'Null.instance'
   end
 end
 

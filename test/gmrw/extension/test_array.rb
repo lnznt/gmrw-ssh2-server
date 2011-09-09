@@ -44,6 +44,16 @@ class TestFields < Test::Unit::TestCase
     ]
   end
 
+  def test_cons
+    try_assert_equal [
+      { [1,2,3].cons(5)      => [5, 1, 2, 3] },
+      { [1,2,3].cons(5,6)    => [5, 6, 1, 2, 3] },
+      { [1,2,3].cons([5])    => [[5], 1, 2, 3] },
+      { [1,2,3].cons([5,6])  => [[5,6], 1, 2, 3] },
+      { [1,2,3].cons         => [1, 2, 3] },
+    ]
+  end
+
   def test_rjust
     try_assert_equal [
       { [1,2,3].rjust(5)      => [nil, nil, 1, 2, 3] },
