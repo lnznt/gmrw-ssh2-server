@@ -8,7 +8,6 @@
 require 'timeout'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/utils/observable'
 require 'gmrw/ssh2/algorithm/cipher'
 require 'gmrw/ssh2/algorithm/hmac'
 require 'gmrw/ssh2/algorithm/compressor'
@@ -17,11 +16,10 @@ module GMRW; module SSH2; module Protocol
   class End < Hash
     include GMRW
     include Utils::Loggable
-    include Utils::Observable
 
     private
     def_initialize :service
-    forward [:connection, :logger, :die, :message_catalog] => :service
+    forward [:connection, :logger, :die, :notify_observers] => :service
 
     #
     # :section: connection read/write
@@ -66,18 +64,18 @@ module GMRW; module SSH2; module Protocol
     end 
 
     def received(message)
-      memo(message).tap do |msg|
-        info( "--> received [#{msg.seq}]: #{msg.tag}" )
-        debug( "#{msg.inspect}" )
+      memo(message).tap do |m|
+        info( "--> received [#{m.seq}]: #{m.tag}" )
+        debug( "#{m.inspect}" )
 
-        notify_observers(:recv_message, msg, {})
+        notify_observers(m.tag, m, {})
       end
     end
 
     def sent(message)
-      memo(message).tap do |msg|
-        info( "<-- sent [#{msg.seq}]: #{msg.tag}" )
-        debug( "#{msg.inspect}" )
+      memo(message).tap do |m|
+        info( "<-- sent [#{m.seq}]: #{m.tag}" )
+        debug( "#{m.inspect}" )
       end
     end
 

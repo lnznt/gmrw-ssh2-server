@@ -9,10 +9,6 @@ require 'gmrw/extension/extension'
 
 module GMRW::Extension
   mixin Module do
-    def abstract_method(method_name)
-      define_method(method_name) { raise NotImplementedError, method_name.to_s }
-    end
-
     def def_initialize(name)
       module_eval "property :#{name} ; alias initialize #{name}="
     end

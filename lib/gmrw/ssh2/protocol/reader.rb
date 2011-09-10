@@ -19,6 +19,11 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   property_ro :ssh_version, 'version.mapping(:ssh_version) {/^(SSH-.+?)-/}'
 
   #
+  # :section: Message Catalog
+  #
+  property_ro :message_catalog, 'SSH2::Message.create_catalog'
+
+  #
   # :section: Receive Methods
   #
   def recv_message(tag)
@@ -35,9 +40,9 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
     received SSH2::Message.build(payload) { message_catalog }
 
   rescue SSH2::Message::ForbiddenMessage => e
-    notify_observers(:forbidden_message_error, e, :sequence_number => seq_number)
+    notify_observers([:forbidden], e, :sequence_number => seq_number)
   rescue SSH2::Message::MessageNotFound => e
-    notify_observers(:message_not_found_error, e, :sequence_number => seq_number)
+    notify_observers([:not_found], e, :sequence_number => seq_number)
   end
 
   #

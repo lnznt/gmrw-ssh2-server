@@ -6,7 +6,6 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/utils/observable'
 require 'gmrw/ssh2/protocol/transport'
 require 'gmrw/ssh2/server/config'
 require 'gmrw/ssh2/server/userauth'
@@ -14,7 +13,6 @@ require 'gmrw/ssh2/server/connection'
 
 class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   include GMRW
-  include Utils::Observable
 
   alias client peer
   alias server local

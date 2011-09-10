@@ -7,7 +7,7 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/utils/command'
+require 'gmrw/utils/observable'
 require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
 require 'gmrw/ssh2/algorithm/kex'
@@ -16,28 +16,12 @@ require 'gmrw/ssh2/algorithm/host_key'
 class GMRW::SSH2::Protocol::Transport
   include GMRW
   include Utils::Loggable
+  include Utils::Observable
 
   #
-  # :section: error handling
-  #
-  def die(tag, msg="")
-    e = RuntimeError.new "#{tag}: #{msg}"
-    c = class << e ; self ; end
-    c.send(:define_method, :call) do |service|
-      service.send_message :disconnect, :reason_code => tag,
-                                        :description => e.to_s
-    end
-    raise e
-  end
-
-  #
-  # :section: resources (Connection and Logger)
+  # :section: connection
   #
   def_initialize :connection
-
-  def logger=(*)
-    super.tap {|l| l.format {|*s| "[#{connection.object_id}] #{s.map(&:to_s) * ': '}" }}
-  end
 
   #
   # :section: Reader/Writer (=peer/local)
@@ -45,36 +29,33 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :reader, 'SSH2::Protocol::Reader.new(self)' ; alias peer  reader
   property_ro :writer, 'SSH2::Protocol::Writer.new(self)' ; alias local writer
 
-  forward [:recv_message, :poll_message] => :reader
-  forward [:send_message,              ] => :writer
+  forward [:recv_message, :poll_message, :message_catalog] => :reader
+  forward [:send_message,                                ] => :writer
 
-  abstract_method :client
-  abstract_method :server
-
-  #
-  # :section: Message Catalog
-  #
-  property_ro :message_catalog, 'SSH2::Message.create_catalog'
-
-  #
-  # :section: Algorithms
-  #
-  property :kex
-  property :host_key
+  def client ; raise NotImplementedError, 'client' ; end
+  def server ; raise NotImplementedError, 'server' ; end
 
   #
   # :section: Starting Transport
   #
-  property_ro :at_close, 'Utils::Command.new'
+  property_ro :at_close, '[]'
 
   def start
+    logger.format {|*s| "[#{connection.object_id}] #{s.map(&:to_s) * ': '}" }
     info( "SSH service start" )
 
-    reader.add_observer(:recv_message,            &method(:message_received))
-    reader.add_observer(:forbidden_message_error, &method(:message_forbidden))
-    reader.add_observer(:message_not_found_error, &method(:message_not_found))
+    add_observer([:forbidden]) do |e,|
+      die :PROTOCOL_ERROR, "forbidden message received: #{e}"
+    end
 
-    add_observer(:disconnect,      &method(:disconnect_message_received))
+    add_observer([:not_found]) do |e, hint|
+      send_message :unimplemented, :sequence_number => hint[:sequence_number]
+    end
+
+    add_observer(:disconnect) do |message|
+      raise "disconnect message received: #{message[:reason_code]}: #{message[:description]}"
+    end
+
     add_observer(:service_request, &method(:service_request_message_received))
     add_observer(:service_accept,  &method(:service_accept_message_received))
 
@@ -89,25 +70,14 @@ class GMRW::SSH2::Protocol::Transport
     e.call(self) rescue nil
 
   ensure
-    at_close.call
+    at_close.each(&:call)
     connection.shutdown
     connection.close
     info( "SSH service terminated" )
   end
 
   private
-  abstract_method :start_service
-
-  #
-  # :section: Message Handlers
-  #
-  def message_received(message, hints={})
-    notify_observers(message.tag, message, hints)
-  end
-
-  def disconnect_message_received(message, *)
-    raise "disconnect message received: #{message[:reason_code]}: #{message[:description]}"
-  end
+  def start_service ; raise NotImplementedError, 'start_service' ; end
 
   def service_request_message_received(message, *)
     send_message :unimplemented, :sequence_number => message.seq
@@ -115,14 +85,6 @@ class GMRW::SSH2::Protocol::Transport
 
   def service_accept_message_received(message, *)
     send_message :unimplemented, :sequence_number => message.seq
-  end
-
-  def message_forbidden(e, *)
-    die :PROTOCOL_ERROR, "forbidden message received: #{e}"
-  end
-
-  def message_not_found(e, hints={})
-    send_message :unimplemented, :sequence_number => hint[:sequence_number]
   end
 
   #
@@ -140,6 +102,10 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Algorithm Negotiation / Key Exchange
   #
+  public
+  property :kex
+  property :host_key
+  private
   def start_transport(*)
     negotiate = proc do |name|
       client.message(:kexinit)[name].find   {|a|
@@ -167,7 +133,7 @@ class GMRW::SSH2::Protocol::Transport
 
     @secret, @hash, = kex.key_exchange(self) ; @session_id ||= @hash
 
-    local.message :newkeys
+    send_message :newkeys
   end
 
   #
@@ -186,6 +152,19 @@ class GMRW::SSH2::Protocol::Transport
 
     client.keys_into_use :iv => key["A"], :key => key["C"], :mac => key["E"]
     server.keys_into_use :iv => key["B"], :key => key["D"], :mac => key["F"]
+  end
+
+  #
+  # :section: error handling
+  #
+  def die(tag, msg="")
+    e = RuntimeError.new "#{tag}: #{msg}"
+    c = class << e ; self ; end
+    c.send(:define_method, :call) do |service|
+      service.send_message :disconnect, :reason_code => tag,
+                                        :description => e.to_s
+    end
+    raise e
   end
 end
 
