@@ -93,6 +93,8 @@ module GMRW; module SSH2; module Message
     classes[tag] = Class.new do
       define_method(:tag) { tag }
 
+      property :seq
+
       def [](name)
         (field(name) || null).value
       end

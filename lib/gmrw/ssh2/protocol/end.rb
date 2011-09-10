@@ -69,11 +69,15 @@ module GMRW; module SSH2; module Protocol
       info( "--> #{label}[#{seq_number}]: #{message.tag}" )
       debug( "#{message.inspect}" )
 
-      notify_observers(label, message, :seq_number => seq_number)
+      self[message.tag] = message.tap {|m| m.seq = seq_number }
+      seq_number((seq_number + 1) % 32.bit.mask)
 
-      seq_number((seq_number + 1) % 0xffff_ffff)
+      notify_observers(label, message, {})
 
-      self[message.tag] = message
+      #seq_number((seq_number + 1) % 0xffff_ffff)
+
+      #self[message.tag] = message
+      message
     end
 
     #

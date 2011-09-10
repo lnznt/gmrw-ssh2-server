@@ -44,7 +44,7 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
 
     protocol_version_exchange
 
-    send_message(:kexinit) and start_transport
+    send_message(:kexinit)
 
     loop { poll_message }
   end

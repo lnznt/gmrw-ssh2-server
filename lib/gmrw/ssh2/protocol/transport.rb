@@ -5,28 +5,29 @@
 # License:: Ruby's
 #
 
-require 'openssl'
-require 'zlib'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/utils/command'
 require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
-require 'gmrw/ssh2/protocol/exception'
 require 'gmrw/ssh2/algorithm/kex'
 require 'gmrw/ssh2/algorithm/host_key'
 
 class GMRW::SSH2::Protocol::Transport
   include GMRW
   include Utils::Loggable
-  include SSH2::Protocol::Exception::Handling
 
-  def print_software_version
-    debug "RUBY_VERSION             : " + RUBY_VERSION
-    debug "OpenSSL::VERSION         : " + OpenSSL::VERSION
-    debug "OpenSSL::OPENSSL_VERSION : " + OpenSSL::OPENSSL_VERSION
-    debug "Zlib::VERSION            : " + Zlib::VERSION
-    debug "Zlib::ZLIB_VERSION       : " + Zlib::ZLIB_VERSION
+  #
+  # :section: error handling
+  #
+  def die(tag, msg="")
+    e = RuntimeError.new "#{tag}: #{msg}"
+    c = class << e ; self ; end
+    c.send(:define_method, :call) do |service|
+      service.send_message :disconnect, :reason_code => tag,
+                                        :description => e.to_s
+    end
+    raise e
   end
 
   #
@@ -67,8 +68,6 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :at_close, 'Utils::Command.new'
 
   def start
-    print_software_version
-
     info( "SSH service start" )
 
     reader.add_observer(:recv_message,            &method(:message_received))
@@ -78,6 +77,9 @@ class GMRW::SSH2::Protocol::Transport
     add_observer(:disconnect,      &method(:disconnect_message_received))
     add_observer(:service_request, &method(:service_request_message_received))
     add_observer(:service_accept,  &method(:service_accept_message_received))
+
+    add_observer(:kexinit,  &method(:start_transport))
+    add_observer(:newkeys,  &method(:keys_into_use))
 
     start_service
 
@@ -103,20 +105,16 @@ class GMRW::SSH2::Protocol::Transport
     notify_observers(message.tag, message, hints)
   end
 
-  def reply_unimplemented(message, hints={})
-    send_message :unimplemented, :sequence_number => hint[:sequence_number]
-  end
-
-  def disconnect_message_received(message, hints={})
+  def disconnect_message_received(message, *)
     raise "disconnect message received: #{message[:reason_code]}: #{message[:description]}"
   end
 
-  def service_request_message_received(message, hints={})
-    reply_unimplemented(message, hints)
+  def service_request_message_received(message, *)
+    send_message :unimplemented, :sequence_number => message.seq
   end
 
-  def service_accept_message_received(message, hints={})
-    reply_unimplemented(message, hints)
+  def service_accept_message_received(message, *)
+    send_message :unimplemented, :sequence_number => message.seq
   end
 
   def message_forbidden(e, *)
@@ -124,38 +122,25 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   def message_not_found(e, hints={})
-    reply_unimplemented(e, hints)
+    send_message :unimplemented, :sequence_number => hint[:sequence_number]
   end
 
   #
   # :section: Protocol Version Exchange
   #
   def protocol_version_exchange
-    local.ssh_version == peer.ssh_version or
-                        die "Protocol mismatch: #{peer.version}"
+    local.ssh_version == peer.ssh_version or raise "protocol mismatch"
 
     info( "local version: #{local.version}" )
     info( "peer  version: #{peer. version}" )
+  rescue => e
+    connection.puts "#{e}" ; raise
   end
 
   #
-  # :section: Transport Layer
+  # :section: Algorithm Negotiation / Key Exchange
   #
-  def start_transport
-    negotiate_algorithms
-
-    key_exchange
-
-    peer. message :newkeys
-    local.message :newkeys
-
-    keys_into_use
-  end
-
-  #
-  # :section: Algorithm Negotiation
-  #
-  def negotiate_algorithms
+  def start_transport(*)
     negotiate = proc do |name|
       client.message(:kexinit)[name].find   {|a|
       server.message(:kexinit)[name].include?(a)}
@@ -179,22 +164,22 @@ class GMRW::SSH2::Protocol::Transport
     host_key  SSH2::Algorithm::HostKey.get(algorithm_host_key)
 
     message_catalog.kex = algorithm_kex
+
+    @secret, @hash, = kex.key_exchange(self) ; @session_id ||= @hash
+
+    local.message :newkeys
   end
 
   #
-  # :section: Key Exchange
+  # :section: Keys into use
   #
   attr_reader :session_id
 
-  def key_exchange
-    @secret, @hash, = kex.key_exchange(self) ; @session_id ||= @hash
-  end
-
-  def keys_into_use
+  def keys_into_use(*)
     key = proc do |salt|
       proc do |len|
         y =  kex.digest(@secret + @hash + salt + @session_id)
-        y << kex.digest(@secret + @hash + y)                  while y.length < len
+        y << kex.digest(@secret + @hash + y) while y.length < len
         y[0...len]
       end
     end
