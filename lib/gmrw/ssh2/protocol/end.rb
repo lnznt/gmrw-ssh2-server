@@ -26,35 +26,30 @@ module GMRW; module SSH2; module Protocol
     #
     # :section: connection read/write
     #
-    EOL = "\r\n"
-    READ_SIZE_LIMIT = 35000 # in octets(bytes)
-    READ_WAIT_LIMIT = 3600  # in seconds
-
     def puts(s)
-      write(s + EOL) ; s
+      write(s + "\r\n")
     end
 
     def write(data)
-      connection.write(data) ; data
+      connection.write(data)
     end
 
     def gets
-      timeout(READ_WAIT_LIMIT) do
-        (connection.gets or raise EOFError) - /#{EOL}\z/
-      end
-    rescue EOFError       ; die "connection EOF"
-    rescue Timeout::Error ; die "connection timeout"
+      read(nil) - /\r\n$/
     end
 
     def read(n)
-      timeout(READ_WAIT_LIMIT) do
-        n <= 0              ? ""                                      :
-        n > READ_SIZE_LIMIT ?                       raise(RangeError) :
-                              connection.read(n) or raise(EOFError)
+      size_limit = 35000 # in octets(in bytes)
+      wait_limit = 3600  # in seconds
+
+      timeout(wait_limit) do
+        n.nil?                      ? (connection.gets    or raise EOFError) :
+        (1..size_limit).include?(n) ? (connection.read(n) or raise EOFError) :
+        n <= 0                      ? ""                  :  raise(RangeError)
       end
     rescue EOFError       ; die :CONNECTION_LOST, "connection EOF"
-    rescue RangeError     ; die :PROTOCOL_ERROR, "read len error:#{n}"
-    rescue Timeout::Error ; die :PROTOCOL_ERROR, "connection timeout"
+    rescue RangeError     ; die :PROTOCOL_ERROR,  "read len error:#{n}"
+    rescue Timeout::Error ; die :PROTOCOL_ERROR,  "connection timeout"
     end
 
     #
@@ -74,9 +69,6 @@ module GMRW; module SSH2; module Protocol
 
       notify_observers(label, message, {})
 
-      #seq_number((seq_number + 1) % 0xffff_ffff)
-
-      #self[message.tag] = message
       message
     end
 
