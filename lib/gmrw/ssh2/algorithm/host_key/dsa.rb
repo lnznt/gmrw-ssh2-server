@@ -33,8 +33,7 @@ module GMRW; module SSH2; module Algorithm; module HostKey
       vs, rem = GMRW::SSH2::Field.unpack(s, [:string, :string])
       id, sig = vs
 
-      a1  = sig.unpack("a20 a20").map {|v| OpenSSL::ASN1::Integer.new(OpenSSL::BN.new(v, 2)) }
-      sig = OpenSSL::ASN1::Sequence.new(a1).to_der
+      sig = sig.unpack("a20 a20").map {|v| v.to.mpi.to.der }.to.der
 
       id == 'ssh-dss' && verify('dss1', sig, data) && rem.empty?
     end

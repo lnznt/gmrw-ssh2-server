@@ -8,6 +8,7 @@
 require 'gmrw/extension/extension'
 require 'gmrw/extension/attribute/integer_bit'
 require 'gmrw/extension/attribute/integer_pack'
+require 'gmrw/extension/attribute/integer_to'
 
 module GMRW::Extension
   mixin Integer do
@@ -42,6 +43,7 @@ module GMRW::Extension
 
     attribute :bit,  Attribute::IntegerBit
     attribute :pack, Attribute::IntegerPack
+    attribute :to,   Attribute::IntegerTo
   end
 end
 

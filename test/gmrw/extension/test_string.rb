@@ -192,6 +192,25 @@ class TestFields < Test::Unit::TestCase
     ]
   end
 
+  def test_to_bn
+    try_assert_equal [
+      { "10".to.bn                           =>  10  },
+      { "10".to.bn(:dec)                     =>  10  },
+      { "10".to.bn(:decimal)                 =>  10  },
+      { "10".to.bn(10)                       =>  10  },
+      { "10".to.bn(:hex)                     =>  16  },
+      { "10".to.bn(:hexadecimal)             =>  16  },
+      { "10".to.bn(16)                       =>  16  },
+      { "\x10".to.bn(:bin)                   =>  16  },
+      { "\x10".to.bn(:binary)                =>  16  },
+      { "\x10".to.bn(2)                      =>  16  },
+      { "\x00\x00\x00\x01\x10".to.bn(:mpi)   =>  16  },
+      { "\x00\x00\x00\x01\x10".to.bn(:mpint) =>  16  },
+      { "\x00\x00\x00\x01\x10".to.bn(0)      =>  16  },
+      { "\x00\x00\x00\x00".to.bn(:mpi)       =>  0   },
+    ]
+  end
+
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

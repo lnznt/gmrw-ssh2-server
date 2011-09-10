@@ -6,6 +6,7 @@
 #
 
 require 'gmrw/extension/extension'
+require 'gmrw/extension/attribute/array_to'
 
 module GMRW::Extension
   mixin Array do
@@ -24,6 +25,8 @@ module GMRW::Extension
     def rjust(len, pad=nil)
       cons *(len > length ? [pad] * (len - length) : [])
     end
+
+    attribute :to, Attribute::ArrayTo
   end
 end
 

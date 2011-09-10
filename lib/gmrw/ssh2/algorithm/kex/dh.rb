@@ -66,9 +66,8 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     property_ro :k_s,                  'host_key.dump'
     property_ro :f,                    'dh.pub_key'
 
-    property_ro :shared_secret,        'dh.compute_key(e)'
-    property_ro :binary_shared_secret, 'OpenSSL::BN.new(shared_secret, 2)'
-    property_ro :k,                    'binary_shared_secret.ssh.encode(:mpint)'
+    property_ro :shared_secret,        'dh.compute_key(e).to.bn(:binary)'
+    property_ro :k,                    'shared_secret.ssh.encode(:mpint)'
 
     property_ro :h,                    'digest(h0)'
     property_ro :s,                    'host_key.sign_and_pack(h)'

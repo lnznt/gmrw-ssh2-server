@@ -14,6 +14,16 @@ module GMRW; module SSH2; module Field
   class SSHField
     include IsType
 
+    def pack
+      this.map {|ftype, val| val.ssh.encode(ftype) }.join
+    end
+
+    def unpack(ftypes)
+      ftypes.reduce([[], s=this]) {|result, ftype|
+        v, s = s.ssh.decode(ftype) ; [result[0] << v, s]
+      }.flatten(1)
+    end
+
     def encode(type)
       case type
         when :boolean  ; (this ? 1 : 0).pack.byte
@@ -52,7 +62,7 @@ module GMRW; module SSH2; module Field
         when :string   ; this
         when :namelist ; this.split(",")
         when Integer   ; this.to.bytes
-        when :mpint    ; OpenSSL::BN.new(this.to.mpi.to_s)
+        when :mpint    ; this.to.mpi.to.bn
       end
     end
   end

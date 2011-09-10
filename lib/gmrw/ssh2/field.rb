@@ -16,7 +16,7 @@ module GMRW; module SSH2; module Field
       when :byte     ; 0
       when :uint32   ; 0
       when :uint64   ; 0
-      when :mpint    ; OpenSSL::BN.new(0.to_s)
+      when :mpint    ; 0.to.bn
       when :string   ; ""
       when :namelist ; []
       when Integer   ; type > 0 ? ([0] * type) : nil

@@ -402,6 +402,7 @@ class TestFields < Test::Unit::TestCase
       {  0xffff_ffff_ffff_ffff.pack.uint64  =>  [0xffff_ffff,0xffff_ffff].pack("NN") },
     ]
   end
+
   def test_pack_bin
     try_assert_equal [
       {  0.pack.bin        =>  [].pack("C*")                },
@@ -410,6 +411,12 @@ class TestFields < Test::Unit::TestCase
       {  0x8000.pack.bin   =>  [0x00,0x80,0x00].pack("C*")  },
       {  -0x1234.pack.bin  =>  [0xed,0xcc].pack("C*")       },
       {  -0xbeef.pack.bin  =>  [0xff,0x41,0x11].pack("C*")  },
+    ]
+  end
+  def test_to_bn
+    try_assert_equal [
+      {  0.to.bn        =>  0                },
+      { 10.to.bn        =>  10               },
     ]
   end
 end

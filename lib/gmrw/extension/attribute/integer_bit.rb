@@ -5,27 +5,26 @@
 # License:: Ruby's
 #
 
+require 'gmrw/extension/object'
 require 'gmrw/extension/array'
 require 'gmrw/extension/attribute'
 
 class GMRW::Extension::Attribute
   module IntegerBit
     def [](range)
-      first = range.respond_to?(:first) ? range.first : range
-      last  = range.respond_to?(:last ) ? range.last  : range
-
-      high  = [first, last].max
-      low   = [first, last].min
+      first = range.try_send(:first) || range
+      last  = range.try_send(:last ) || range
+      low, high = [first, last].minmax
 
       (high.downto low).reduce(0) {|n, i| n << 1 | this[i] }
     end
 
     def let(range, b)
-      width = range.respond_to?(:count) ? range.count : 1
-      first = range.respond_to?(:first) ? range.first : range
-      last  = range.respond_to?(:last ) ? range.last  : range
-      low   = [first, last].min
-      mask  = (width << low)
+      first = range.try_send(:first) || range
+      last  = range.try_send(:last ) || range
+      base  = [first, last].min
+      n     = range.try_send(:count) || 1
+      mask  = (n.bit.mask << base)
 
       (b == 0 || !b) ? (this & ~mask) : (this | mask)
     end

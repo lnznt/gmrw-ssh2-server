@@ -5,6 +5,7 @@
 # License:: Ruby's
 #
 
+require 'openssl'
 require 'gmrw/extension/extension'
 require 'gmrw/extension/object'
 require 'gmrw/extension/integer'
@@ -46,6 +47,20 @@ class GMRW::Extension::Attribute
 
     def uint64
       this.unpack("NN").reduce {|n,m| n << 32 | m }
+    end
+
+    def bn(n=nil)
+      n = {
+        :mpint       =>  0,
+        :mpi         =>  0,
+        :binary      =>  2,
+        :bin         =>  2,
+        :decimal     => 10,
+        :dec         => 10,
+        :hexadecimal => 16,
+        :hex         => 16,
+      }[n] || n
+      OpenSSL::BN.new(*[this, n].compact) 
     end
   end
 end
