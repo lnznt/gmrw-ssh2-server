@@ -103,9 +103,9 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Algorithm Negotiation / Key Exchange
   #
   public
-  property :kex
   property :host_key
   private
+  attr_reader :session_id
   def start_transport(*)
     negotiate = proc do |name|
       client.message(:kexinit)[name].find   {|a|
@@ -126,12 +126,20 @@ class GMRW::SSH2::Protocol::Transport
     debug( "client.aligorithms : #{client.algorithm}"   )
     debug( "server.aligorithms : #{server.algorithm}"   )
 
-    kex       SSH2::Algorithm::Kex.get(algorithm_kex)
-    host_key  SSH2::Algorithm::HostKey.get(algorithm_host_key)
+    kex =    SSH2::Algorithm::Kex.get(algorithm_kex)
+    host_key SSH2::Algorithm::HostKey.get(algorithm_host_key)
 
     message_catalog.kex = algorithm_kex
 
-    @secret, @hash, = kex.key_exchange(self) ; @session_id ||= @hash
+    secret, hash, = kex.key_exchange(self) ; @session_id ||= hash
+
+    @key = proc do |salt|
+      proc do |len|
+        y =  kex.digest(secret + hash + salt + @session_id)
+        y << kex.digest(secret + hash + y) while y.length < len
+        y[0...len]
+      end
+    end
 
     send_message :newkeys
   end
@@ -139,19 +147,9 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Keys into use
   #
-  attr_reader :session_id
-
   def keys_into_use(*)
-    key = proc do |salt|
-      proc do |len|
-        y =  kex.digest(@secret + @hash + salt + @session_id)
-        y << kex.digest(@secret + @hash + y) while y.length < len
-        y[0...len]
-      end
-    end
-
-    client.keys_into_use :iv => key["A"], :key => key["C"], :mac => key["E"]
-    server.keys_into_use :iv => key["B"], :key => key["D"], :mac => key["F"]
+    client.keys_into_use :iv => @key["A"], :key => @key["C"], :mac => @key["E"]
+    server.keys_into_use :iv => @key["B"], :key => @key["D"], :mac => @key["F"]
   end
 
   #
