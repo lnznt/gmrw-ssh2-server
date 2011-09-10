@@ -9,7 +9,7 @@ require 'gmrw/extension/attribute'
 
 class GMRW::Extension::Attribute
   module Is
-    def boolean?            ; this == true || this == false          ; end
+    def boolean?            ; (this == true || this == false) rescue false ; end
 
     def array?(*a, &b)      ; eq?(Array,       *a) { this.all?(&b) } ; end
     def bignum?(*a, &b)     ; eq?(Bignum,      nil, *a, &b)          ; end
