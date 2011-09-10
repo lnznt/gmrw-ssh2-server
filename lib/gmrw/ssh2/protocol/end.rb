@@ -57,19 +57,28 @@ module GMRW; module SSH2; module Protocol
     #
     property :seq_number, '0'
 
-    def received(message) ; memo(:recv_message, message) ; end
-    def sent(message)     ; memo(:send_message, message) ; end
-
-    def memo(label, message)
-      info( "--> #{label}[#{seq_number}]: #{message.tag}" )
-      debug( "#{message.inspect}" )
-
-      self[message.tag] = message.tap {|m| m.seq = seq_number }
+    def seq_count
       seq_number((seq_number + 1) % 32.bit.mask)
+    end
 
-      notify_observers(label, message, {})
+    def memo(message)
+      self[message.tag] = message.tap {|m| m.seq = seq_number ; seq_count }
+    end 
 
-      message
+    def received(message)
+      memo(message).tap do |msg|
+        info( "--> received [#{msg.seq}]: #{msg.tag}" )
+        debug( "#{msg.inspect}" )
+
+        notify_observers(:recv_message, msg, {})
+      end
+    end
+
+    def sent(message)
+      memo(message).tap do |msg|
+        info( "<-- sent [#{msg.seq}]: #{msg.tag}" )
+        debug( "#{msg.inspect}" )
+      end
     end
 
     #
