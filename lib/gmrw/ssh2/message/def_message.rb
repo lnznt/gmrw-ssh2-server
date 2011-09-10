@@ -6,7 +6,7 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/ssh2/field'
+require 'gmrw/ssh2/message/datatype'
 
 module GMRW; module SSH2; module Message
   include GMRW
