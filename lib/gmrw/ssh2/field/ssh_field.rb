@@ -6,13 +6,45 @@
 #
 require 'openssl'
 require 'gmrw/extension/all'
-require 'gmrw/ssh2/field/is_type'
 
 module GMRW; module SSH2; module Field
   include GMRW
 
   class SSHField
-    include IsType
+    private
+    def name?(s)
+      !!(s.is.string?                 &&
+         s =~ /\A[[:graph:]]{1,64}\z/ &&
+         s !~ /,/                     &&
+         s =~ /\A[^@]+(@[^@]+)?\z/    )
+    end
+
+    public
+    def type?(type)
+      case n=type
+        when :boolean  ; this.is.boolean?
+        when :byte     ; this.is.byte?
+        when :uint32   ; this.is.uint32?
+        when :uint64   ; this.is.uint64?
+        when :mpint    ; this.kind_of?(OpenSSL::BN)
+        when :string   ; this.is.string?
+        when :namelist ; this.is.array?    {|s| name?(s)   }
+        when Integer   ; this.is.array?(n) {|b| b.is.byte? } && n > 0
+      end or false
+    end
+
+    def default(type)
+      case n=type
+        when :boolean  ; false
+        when :byte     ; 0
+        when :uint32   ; 0
+        when :uint64   ; 0
+        when :mpint    ; 0.to.bn
+        when :string   ; ""
+        when :namelist ; []
+        when Integer   ; n > 0 ? ([0] * n) : nil
+      end
+    end
 
     def pack
       this.map {|ftype, val| val.ssh.encode(ftype) }.join
@@ -47,8 +79,22 @@ module GMRW; module SSH2; module Field
     private
     def_initialize :this
 
+    def field_size(type)
+      case n=type
+        when :boolean  ; 1
+        when :byte     ; 1
+        when :uint32   ; 4
+        when :uint64   ; 8
+        when :mpint    ; nil
+        when :string   ; nil
+        when :namelist ; nil
+        when Integer   ; n
+        else ; raise(TypeError, "#{type}")
+      end
+    end
+
     def sep(type, s=this)
-      len = SSH2::Field.field_size(type)
+      len = field_size(type)
       len ? (s / len) : sep(*s.unpack("Na*"))
     end
 

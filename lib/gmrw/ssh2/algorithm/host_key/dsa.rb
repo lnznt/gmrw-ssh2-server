@@ -7,16 +7,15 @@
 
 require 'openssl'
 require 'gmrw/extension/all'
-require 'gmrw/ssh2/field'
 
 module GMRW; module SSH2; module Algorithm; module HostKey
   class DSAKey < OpenSSL::PKey::DSA
     def dump
-      GMRW::SSH2::Field.pack [:string, 'ssh-dss' ],
-                             [:mpint,  p         ],
-                             [:mpint,  q         ],
-                             [:mpint,  g         ],
-                             [:mpint,  pub_key   ]
+      [ [:string, 'ssh-dss' ],
+        [:mpint,  p         ],
+        [:mpint,  q         ],
+        [:mpint,  g         ],
+        [:mpint,  pub_key   ] ].ssh.pack
     end
 
     def sign_and_pack(data)
@@ -25,23 +24,20 @@ module GMRW; module SSH2; module Algorithm; module HostKey
 
       s.length == 40 or raise "bad sig size"
 
-      GMRW::SSH2::Field.pack [:string, 'ssh-dss'],
-                             [:string, s        ]
+      [ [:string, 'ssh-dss'], [:string, s] ].ssh.pack
     end
 
     def unpack_and_verify(s, data)
-      vs, rem = GMRW::SSH2::Field.unpack(s, [:string, :string])
-      id, sig = vs
+      id, sig, = s.ssh.unpack [:string, :string]
 
       sig = sig.unpack("a20 a20").map {|v| v.to.mpi.to.der }.to.der
 
-      id == 'ssh-dss' && verify('dss1', sig, data) && rem.empty?
+      id == 'ssh-dss' && verify('dss1', sig, data)
     end
 
     class << self
       def create(data)
-        vs, = GMRW::SSH2::Field.unpack(data, [:string, :mpint, :mpint, :mpint, :mpint])
-        id, p_, q, g, pub_key = vs
+        id, p_, q, g, pub_key, = data.ssh.unpack [:string, :mpint, :mpint, :mpint, :mpint]
 
         id == 'ssh-dss' or raise "not DSA key"
 

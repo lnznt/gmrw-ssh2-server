@@ -8,7 +8,6 @@
 require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
-require 'gmrw/ssh2/field'
 
 module GMRW; module SSH2; module Algorithm ; module Kex
   class DH
@@ -86,13 +85,13 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     property_ro :e, 'client.message(:kexdh_init)[:e]'
 
     def h0
-      SSH2::Field.pack([:string, v_c ],
-                       [:string, v_s ],
-                       [:string, i_c ],
-                       [:string, i_s ],
-                       [:string, k_s ],
-                       [:mpint , e   ],
-                       [:mpint , f   ]) + k
+      [ [:string, v_c ],
+        [:string, v_s ],
+        [:string, i_c ],
+        [:string, i_s ],
+        [:string, k_s ],
+        [:mpint , e   ],
+        [:mpint , f   ] ].ssh.pack + k
     end
   end
 end; end; end; end

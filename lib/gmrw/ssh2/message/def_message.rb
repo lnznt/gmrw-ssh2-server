@@ -69,7 +69,7 @@ module GMRW; module SSH2; module Message
 
     private
     def default
-      @default.nil?               ? SSH2::Field.default(@type) :
+      @default.nil?               ? ssh.default(@type) :
       @default.respond_to?(:call) ? @default[ @message ]       : @default
     end
 

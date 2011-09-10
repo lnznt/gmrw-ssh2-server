@@ -8,7 +8,6 @@
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 require 'gmrw/ssh2/algorithm/host_key'
-require 'gmrw/ssh2/field'
 
 module GMRW; module SSH2; module Server; class UserAuth ; class PublicKeyAuth
   include GMRW
@@ -33,15 +32,14 @@ module GMRW; module SSH2; module Server; class UserAuth ; class PublicKeyAuth
     key = SSH2::Algorithm::HostKey.algorithms[algo].create(blob) rescue nil
     debug( "publickey auth: key       = #{key}" )
 
-    ok = key && sig && key.unpack_and_verify(sig, SSH2::Field.pack(
-                                                    [:string,  session_id                 ],
+    ok = key && sig && key.unpack_and_verify(sig, [ [:string,  session_id                 ],
                                                     [:byte,    message[:type             ]],
                                                     [:string,  message[:user_name        ]],
                                                     [:string,  message[:service_name     ]],
                                                     [:string,  message[:method_name      ]],
                                                     [:boolean, message[:with_pk_signature]],
                                                     [:string,  message[:pk_algorithm     ]],
-                                                    [:string,  message[:pk_key_blob      ]]))
+                                                    [:string,  message[:pk_key_blob      ]] ].ssh.pack)
     debug( "publickey auth: #{ok}" )
 
     ok   ? welcome(message) :

@@ -26,18 +26,18 @@ module GMRW::SSH2::Algorithm::Kex
     #
     property_ro :e,  'client.message(:kex_dh_gex_init)[:e]'
 
-    property_ro :h0, 'SSH2::Field.pack([:string, v_c  ],
-                                       [:string, v_s  ],
-                                       [:string, i_c  ],
-                                       [:string, i_s  ],
-                                       [:string, k_s  ],
-                                       [:uint32, min  ],
-                                       [:uint32, n    ],
-                                       [:uint32, max  ],
-                                       [:mpint , dh.p ],
-                                       [:mpint , dh.g ],
-                                       [:mpint , e    ],
-                                       [:mpint , f    ]) + k '
+    property_ro :h0, '[ [:string, v_c  ],
+                        [:string, v_s  ],
+                        [:string, i_c  ],
+                        [:string, i_s  ],
+                        [:string, k_s  ],
+                        [:uint32, min  ],
+                        [:uint32, n    ],
+                        [:uint32, max  ],
+                        [:mpint , dh.p ],
+                        [:mpint , dh.g ],
+                        [:mpint , e    ],
+                        [:mpint , f    ] ].ssh.pack + k '
 
     def agree
       send_message :kex_dh_gex_group, :p => dh.p, :g => dh.g
