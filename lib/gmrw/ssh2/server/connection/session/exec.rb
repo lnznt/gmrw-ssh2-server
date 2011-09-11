@@ -29,7 +29,7 @@ module GMRW; module SSH2; module Server; class Connection; class Session
     property :wait_thread, :null
 
     def start(opts={})
-      info( "program: opts: #{opts.inspect}" )
+      debug( "program: opts: #{opts.inspect}" )
 
       command = opts[:command] || ENV["SHELL"] || "bash"
       program(PTY.spawn(command))
