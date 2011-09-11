@@ -88,21 +88,22 @@ module GMRW; module SSH2; module Protocol
     property_rwv :block_size, '[Cipher.block_size[algorithm.cipher], 8].max'
     property_rwv :encrypt,    'Cipher.get(algorithm.cipher, keys) {:encrypt}'
     property_rwv :decrypt,    'Cipher.get(algorithm.cipher, keys) {:decrypt}'
-    property_rwv :hmac_digest,'HMAC.get(algorithm.hmac, keys)'
+    #property_rwv :hmac_digest,'HMAC.get(algorithm.hmac, keys)'
     #property_rwv :compress,   'Compressor.get(algorithm.compressor) {:compress}'
     #property_rwv :decompress, 'Compressor.get(algorithm.compressor) {:decompress}'
-    property_rwv :compress,   'compressor.compress'
-    property_rwv :decompress, 'compressor.decompress'
+    property_rwv :hmac_digest, 'hmac.digest'
+    property_rwv :compress,    'compressor.compress'
+    property_rwv :decompress,  'compressor.decompress'
 
-    property_ro :block_align, 'proc {|n| n.align(block_size) }'
-    property_ro :compute_mac, 'proc {|pkt| hmac_digest[ [seq_number, pkt].pack("Na*") ] }'
+#    property_ro :block_align,  'proc {|n| n.align(block_size) }'
+    property_ro :compute_mac,  'proc {|pkt| hmac_digest[ [seq_number, pkt].pack("Na*") ] }'
 
     public
     property_ro :algorithm,
         'Struct.new(:cipher, :hmac, :compressor).new("none","none","none")'
 
-    property :compressor, 'Compressor.new("none")'
-#    property :hmac,       'HMAC.new("none")'
+    property :compressor, 'SSH2::Algorithm::Compressor.new("none")'
+    property :hmac,       'SSH2::Algorithm::HMAC.new("none")'
 
     def keys_into_use(new_keys)
       debug( "new keys into use" )
@@ -112,7 +113,7 @@ module GMRW; module SSH2; module Protocol
       block_size  nil
       encrypt     nil
       decrypt     nil
-      hmac_digest        nil
+      hmac_digest nil
       compress    nil
       decompress  nil
     end

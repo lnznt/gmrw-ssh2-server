@@ -153,6 +153,12 @@ class GMRW::SSH2::Protocol::Transport
 
     client.compressor(SSH2::Algorithm::Compressor.new(client.algorithm.compressor))
     server.compressor(SSH2::Algorithm::Compressor.new(server.algorithm.compressor))
+
+    client.hmac(SSH2::Algorithm::HMAC.new(client.algorithm.hmac))
+    server.hmac(SSH2::Algorithm::HMAC.new(server.algorithm.hmac))
+
+    client.hmac.keys(:mac => @key["E"])
+    server.hmac.keys(:mac => @key["F"])
   end
 
   #
