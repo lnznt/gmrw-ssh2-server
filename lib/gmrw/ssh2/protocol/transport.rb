@@ -29,8 +29,8 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :reader, 'SSH2::Protocol::Reader.new(self)' ; alias peer  reader
   property_ro :writer, 'SSH2::Protocol::Writer.new(self)' ; alias local writer
 
-  forward [:recv_message, :poll_message, :message_catalog] => :reader
-  forward [:send_message,                                ] => :writer
+  forward [:poll_message, :message_catalog] => :reader
+  forward [:send_message,                 ] => :writer
 
   def client ; raise NotImplementedError, 'client' ; end
   def server ; raise NotImplementedError, 'server' ; end
@@ -91,7 +91,8 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Protocol Version Exchange
   #
   def protocol_version_exchange
-    local.ssh_version == peer.ssh_version or raise "protocol mismatch"
+    re = /^SSH-.+?-/
+    local.version[re] == peer.version[re] or raise "protocol mismatch"
 
     info( "local version: #{local.version}" )
     info( "peer  version: #{peer. version}" )

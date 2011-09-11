@@ -110,52 +110,6 @@ class TestFields < Test::Unit::TestCase
     ]
   end
 
-  def test_parse
-    try_assert_equal [
-      { "foobarbaz".parse(/(foo)(bar)(baz)/)     =>  ["foo","bar","baz"]  },
-      { "foobarbaz".parse(/(fo)o(ba)r(ba)/ )     =>  ["fo","ba","ba"]     },
-      { "foobarbaz".parse(/((fo)ob(ar))(baz)/)   =>  ["foobar","fo","ar","baz"] },
-      { "foobarbaz".parse(/((fo)ob(?:ar))(baz)/) =>  ["foobar","fo","baz"]},
-
-      { "foobarbaz".parse(/foobarbaz/)           =>  []                   },
-      { "foobarbaz".parse(/no_match/)            =>  nil                  },
-      { "foobarbaz".parse(/(no)(match)/ )        =>  nil                  },
-    ]
-  end
-
-  def test_mapping
-    try_assert_equal [
-      { "foobarbaz".mapping(:one, :two, :three) {/(foo)(bar)(baz)/} =>
-                                                {:one   => "foo",
-                                                 :two   => "bar",
-                                                 :three => "baz"}  },
-
-      { "foobarbaz".mapping(:one, :two, :three) {/(foo)(bar)baz/} =>
-                                                {:one   => "foo",
-                                                 :two   => "bar",
-                                                 :three => nil}  },
-
-      { "foobarbaz".mapping(:one, :two) {/(foo)(bar)(baz)/} =>
-                                        {:one => "foo",
-                                         :two => "bar"}  },
-
-      { "foobarbaz".mapping(:one, :two, :three, :four) {/((foo)(bar))(baz)/} =>
-                                                         {:one   => "foobar",
-                                                          :two   => "foo",
-                                                          :three => "bar",
-                                                          :four  => "baz"}  },
-
-      { "foobarbaz".mapping {/(foo)(bar)(baz)/} => {0=>"foo", 1=>"bar", 2=>"baz"}  },
-
-      { "foobarbaz".mapping {/(foo)(bar)baz/} => {0 => "foo", 1 => "bar"}  },
-
-      { "foobarbaz".mapping {/foobarbaz/} => {} },
-
-      { "no_match".mapping(:one, :two, :three) {/(foo)(bar)baz/} => nil }
-      
-    ]
-  end
-
   def test_to_packet
     try_assert_equal [
       { "hello".to.packet           =>  [5, "hello"].pack("Na*")    },

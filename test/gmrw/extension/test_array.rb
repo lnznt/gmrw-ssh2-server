@@ -30,20 +30,6 @@ class TestFields < Test::Unit::TestCase
     ]
   end
 
-  def test_mapping
-    try_assert_equal [
-      { [:a, :b, :c].mapping => {0 => :a, 1 => :b, 2 => :c} },
-      { [:a].mapping         => {0 => :a} },
-
-      { [:a, :b, :c].mapping(:foo,:bar,:baz) => {:foo => :a, :bar => :b, :baz => :c} },
-      { [:a, :b, :c].mapping(:foo,:bar)      => {:foo => :a, :bar => :b} },
-      { [:a, :b    ].mapping(:foo,:bar,:baz) => {:foo => :a, :bar => :b, :baz => nil} },
-
-      { [].mapping                  => {} },
-      { [].mapping(:foo,:bar,:baz)  => {:foo => nil, :bar => nil, :baz => nil} },
-    ]
-  end
-
   def test_cons
     try_assert_equal [
       { [1,2,3].cons(5)      => [5, 1, 2, 3] },

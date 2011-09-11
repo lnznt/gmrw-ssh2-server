@@ -22,7 +22,6 @@ module GMRW; module SSH2; module Algorithm ; class Kex
     property :service
     forward [:logger, :die,
              :send_message,
-             :recv_message,
              :client, :server] => :service
             
 

@@ -14,10 +14,6 @@ module GMRW::Extension
       Hash[ *flatten(1) ]
     end
 
-    def mapping(*keys)
-      (keys.empty? ? (0...count) : keys).zip(self).to_hash
-    end
-
     def cons(*a)
       Array(a) + self
     end

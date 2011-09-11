@@ -15,8 +15,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   #
   # :section: Protocol Version
   #
-  property_ro :version,     'gets'
-  property_ro :ssh_version, 'version.mapping(:ssh_version) {/^(SSH-.+?)-/}'
+  property_ro :version, 'gets'
 
   #
   # :section: Message Catalog
@@ -26,10 +25,6 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   #
   # :section: Receive Methods
   #
-  def recv_message(tag)
-    delete(tag) ; message(tag)
-  end
-
   def message(tag)
     poll_message until self[tag] ; self[tag]
   end

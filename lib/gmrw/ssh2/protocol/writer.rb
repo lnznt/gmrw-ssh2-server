@@ -16,8 +16,7 @@ class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
   #
   # :section: Protocol Version
   #
-  property_ro :version,     'SSH2.config.version.tap {|v| puts v }'
-  property_ro :ssh_version, 'version.mapping(:ssh_version) {/^(SSH-.+?)-/}'
+  property_ro :version, 'SSH2.config.version.tap {|v| puts v }'
 
   #
   # :section: Send Methods

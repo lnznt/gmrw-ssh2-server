@@ -23,7 +23,6 @@ module GMRW; module SSH2; module Algorithm
     def_initialize :service
     forward [:logger, :die,
              :send_message,
-             :recv_message,
              :client, :server,
              :message_catalog ] => :service
 
