@@ -150,6 +150,9 @@ class GMRW::SSH2::Protocol::Transport
   def keys_into_use(*)
     client.keys_into_use :iv => @key["A"], :key => @key["C"], :mac => @key["E"]
     server.keys_into_use :iv => @key["B"], :key => @key["D"], :mac => @key["F"]
+
+    client.compressor(SSH2::Algorithm::Compressor.new(client.algorithm.compressor))
+    server.compressor(SSH2::Algorithm::Compressor.new(server.algorithm.compressor))
   end
 
   #

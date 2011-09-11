@@ -8,21 +8,18 @@
 require 'zlib'
 
 module GMRW; module SSH2; module Algorithm
-  module Compressor
-    include GMRW
-    extend self
+  class Compressor
+    def_initialize :name
 
-    def get(name)
-      compressor = {
-        'zlib' => { :compress   => zlib_compressor    ,
-                    :decompress => zlib_decompressor  },
-        'none' => { :compress   => proc {|s| s }      ,
-                    :decompress => proc {|s| s }      },
-      }[name] or raise "unknown compressor: #{name}"
+    property_ro :compress, '{
+      "zlib" => zlib_compressor,
+    }[name] || proc {|s| s }'
 
-      compressor[yield]
-    end
+    property_ro :decompress, '{
+      "zlib" => zlib_decompressor,
+    }[name] || proc {|s| s }'
 
+    private
     def zlib_compressor
       zlib = Zlib::Deflate.new
       proc {|s| zlib.deflate(s, Zlib::SYNC_FLUSH) }
