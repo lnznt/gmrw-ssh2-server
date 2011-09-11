@@ -28,7 +28,7 @@ module GMRW; module SSH2; module Algorithm ; class Kex
 
     def initialize(kex, &block)
       service(kex)
-      instance_eval(&block)
+      block && instance_eval(&block)
     end
 
     #
