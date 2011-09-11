@@ -89,25 +89,31 @@ module GMRW; module SSH2; module Protocol
     property_rwv :compress,    'compressor.compress'
     property_rwv :decompress,  'compressor.decompress'
 
-    property_ro  :compute_mac, 'proc {|pkt| hmac_digest[ [seq_number, pkt].pack("Na*") ] }'
-
-    public
-#    property_ro :algorithm,
-#        'Struct.new(:cipher, :hmac, :compressor).new("none","none","none")'
-
-    property :cipher,     'SSH2::Algorithm::Cipher.new("none")'
-    property :hmac,       'SSH2::Algorithm::HMAC.new("none")'
-    property :compressor, 'SSH2::Algorithm::Compressor.new("none")'
-
     def reset_algorithms
-      debug( "reset algorithms" )
-
       block_size  nil
       encrypt     nil
       decrypt     nil
       hmac_digest nil
       compress    nil
       decompress  nil
+    end
+
+    def compute_mac(packet)
+      hmac_digest[ [seq_number, packet].pack("Na*") ]
+    end
+
+    public
+    property :cipher,     'SSH2::Algorithm::Cipher.new("none")'
+    property :hmac,       'SSH2::Algorithm::HMAC.new("none")'
+    property :compressor, 'SSH2::Algorithm::Compressor.new("none")'
+
+    def keys_into_use(keys)
+      debug( "new keys into use" )
+
+      cipher.keys keys
+      hmac.keys   keys
+
+      reset_algorithms
     end
   end
 end; end; end

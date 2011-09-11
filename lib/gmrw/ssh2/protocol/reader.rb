@@ -61,7 +61,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   end
 
   def verify!(packet)
-    mac0 = compute_mac[ packet ]
+    mac0 = compute_mac(packet)
     mac1 = read(mac0.length)
     mac0 == mac1 or die :MAC_ERROR, "#{mac0.dump} : #{mac1.dump}"
   end

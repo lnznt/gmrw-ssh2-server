@@ -103,43 +103,31 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Algorithm Negotiation / Key Exchange
   #
   public
+  property :kex
   property :host_key
   private
-  attr_reader :session_id
-
   include SSH2::Algorithm
-  def start_transport(*)
-    negotiate = proc do |name|
-      client.message(:kexinit)[name].find   {|a|
-      server.message(:kexinit)[name].include?(a)}
-    end
+  def negotiate(label)
+    client.message(:kexinit)[label].find   {|a|
+    server.message(:kexinit)[label].include?(a)}
+  end
 
-    algorithms = {}
-    algorithms[:kex_algorithms]                          = negotiate[ :kex_algorithms                          ]
-    algorithms[:server_host_key_algorithms]              = negotiate[ :server_host_key_algorithms              ]
-    algorithms[:encryption_algorithms_client_to_server]  = negotiate[ :encryption_algorithms_client_to_server  ]
-    algorithms[:encryption_algorithms_server_to_client]  = negotiate[ :encryption_algorithms_server_to_client  ]
-    algorithms[:mac_algorithms_client_to_server]         = negotiate[ :mac_algorithms_client_to_server         ]
-    algorithms[:mac_algorithms_server_to_client]         = negotiate[ :mac_algorithms_server_to_client         ]
-    algorithms[:compression_algorithms_client_to_server] = negotiate[ :compression_algorithms_client_to_server ]
-    algorithms[:compression_algorithms_server_to_client] = negotiate[ :compression_algorithms_server_to_client ]
+  def negotiate_algorithms
+    {
+      :kex_algorithms                          => proc {|name| kex               Kex.get(name)        },
+      :server_host_key_algorithms              => proc {|name| host_key          HostKey.get(name)    },
+      :encryption_algorithms_client_to_server  => proc {|name| client.cipher     Cipher.new(name)     },
+      :encryption_algorithms_server_to_client  => proc {|name| server.cipher     Cipher.new(name)     },
+      :mac_algorithms_client_to_server         => proc {|name| client.hmac       HMAC.new(name)       },
+      :mac_algorithms_server_to_client         => proc {|name| server.hmac       HMAC.new(name)       },
+      :compression_algorithms_client_to_server => proc {|name| client.compressor Compressor.new(name) },
+      :compression_algorithms_server_to_client => proc {|name| server.compressor Compressor.new(name) },
+    }.map {|label, pr|
+      [ label, negotiate(label).tap {|name| pr[ name ] } ]
+    }.to_hash
+  end
 
-    debug( "#{algorithms}" )
-
-    kex =    Kex.get(algorithms[:kex_algorithms])
-    host_key HostKey.get(algorithms[:server_host_key_algorithms])
-
-    client.cipher(Cipher.new(algorithms[:encryption_algorithms_client_to_server]))
-    server.cipher(Cipher.new(algorithms[:encryption_algorithms_server_to_client]))
-
-    client.hmac(HMAC.new(algorithms[:mac_algorithms_client_to_server]))
-    server.hmac(HMAC.new(algorithms[:mac_algorithms_server_to_client]))
-
-    client.compressor(Compressor.new(algorithms[:compression_algorithms_client_to_server]))
-    server.compressor(Compressor.new(algorithms[:compression_algorithms_server_to_client]))
-
-    message_catalog.kex = algorithms[:kex_algorithms]
-
+  def key_exchange
     secret, hash, = kex.key_exchange(self) ; @session_id ||= hash
 
     @key = proc do |salt|
@@ -149,22 +137,25 @@ class GMRW::SSH2::Protocol::Transport
         y[0...len]
       end
     end
+  end
+
+  def start_transport(*)
+    names = negotiate_algorithms
+    debug( "algorithms: #{names.inspect}" )
+
+    message_catalog.kex = names[:kex_algorithms]
+    key_exchange
 
     send_message :newkeys
   end
+  attr_reader :session_id
 
   #
   # :section: Keys into use
   #
   def keys_into_use(*)
-    client.cipher.keys(:iv => @key["A"], :key => @key["C"])
-    server.cipher.keys(:iv => @key["B"], :key => @key["D"])
-
-    client.hmac.keys(:mac => @key["E"])
-    server.hmac.keys(:mac => @key["F"])
-
-    client.reset_algorithms
-    server.reset_algorithms
+    client.keys_into_use :iv => @key["A"], :key => @key["C"], :mac => @key["E"]
+    server.keys_into_use :iv => @key["B"], :key => @key["D"], :mac => @key["F"]
   end
 
   #
