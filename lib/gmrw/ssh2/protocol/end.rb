@@ -64,19 +64,22 @@ module GMRW; module SSH2; module Protocol
     end 
 
     def received(message)
-      memo(message).tap do |m|
-        info( "--> received [#{m.seq}]: #{m.tag}" )
-        debug( "#{m.inspect}" )
+      memo(message)
 
-        notify_observers(m.tag, m, {})
-      end
+      info( "--> received [#{message.seq}]: #{message.tag}" )
+      debug( "#{message.inspect}" )
+
+      notify_observers(message.tag, message, {})
+      message
     end
 
     def sent(message)
-      memo(message).tap do |m|
-        info( "<-- sent [#{m.seq}]: #{m.tag}" )
-        debug( "#{m.inspect}" )
-      end
+      memo(message)
+
+      info( "<-- sent [#{message.seq}]: #{message.tag}" )
+      debug( "#{message.inspect}" )
+
+      message
     end
 
     #
