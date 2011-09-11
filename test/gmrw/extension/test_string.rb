@@ -16,77 +16,12 @@ class TestFields < Test::Unit::TestCase
     end
   end
 
-  def test_remove
-    try_assert_equal [
-      { "foobarbaz" - "foo"         =>  "barbaz"      },
-      { "foobarbaz" - "bar"         =>  "foobaz"      },
-      { "foobarbaz" - "baz"         =>  "foobar"      },
-
-      { "foofoobarbaz" - "foo"      =>  "foobarbaz"   },
-      { "foobarbarbaz" - "bar"      =>  "foobarbaz"   },
-
-      { "foobarbaz" - /foo/         =>  "barbaz"      },
-      { "foobarbaz" - /bar/         =>  "foobaz"      },
-      { "foobarbaz" - /baz/         =>  "foobar"      },
-
-      { "foobarbaz" - /fo*/         =>  "barbaz"      },
-      { "foobarbaz" - /ba./         =>  "foobaz"      },
-      { "foobarbaz" - /ba.$/        =>  "foobar"      },
-
-      { "foobarbaz" - ""            =>  "foobarbaz"   },
-      { "" - "foo"                  =>  ""            },
-
-      { "foobarbaz" - "bax"         =>  "foobarbaz"   },
-      { "foobarbaz" - "oof"         =>  "foobarbaz"   },
-      { "foobarbaz" - /oof/         =>  "foobarbaz"   },
-      { "foobarbaz" - /^bar/        =>  "foobarbaz"   },
-
-      { "foobarbaz".remove("baz")   =>  "foobar"      },
-      { "foobarbaz".remove(/bar/)   =>  "foobaz"      },
-    ]
-  end
-
   def test_indent
     try_assert_equal [
       { "foo" >> 1                  =>  " foo"        },
       { "foo" >> 4                  =>  "    foo"     },
       { "foo".indent(4, "-")        =>  "----foo"     },
       { "foo".indent(3, "->")       =>  "->->->foo"   },
-    ]
-  end
-
-  def test_wrap
-    try_assert_equal [
-      { "foo" ** "()"               =>  "(foo)"       },
-      { "foo" ** "|"                =>  "|foo|"       },
-      { "foo" ** "[...]"            =>  "[foo]"       },
-      { "foo" ** ">."               =>  ">foo."       },
-
-      { "foo" ** ['(',')']          =>  "(foo)"       },
-      { "foo" ** ['|']              =>  "|foo|"       },
-      { "foo" ** ['[','...',']']    =>  "[foo]"       },
-      { "foo" ** ['>','...','.']    =>  ">foo."       },
-
-      { "foo" ** ['<<<','>>>']      =>  "<<<foo>>>"   },
-      { "foo" ** ['==>','.']        =>  "==>foo."     },
-
-      { "foo".wrap('(',')')         =>  "(foo)"       },
-      { "foo".wrap('|')             =>  "|foo|"       },
-      { "foo".wrap('[','...',']')   =>  "[foo]"       },
-      { "foo".wrap('<<<','>>>')     =>  "<foo>"       }, # !!
-      { "foo".wrap('==>','.')       =>  "=foo."       }, # !!
-    ]
-  end
-
-  def test_q
-    try_assert_equal [
-      { "foo".q                     =>  "'foo'"       },
-    ]
-  end
-
-  def test_qq
-    try_assert_equal [
-      { "foo".qq                    =>  '"foo"'       },
     ]
   end
 

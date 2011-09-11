@@ -33,7 +33,7 @@ module GMRW; module SSH2; module Protocol
     end
 
     def gets
-      read(nil) - /\r\n$/
+      read(nil).sub(/\r\n$/, '')
     end
 
     def read(n)
