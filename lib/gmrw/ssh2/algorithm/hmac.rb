@@ -13,9 +13,7 @@ module GMRW; module SSH2; module Algorithm
     def_initialize :name
     property       :keys, 'Hash.new{{}}'
 
-    def digest
-      proc {|s| hmac.digest(digester, key, s)[0...mac_len] }
-    end
+    property_ro :digest, 'proc {|s| hmac.digest(digester, key, s)[0...mac_len] }'
 
     private
     property_ro :hmac,     'digester ? OpenSSL::HMAC : none'

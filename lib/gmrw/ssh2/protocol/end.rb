@@ -82,6 +82,12 @@ module GMRW; module SSH2; module Protocol
     #
     # :section: encryption / mac / compression
     #
+    public
+    property :cipher,     'SSH2::Algorithm::Cipher.new("none")'
+    property :hmac,       'SSH2::Algorithm::HMAC.new("none")'
+    property :compressor, 'SSH2::Algorithm::Compressor.new("none")'
+
+    private
     property_rwv :block_size,  'cipher.block_size'
     property_rwv :encrypt,     'cipher.encrypt'
     property_rwv :decrypt,     'cipher.decrypt'
@@ -103,10 +109,6 @@ module GMRW; module SSH2; module Protocol
     end
 
     public
-    property :cipher,     'SSH2::Algorithm::Cipher.new("none")'
-    property :hmac,       'SSH2::Algorithm::HMAC.new("none")'
-    property :compressor, 'SSH2::Algorithm::Compressor.new("none")'
-
     def keys_into_use(keys)
       debug( "new keys into use" )
 
