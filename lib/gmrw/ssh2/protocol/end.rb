@@ -83,39 +83,30 @@ module GMRW; module SSH2; module Protocol
     # :section: encryption / mac / compression
     #
     public
-    property :cipher,     'SSH2::Algorithm::Cipher.new("none")'
-    property :hmac,       'SSH2::Algorithm::HMAC.new("none")'
-    property :compressor, 'SSH2::Algorithm::Compressor.new("none")'
+    property :names, 'Hash.new {"none"}'
+    property :keys,  'Hash.new {{}}'
+
+    include SSH2::Algorithm
+    property_rwv :cipher,     'Cipher.new(names[:cipher]).tap{|a| a.keys keys}'
+    property_rwv :hmac,       'HMAC  .new(names[:hmac  ]).tap{|a| a.keys keys}'
+    property_rwv :compressor, 'Compressor.new(names[:compressor])'
+
+    def keys_into_use(keys_and_names)
+      keys(keys_and_names)
+      names(keys_and_names)
+
+      cipher      nil
+      hmac        nil
+      compressor  nil
+    end
 
     private
-    property_rwv :block_size,  'cipher.block_size'
-    property_rwv :encrypt,     'cipher.encrypt'
-    property_rwv :decrypt,     'cipher.decrypt'
-    property_rwv :hmac_digest, 'hmac.digest'
-    property_rwv :compress,    'compressor.compress'
-    property_rwv :decompress,  'compressor.decompress'
-
-    def reset_algorithms
-      block_size  nil
-      encrypt     nil
-      decrypt     nil
-      hmac_digest nil
-      compress    nil
-      decompress  nil
-    end
+    forward [:block_size, :encrypt, :decrypt] => :cipher
+    forward [:digest                        ] => :hmac
+    forward [:compress, :decompress         ] => :compressor
 
     def compute_mac(packet)
-      hmac_digest[ [seq_number, packet].pack("Na*") ]
-    end
-
-    public
-    def keys_into_use(keys)
-      debug( "new keys into use" )
-
-      cipher.keys keys
-      hmac.keys   keys
-
-      reset_algorithms
+      digest[ [seq_number, packet].pack("Na*") ]
     end
   end
 end; end; end

@@ -16,9 +16,11 @@ module GMRW; module SSH2; module Algorithm ; module Kex
 
     private
     forward [:logger, :die,
-             :send_message, :recv_message,
-             :client, :server,
-             :host_key     ] => :@service
+             :send_message,
+             :recv_message,
+             :client, :server] => :@service
+
+    attr_reader :host_key
             
     #
     # :section: digester / group / dh
@@ -46,8 +48,9 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     # :section: protocol framework
     #
     public
-    def key_exchange(service)
-      @service = service
+    def key_exchange(service, host_key)
+      @service  = service
+      @host_key = host_key
 
       agree
 

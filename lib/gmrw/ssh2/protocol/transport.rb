@@ -102,35 +102,36 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Algorithm Negotiation / Key Exchange
   #
-  public
-  property :kex
-  property :host_key
   private
-  include SSH2::Algorithm
   def negotiate(label)
     client.message(:kexinit)[label].find   {|a|
     server.message(:kexinit)[label].include?(a)}
   end
 
+  def negotiate!(label)
+    negotiate(label) or die :PROTOCOL_ERROR, "algorithm negotiate: #{label}"
+  end
+
   def negotiate_algorithms
-    {
-      :kex_algorithms                          => proc {|name| kex               Kex.get(name)        },
-      :server_host_key_algorithms              => proc {|name| host_key          HostKey.get(name)    },
-      :encryption_algorithms_client_to_server  => proc {|name| client.cipher     Cipher.new(name)     },
-      :encryption_algorithms_server_to_client  => proc {|name| server.cipher     Cipher.new(name)     },
-      :mac_algorithms_client_to_server         => proc {|name| client.hmac       HMAC.new(name)       },
-      :mac_algorithms_server_to_client         => proc {|name| server.hmac       HMAC.new(name)       },
-      :compression_algorithms_client_to_server => proc {|name| client.compressor Compressor.new(name) },
-      :compression_algorithms_server_to_client => proc {|name| server.compressor Compressor.new(name) },
-    }.map {|label, pr|
-      [ label, negotiate(label).tap {|name| pr[ name ] } ]
-    }.to_hash
+    [ :kex_algorithms,
+      :server_host_key_algorithms,
+      :encryption_algorithms_client_to_server,
+      :encryption_algorithms_server_to_client,
+      :mac_algorithms_client_to_server,
+      :mac_algorithms_server_to_client,
+      :compression_algorithms_client_to_server,
+      :compression_algorithms_server_to_client,
+    ].map {|label| [ label, negotiate!(label) ] }.to_hash
   end
 
   def key_exchange
-    secret, hash, = kex.key_exchange(self) ; @session_id ||= hash
+    kex      = SSH2::Algorithm::Kex.get(@name[:kex_algorithms])
+    host_key = SSH2::Algorithm::HostKey.get(@name[:server_host_key_algorithms])
+    message_catalog.kex = @name[:kex_algorithms]
 
-    @key = proc do |salt|
+    secret, hash, = kex.key_exchange(self, host_key) ; @session_id ||= hash
+
+    proc do |salt|
       proc do |len|
         y =  kex.digest(secret + hash + salt + @session_id)
         y << kex.digest(secret + hash + y) while y.length < len
@@ -139,23 +140,31 @@ class GMRW::SSH2::Protocol::Transport
     end
   end
 
-  def start_transport(*)
-    names = negotiate_algorithms
-    debug( "algorithms: #{names.inspect}" )
+  attr_reader :session_id
 
-    message_catalog.kex = names[:kex_algorithms]
-    key_exchange
+  def start_transport(*)
+    @name = negotiate_algorithms
+    debug( "algorithms: #{@name.inspect}" )
+    @key  = key_exchange
 
     send_message :newkeys
   end
-  attr_reader :session_id
 
   #
   # :section: Keys into use
   #
   def keys_into_use(*)
-    client.keys_into_use :iv => @key["A"], :key => @key["C"], :mac => @key["E"]
-    server.keys_into_use :iv => @key["B"], :key => @key["D"], :mac => @key["F"]
+    debug( "new keys into use" )
+
+    client.keys_into_use :cipher     => @name[:encryption_algorithms_client_to_server],
+                         :hmac       => @name[:mac_algorithms_client_to_server],
+                         :compressor => @name[:compression_algorithms_client_to_server],
+                         :iv => @key["A"], :key => @key["C"], :mac => @key["E"]
+
+    server.keys_into_use :cipher     => @name[:encryption_algorithms_server_to_client],
+                         :hmac       => @name[:mac_algorithms_server_to_client],
+                         :compressor => @name[:compression_algorithms_server_to_client],
+                         :iv => @key["B"], :key => @key["D"], :mac => @key["F"]
   end
 
   #
