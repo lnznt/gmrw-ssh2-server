@@ -10,15 +10,14 @@ require 'gmrw/extension/all'
 
 module GMRW; module SSH2; module Algorithm
   class HMAC
-    property :keys, 'Hash.new{{}}'
+    def_initialize :name
+    property       :keys, 'Hash.new{{}}'
 
     def digest
       proc {|s| hmac.digest(digester, key, s)[0...mac_len] }
     end
 
     private
-    def_initialize :name
-
     property_ro :hmac,     'digester ? OpenSSL::HMAC : none'
     property_ro :none,     'Class.new { def digest(*) ; "" ; end }.new'
 

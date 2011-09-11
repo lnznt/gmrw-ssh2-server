@@ -68,7 +68,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
 
   def buffered_read(bytes)
     s0, rem0 = (@buffer ||= "") / bytes
-    s1       = decrypt[ read (bytes - s0.length).align(block_size) ]
+    s1       = decrypt[ read((bytes - s0.length).align(block_size)) ]
     s,  rem1 = (s0 + s1) / bytes
 
     @buffer = rem0 || rem1 || ""

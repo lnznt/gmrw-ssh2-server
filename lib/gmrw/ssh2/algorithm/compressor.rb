@@ -6,6 +6,7 @@
 #
 
 require 'zlib'
+require 'gmrw/extension/all'
 
 module GMRW; module SSH2; module Algorithm
   class Compressor

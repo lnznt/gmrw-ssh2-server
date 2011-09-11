@@ -9,17 +9,20 @@ require 'openssl'
 require 'gmrw/extension/all'
 
 module GMRW; module SSH2; module Algorithm
-  module Cipher
+  class Cipher
     include GMRW
-    extend self
 
-    property_ro :block_size, %-
-      Hash.new {|h, name| h[name] = create(name).block_size }
-    -
+    def_initialize :name
+    property       :keys, 'Hash.new{{}}'
 
-    def get(name, keys)
-      cipher = create(name)
-      cipher.send(yield)
+    property_ro :encrypt, 'crypt(:encrypt)'
+    property_ro :decrypt, 'crypt(:decrypt)'
+
+    forward [:block_size] => :cipher
+
+    private
+    def crypt(mode)
+      cipher.send(mode)
       cipher.iv  = keys[:iv ][cipher.iv_len ]
       cipher.key = keys[:key][cipher.key_len]
       cipher.padding = 0
@@ -27,20 +30,14 @@ module GMRW; module SSH2; module Algorithm
       proc {|s| (s && !s.empty?) ? cipher.update(s) : s }
     end
 
-    private
-    def create(name)
-      name == 'none' ? none : OpenSSL::Cipher.new(SSH2.config.openssl_name[name])
-    end
+    property_ro :cipher,         'openssl_name ? openssl_cipher : none'
+    property_ro :openssl_cipher, 'OpenSSL::Cipher.new(openssl_name)'
+    property_ro :openssl_name,   'SSH2.config.openssl_name[name]'
 
-    property_ro :none, %-
-      Class.new {
-        def update(s)  ; s ; end
-        def block_size ; 8 ; end
-        def iv_len     ; 8 ; end
-        def key_len    ; 8 ; end
-        def method_missing(*) ; end
-      }.new
-    -
+    property_ro :none, 'Class.new {
+      def update(s)         ; s ; end
+      def method_missing(*) ; 8 ; end
+    }.new'
   end
 end; end; end
 
