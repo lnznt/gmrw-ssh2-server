@@ -9,35 +9,41 @@ require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
 
-module GMRW; module SSH2; module Algorithm ; module Kex
-  class DH
+module GMRW; module SSH2; module Algorithm ; class Kex
+  class DHKex
     include GMRW
     include Utils::Loggable
 
+    property :digester, '"sha1"'
+    property :group
+    property :host_key
+
     private
+    property :service
     forward [:logger, :die,
              :send_message,
              :recv_message,
-             :client, :server] => :@service
-
-    attr_reader :host_key
+             :client, :server] => :service
             
+
+    def initialize(kex, &block)
+      service(kex)
+      instance_eval(&block)
+    end
+
     #
     # :section: digester / group / dh
     #
-    private
-    property    :initialize
+    property_ro :openssl_digester, 'OpenSSL::Digest.new(digester)'
+    forward    [:digest] => :openssl_digester
 
-    property_ro :digester, 'OpenSSL::Digest.const_get(initialize[:digester])'
-    forward    [:digest] => :digester
-
-    property_ro :groups,   'SSH2.config.oakley_group'
-    property_ro :group,    'groups[initialize[:group]]'
+    property_ro :oakley_groups,   'SSH2.config.oakley_group'
+    property_ro :oakley_group,    'oakley_groups[group]'
 
     property_ro :dh,       %-
       OpenSSL::PKey::DH.new.tap do |d|
-        d.g = group[:g]
-        d.p = OpenSSL::BN.new(*group[:p])
+        d.g = oakley_group[:g]
+        d.p = OpenSSL::BN.new(*oakley_group[:p])
 
         d.generate_key! until (0...d.p).include?(d.pub_key) &&
                               d.pub_key.to_i.bit.count > 1
@@ -48,13 +54,8 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     # :section: protocol framework
     #
     public
-    def key_exchange(service, host_key)
-      @service  = service
-      @host_key = host_key
-
-      agree
-
-      [k, h]
+    def key_exchange
+      agree ; [k, h]
     end
 
     #
@@ -77,7 +78,6 @@ module GMRW; module SSH2; module Algorithm ; module Kex
     #
     # :section: DH Key Agreement
     #
-    private
     def agree
       send_message :kexdh_reply,
             :host_key_and_certificates => k_s,

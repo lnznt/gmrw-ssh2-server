@@ -124,12 +124,12 @@ class GMRW::SSH2::Protocol::Transport
     ].map {|label| [ label, negotiate!(label) ] }.to_hash
   end
 
-  def key_exchange
-    kex      = SSH2::Algorithm::Kex.get(@name[:kex_algorithms])
-    host_key = SSH2::Algorithm::HostKey.get(@name[:server_host_key_algorithms])
-    message_catalog.kex = @name[:kex_algorithms]
+  property_ro :kex, 'SSH2::Algorithm::Kex.new(self)'
 
-    secret, hash, = kex.key_exchange(self, host_key) ; @session_id ||= hash
+  def key_exchange
+    secret, hash = kex.start :kex      => @name[:kex_algorithms],
+                             :host_key => @name[:server_host_key_algorithms]
+    @session_id ||= hash
 
     proc do |salt|
       proc do |len|

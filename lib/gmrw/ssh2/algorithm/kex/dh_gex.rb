@@ -5,18 +5,18 @@
 # License:: Ruby's
 #
 
-require 'gmrw/ssh2/algorithm/kex/dh'
+require 'gmrw/ssh2/algorithm/kex/dh_kex'
 
-module GMRW::SSH2::Algorithm::Kex
-  class DHGex < DH
+class GMRW::SSH2::Algorithm::Kex
+  class DHGex < DHKex
     private
     property_ro :max, 'client.message(:kex_dh_gex_request)[:max]'
     property_ro :n,   'client.message(:kex_dh_gex_request)[:n  ]'
     property_ro :min, 'client.message(:kex_dh_gex_request)[:min]'
 
-    def group
-      a = groups.each_value.find {|g| g[:bits] == n }
-      b = groups.each_value.find {|g| (min..max).include?(g[:bits]) }
+    def oakley_group
+      a = oakley_groups.each_value.find {|g| g[:bits] == n }
+      b = oakley_groups.each_value.find {|g| (min..max).include?(g[:bits]) }
 
       (a || b) or raise "DH Group Error: n:#{n}, min..max#{min}..#{max}"
     end
