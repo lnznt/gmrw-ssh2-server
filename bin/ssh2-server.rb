@@ -9,7 +9,7 @@
 require 'optparse'
 require 'gmrw/ssh2/server/gserver'
 
-args = []
+args = [50022,'localhost']
 conf = Struct.new(:quiet, :debug).new
 
 OptionParser.new do |opt|
