@@ -14,21 +14,20 @@ module GMRW; module SSH2; module Algorithm ; class Kex
     include GMRW
     include Utils::Loggable
 
-    property :digester, '"sha1"'
-    property :group
     property :host_key
 
+    def config(&block)
+      instance_eval(&block) ; self
+    end
+
     private
-    property :service
+    def_initialize :service
     forward [:logger, :die,
              :send_message,
              :client, :server] => :service
-            
 
-    def initialize(kex, &block)
-      service(kex)
-      block && instance_eval(&block)
-    end
+    property :digester, '"sha1"'
+    property :group
 
     #
     # :section: digester / group / dh
@@ -61,18 +60,18 @@ module GMRW; module SSH2; module Algorithm ; class Kex
     # :section: protocol parameters
     #
     private
-    property_ro :v_c,                  'client.version'
-    property_ro :v_s,                  'server.version'
-    property_ro :i_c,                  'client[:kexinit].dump'
-    property_ro :i_s,                  'server[:kexinit].dump'
-    property_ro :k_s,                  'host_key.dump'
-    property_ro :f,                    'dh.pub_key'
+    property_ro :v_c,              'client.version'
+    property_ro :v_s,              'server.version'
+    property_ro :i_c,              'client[:kexinit].dump'
+    property_ro :i_s,              'server[:kexinit].dump'
+    property_ro :k_s,              'host_key.dump'
+    property_ro :f,                'dh.pub_key'
 
-    property_ro :shared_secret,        'dh.compute_key(e).to.bn(:binary)'
-    property_ro :k,                    'shared_secret.ssh.encode(:mpint)'
+    property_ro :shared_secret,    'dh.compute_key(e).to.bn(:binary)'
+    property_ro :k,                'shared_secret.ssh.encode(:mpint)'
 
-    property_ro :h,                    'digest(h0)'
-    property_ro :s,                    'host_key.sign_and_pack(h)'
+    property_ro :h,                'digest(h0)'
+    property_ro :s,                'host_key.sign_and_pack(h)'
 
     #
     # :section: DH Key Agreement

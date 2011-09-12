@@ -128,9 +128,10 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :kex, 'SSH2::Algorithm::Kex.new(self)'
 
   def key_exchange
-    secret, hash = kex.start :kex      => @name[:kex_algorithms],
-                             :host_key => @name[:server_host_key_algorithms]
-    @session_id ||= hash
+    kex.names :kex      => @name[:kex_algorithms],
+              :host_key => @name[:server_host_key_algorithms]
+
+    secret, hash = kex.start ; @session_id ||= hash
 
     proc do |salt|
       proc do |len|
