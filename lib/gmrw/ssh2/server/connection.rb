@@ -16,8 +16,8 @@ module GMRW; module SSH2; module Server; class Connection
   def_initialize :service
   forward [:logger, :die, :send_message, :at_close] => :service
 
-  def start(service_name)
-    debug( "in service: #{service_name}" )
+  def start(service_name=nil)
+    debug( "connection in service: #{service_name}" )
 
     service.add_observer(:global_request,  &method(:global_request_received))
     service.add_observer(:channel_open,    &method(:channel_open_received))
@@ -26,6 +26,8 @@ module GMRW; module SSH2; module Server; class Connection
     service.add_observer(:channel_data,          &method(:channel_message_received))
     service.add_observer(:channel_extended_data, &method(:channel_message_received))
     service.add_observer(:channel_window_adjust, &method(:channel_message_received))
+
+    service_name && send_message(:service_accept, :service_name => service_name)
   end
 
   #

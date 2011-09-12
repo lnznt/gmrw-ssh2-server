@@ -7,9 +7,8 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/utils/loggable'
+require 'gmrw/ssh2/algorithm/host_key'
 require 'gmrw/ssh2/server/userauth/user'
-require 'gmrw/ssh2/server/userauth/password_auth'
-require 'gmrw/ssh2/server/userauth/publickey_auth'
 
 module GMRW; module SSH2; module Server; class UserAuth
   include GMRW
@@ -19,53 +18,84 @@ module GMRW; module SSH2; module Server; class UserAuth
   forward [:logger, :die,
            :session_id, :send_message, :message_catalog] => :service
   
-  def start(service_name)
-    debug( "in service: #{service_name}" )
-
-    service.add_observer(:userauth_request, &method(:userauth_request_received))
-  end
-
-  property_ro :banner, '"\r\nWelcome to GMRW SSH2 Server\r\n\r\n"'
   property_ro :user, 'User.new(self)'
 
-  property_ro :authentications, %-
-  {
-    "password"  => PasswordAuth.new(self),
-    "publickey" => PublicKeyAuth.new(self),
-  }
-  -
+  def start(service_name=nil)
+    debug( "userauth in service: #{service_name}" )
 
-  property_ro :auths_list, 'SSH2.config.authentication'
+    service.add_observer(:userauth_request) do |message|
+      user.name_check!(message)
+
+      case message_catalog.auth = message[:method_name]
+        when 'password'  ; password_authenticate(message)
+        when 'publickey' ; publickey_authenticate(message)
+        else             ; please_retry
+      end
+    end
+
+    service_name && send_message(:service_accept, :service_name => service_name)
+  end
 
   #
   # :section: reply message
   #
-  def welcome(opts)
-    service.notify_observers(opts[:service_name], opts[:service_name])
+  def welcome(message)
+    service.notify_observers(message[:service_name])
 
-    send_message :userauth_banner, :message => banner
+    send_message :userauth_banner,
+                 :message => "\r\nWelcome to GMRW SSH2 Server\r\n\r\n"
     send_message :userauth_success
   end
 
-  def please_retry(partial_success=false)
+  def please_retry
     user.count_check!
 
-    #### PATCH>>
-    send_message :userauth_banner, :message => SSH2.config.users.inspect + "\r\n"
-    #### <<PATCH
-    send_message :userauth_failure, :auths_can_continue => auths_list,
-                                    :partial_success    => partial_success
+    send_message :userauth_failure,
+                 :auths_can_continue => SSH2.config.authentication
   end
 
   #
-  # :section: message handling
+  # :section: authenticate
   #
-  def userauth_request_received(message, *a)
-    user.name_check!(message)
+  property_ro :users, 'SSH2.config.users'
 
-    message_catalog.auth = message[:method_name]
-    auth = authentications[message[:method_name]]
-    auth ? auth.authenticate(message) : please_retry
+  def password_authenticate(message)
+    user = message[:user_name]
+    pass = message[:old_password]
+    chpw = message[:with_new_password]
+
+    ok = !chpw && (users[user] || {})[:password] == pass
+
+    debug( "password auth : #{ok}" )
+
+    ok ? welcome(message) : please_retry
+  end
+
+  def publickey_authenticate(message)
+    algo = message[:pk_algorithm]
+    blob = message[:pk_key_blob]
+    sig  = message[:with_pk_signature] && message[:pk_signature]
+
+    debug( "publickey auth: algorithm = #{algo}" )
+    debug( "publickey auth: sig       = #{sig}" )
+
+    key = SSH2::Algorithm::HostKey.algorithms[algo].create(blob) rescue nil
+    debug( "publickey auth: key       = #{key}" )
+
+    ok = key && sig && key.unpack_and_verify(sig, [ [:string,  session_id                 ],
+                                                    [:byte,    message[:type             ]],
+                                                    [:string,  message[:user_name        ]],
+                                                    [:string,  message[:service_name     ]],
+                                                    [:string,  message[:method_name      ]],
+                                                    [:boolean, message[:with_pk_signature]],
+                                                    [:string,  message[:pk_algorithm     ]],
+                                                    [:string,  message[:pk_key_blob      ]] ].ssh.pack)
+    debug( "publickey auth: #{ok}" )
+
+    ok   ? welcome(message) :
+    sig  ? please_retry     :
+           send_message(:userauth_pk_ok, :pk_algorithm => algo,
+                                         :pk_key_blob  => blob)
   end
 end; end; end; end
 

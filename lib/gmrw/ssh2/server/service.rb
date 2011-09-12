@@ -28,7 +28,6 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   #
   def service_request_message_received(message, *)
     notify_observers(message[:service_name], message[:service_name])
-    send_message :service_accept, :service_name => message[:service_name]
   end
 
   #
