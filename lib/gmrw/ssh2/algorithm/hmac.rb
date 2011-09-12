@@ -43,7 +43,7 @@ module GMRW; module SSH2; module Algorithm
                             :key_len  => 20,
                             :mac_len  => 12,
         },
-      }[name] || {:key_len=>0, :mac_len=>0}
+      }[name] || {:key_len => 0, :mac_len => 0}
     end
   end
 end; end; end

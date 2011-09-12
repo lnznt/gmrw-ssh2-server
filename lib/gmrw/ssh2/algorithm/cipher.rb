@@ -15,8 +15,8 @@ module GMRW; module SSH2; module Algorithm
     def_initialize :name
     property       :keys, 'Hash.new{{}}'
 
-    property_ro :encrypt, 'crypt(:encrypt)'
-    property_ro :decrypt, 'crypt(:decrypt)'
+    property_ro :encrypt, 'crypt :encrypt'
+    property_ro :decrypt, 'crypt :decrypt'
 
     forward [:block_size] => :cipher
 
@@ -34,10 +34,8 @@ module GMRW; module SSH2; module Algorithm
     property_ro :openssl_cipher, 'OpenSSL::Cipher.new(openssl_name)'
     property_ro :openssl_name,   'SSH2.config.openssl_name[name]'
 
-    property_ro :none, 'Class.new {
-      def update(s)         ; s ; end
-      def method_missing(*) ; 8 ; end
-    }.new'
+    property_ro :none, 'Class.new { def update(s)         ; s ; end
+                                    def method_missing(*) ; 8 ; end }.new'
   end
 end; end; end
 
