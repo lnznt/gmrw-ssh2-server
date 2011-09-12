@@ -23,7 +23,7 @@ module GMRW; module SSH2; module Server; class UserAuth
   def start(service_name=nil)
     debug( "userauth in service: #{service_name}" )
 
-    service.add_observer(:userauth_request) do |message|
+    service.add_observer(:userauth_request) do |message,|
       user.name_check!(message)
 
       case message_catalog.auth = message[:method_name]
@@ -92,10 +92,10 @@ module GMRW; module SSH2; module Server; class UserAuth
                                                     [:string,  message[:pk_key_blob      ]] ].ssh.pack)
     debug( "publickey auth: #{ok}" )
 
-    ok   ? welcome(message) :
-    sig  ? please_retry     :
-           send_message(:userauth_pk_ok, :pk_algorithm => algo,
-                                         :pk_key_blob  => blob)
+    ok          ? welcome(message) :
+    key && !sig ? send_message(:userauth_pk_ok,
+                               :pk_algorithm => algo, :pk_key_blob  => blob) :
+                  please_retry
   end
 end; end; end; end
 
