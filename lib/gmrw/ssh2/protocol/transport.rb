@@ -10,8 +10,7 @@ require 'gmrw/utils/loggable'
 require 'gmrw/utils/observable'
 require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
-require 'gmrw/ssh2/algorithm/kex'
-require 'gmrw/ssh2/algorithm/host_key'
+require 'gmrw/ssh2/algorithm/kex/dh'
 
 class GMRW::SSH2::Protocol::Transport
   include GMRW
@@ -29,11 +28,8 @@ class GMRW::SSH2::Protocol::Transport
   property_ro :reader, 'SSH2::Protocol::Reader.new(self)' ; alias peer  reader
   property_ro :writer, 'SSH2::Protocol::Writer.new(self)' ; alias local writer
 
-  forward [:poll_message, :message_catalog] => :reader
-  forward [:send_message,                 ] => :writer
-
-  def client ; raise NotImplementedError, 'client' ; end
-  def server ; raise NotImplementedError, 'server' ; end
+  forward [:poll_message] => :reader
+  forward [:send_message] => :writer
 
   #
   # :section: Starting Transport
@@ -59,8 +55,12 @@ class GMRW::SSH2::Protocol::Transport
     add_observer(:service_request, &method(:service_request_message_received))
     add_observer(:service_accept,  &method(:service_accept_message_received))
 
-    add_observer(:kexinit,  &method(:start_transport))
-    add_observer(:newkeys,  &method(:keys_into_use))
+    add_observer(:kexinit,  &method(:kexinit_received))
+    add_observer(:newkeys,  &method(:newkeys_received))
+
+    add_observer(:kexdh_init,         &kex.method(:kexdh_init_received))
+    add_observer(:kex_dh_gex_request, &kex.method(:kex_dh_gex_request_received))
+    add_observer(:kex_dh_gex_init,    &kex.method(:kex_dh_gex_init_received))
 
     start_service
 
@@ -77,8 +77,6 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   private
-  def start_service ; raise NotImplementedError, 'start_service' ; end
-
   def service_request_message_received(message, *)
     send_message :unimplemented, :sequence_number => message.seq
   end
@@ -101,7 +99,7 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   #
-  # :section: Algorithm Negotiation / Key Exchange
+  # :section: Algorithm Negotiation
   #
   private
   def negotiate(label)
@@ -113,60 +111,53 @@ class GMRW::SSH2::Protocol::Transport
     negotiate(label) or die :PROTOCOL_ERROR, "algorithm negotiate: #{label}"
   end
 
-  def negotiate_algorithms
-    [ :kex_algorithms,
-      :server_host_key_algorithms,
-      :encryption_algorithms_client_to_server,
-      :encryption_algorithms_server_to_client,
-      :mac_algorithms_client_to_server,
-      :mac_algorithms_server_to_client,
-      :compression_algorithms_client_to_server,
-      :compression_algorithms_server_to_client,
-    ].map {|label| [ label, negotiate!(label) ] }.to_hash
+  property :names, '{}'
+
+  def kexinit_received(*)
+    { :kex_algorithms                           => :kex,
+      :server_host_key_algorithms               => :host_key,
+      :encryption_algorithms_client_to_server   => :enc_c,
+      :encryption_algorithms_server_to_client   => :enc_s,
+      :mac_algorithms_client_to_server          => :mac_c,
+      :mac_algorithms_server_to_client          => :mac_s,
+      :compression_algorithms_client_to_server  => :comp_c,
+      :compression_algorithms_server_to_client  => :comp_s,
+    }.each {|label, ali| names[ali] = negotiate!(label) }
+
+    debug( "algorithms: #{names.inspect}" )
   end
 
-  property_ro :kex, 'SSH2::Algorithm::Kex.new(self)'
-
-  def key_exchange
-    kex.names :kex      => @name[:kex_algorithms],
-              :host_key => @name[:server_host_key_algorithms]
-
-    secret, hash = kex.start ; @session_id ||= hash
-
-    proc do |salt|
-      proc do |len|
-        y =  kex.digest(secret + hash + salt + @session_id)
-        y << kex.digest(secret + hash + y) while y.length < len
-        y[0...len]
-      end
-    end
-  end
+  property_ro :kex, 'SSH2::Algorithm::Kex::DH.new(self)'
 
   attr_reader :session_id
-
-  def start_transport(*)
-    @name = negotiate_algorithms
-    debug( "algorithms: #{@name.inspect}" )
-    @key  = key_exchange
-
-    send_message :newkeys
-  end
 
   #
   # :section: Keys into use
   #
-  def keys_into_use(*)
+  def newkeys_received(*)
     debug( "new keys into use" )
 
-    client.keys_into_use :cipher     => @name[:encryption_algorithms_client_to_server],
-                         :hmac       => @name[:mac_algorithms_client_to_server],
-                         :compressor => @name[:compression_algorithms_client_to_server],
-                         :iv => @key["A"], :key => @key["C"], :mac => @key["E"]
+    secret, hash = kex.secret ; @session_id ||= hash
 
-    server.keys_into_use :cipher     => @name[:encryption_algorithms_server_to_client],
-                         :hmac       => @name[:mac_algorithms_server_to_client],
-                         :compressor => @name[:compression_algorithms_server_to_client],
-                         :iv => @key["B"], :key => @key["D"], :mac => @key["F"]
+    key = proc do |salt| proc {|len|
+      y =  kex.digest(secret + hash + salt + @session_id)
+      y << kex.digest(secret + hash + y) while y.length < len
+      y[0...len]
+    } end
+
+    client.keys_into_use :cipher     => names[:enc_c ],
+                         :hmac       => names[:mac_c ],
+                         :compressor => names[:comp_c],
+                         :iv         => key["A"],
+                         :key        => key["C"],
+                         :mac        => key["E"]
+
+    server.keys_into_use :cipher     => names[:enc_s ],
+                         :hmac       => names[:mac_s ],
+                         :compressor => names[:comp_s],
+                         :iv         => key["B"],
+                         :key        => key["D"],
+                         :mac        => key["F"]
   end
 
   #

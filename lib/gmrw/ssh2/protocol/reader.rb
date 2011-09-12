@@ -18,11 +18,6 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   property_ro :version, 'gets'
 
   #
-  # :section: Message Catalog
-  #
-  property_ro :message_catalog, 'SSH2::Message.create_catalog'
-
-  #
   # :section: Receive Methods
   #
   def message(tag)
@@ -32,7 +27,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   def poll_message
     info( "poll_message ...." )
 
-    received SSH2::Message.build(payload) { message_catalog }
+    received SSH2::Message.build(payload) { service.names }
 
   rescue SSH2::Message::ForbiddenMessage => e
     notify_observers([:forbidden], e, :sequence_number => seq_number)

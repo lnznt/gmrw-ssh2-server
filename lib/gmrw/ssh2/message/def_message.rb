@@ -18,10 +18,6 @@ module GMRW; module SSH2; module Message
   #
   # :section: catalog search
   #
-  def create_catalog
-    Struct.new(:kex, :auth).new
-  end
-
   def search(number)
     cate = case number
       when 30..49 ; yield[:kex]

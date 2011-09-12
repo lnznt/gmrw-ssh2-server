@@ -16,7 +16,7 @@ module GMRW; module SSH2; module Server; class UserAuth
 
   def_initialize :service
   forward [:logger, :die,
-           :session_id, :send_message, :message_catalog] => :service
+           :session_id, :send_message, :names] => :service
   
   property_ro :user, 'User.new(self)'
 
@@ -26,7 +26,7 @@ module GMRW; module SSH2; module Server; class UserAuth
     service.add_observer(:userauth_request) do |message,|
       user.name_check!(message)
 
-      case message_catalog.auth = message[:method_name]
+      case names[:auth] = message[:method_name]
         when 'password'  ; password_authenticate(message)
         when 'publickey' ; publickey_authenticate(message)
         else             ; please_retry
