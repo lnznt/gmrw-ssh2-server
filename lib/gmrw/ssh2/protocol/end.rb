@@ -7,7 +7,7 @@
 
 require 'timeout'
 require 'gmrw/extension/all'
-require 'gmrw/utils/loggable'
+require 'gmrw/ssh2/loggable'
 require 'gmrw/ssh2/algorithm/cipher'
 require 'gmrw/ssh2/algorithm/hmac'
 require 'gmrw/ssh2/algorithm/compressor'
@@ -15,11 +15,11 @@ require 'gmrw/ssh2/algorithm/compressor'
 module GMRW; module SSH2; module Protocol
   class End < Hash
     include GMRW
-    include Utils::Loggable
+    include SSH2::Loggable
 
     private
     def_initialize :service
-    forward [:connection, :logger, :die, :notify_observers] => :service
+    forward [:connection, :logger, :die] => :service
 
     #
     # :section: connection read/write
@@ -70,7 +70,7 @@ module GMRW; module SSH2; module Protocol
     alias sent memo
 
     def received(message)
-      memo(message).tap {|m| notify_observers(m.tag, m, {}) }
+      memo(message).tap {|m| service.notify_listener(m.tag, m) }
     end
 
     #

@@ -6,41 +6,46 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/utils/loggable'
+require 'gmrw/ssh2/loggable'
 require 'gmrw/ssh2/algorithm/host_key'
 require 'gmrw/ssh2/server/userauth/user'
 
 module GMRW; module SSH2; module Server; class UserAuth
   include GMRW
-  include Utils::Loggable
+  include SSH2::Loggable
 
   def_initialize :service
-  forward [:logger, :die,
-           :session_id, :send_message, :names] => :service
+  forward [:logger, :die, :send_message] => :service
   
   property_ro :user, 'User.new(self)'
 
   def start(service_name=nil)
     debug( "userauth in service: #{service_name}" )
 
-    service.add_observer(:userauth_request) do |message,|
-      user.name_check!(message)
-
-      case names[:auth] = message[:method_name]
-        when 'password'  ; password_authenticate(message)
-        when 'publickey' ; publickey_authenticate(message)
-        else             ; please_retry
-      end
-    end
+    service.register :userauth_request => method(:userauth_request_received)
 
     service_name && send_message(:service_accept, :service_name => service_name)
+  end
+
+  private
+  #
+  # :section: message handlers
+  #
+  def userauth_request_received(message)
+    user.name_check!(message)
+
+    case service.names[:auth] = message[:method_name]
+      when 'password'  ; password_authenticate(message)
+      when 'publickey' ; publickey_authenticate(message)
+      else             ; please_retry
+    end
   end
 
   #
   # :section: reply message
   #
   def welcome(message)
-    service.notify_observers(message[:service_name])
+    service.notify_listener(message[:service_name])
 
     send_message :userauth_banner,
                  :message => "\r\nWelcome to GMRW SSH2 Server\r\n\r\n"
@@ -82,7 +87,7 @@ module GMRW; module SSH2; module Server; class UserAuth
     key = SSH2::Algorithm::HostKey.algorithms[algo].create(blob) rescue nil
     debug( "publickey auth: key       = #{key}" )
 
-    ok = key && sig && key.unpack_and_verify(sig, [ [:string,  session_id                 ],
+    ok = key && sig && key.unpack_and_verify(sig, [ [:string,  service.session_id         ],
                                                     [:byte,    message[:type             ]],
                                                     [:string,  message[:user_name        ]],
                                                     [:string,  message[:service_name     ]],

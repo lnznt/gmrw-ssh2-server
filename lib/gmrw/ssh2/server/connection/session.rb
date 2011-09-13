@@ -6,13 +6,13 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/utils/loggable'
+require 'gmrw/ssh2/loggable'
 require 'gmrw/ssh2/server/connection/session/exec'
 
 module GMRW; module SSH2; module Server; class Connection
   class Session
     include GMRW
-    include Utils::Loggable
+    include SSH2::Loggable
 
     def_initialize :service
     forward [ :logger, :die,

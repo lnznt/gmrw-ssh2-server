@@ -24,20 +24,16 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
   property_ro :ssh_connection, 'SSH2::Server::Connection.new(self)'
 
   #
-  # :section: message delivery
-  #
-  def service_request_message_received(message, *)
-    notify_observers(message[:service_name], message[:service_name])
-  end
-
-  #
   # :section: start service
   #
   def start_service
     SSH2.config(SSH2::Server::Config)
 
-    add_observer('ssh-userauth',   &ssh_userauth.method(:start))
-    add_observer('ssh-connection', &ssh_connection.method(:start))
+    register :service_request => proc {|message|
+        notify_listener(message[:service_name], message[:service_name])
+      },
+      'ssh-userauth'   => ssh_userauth.method(:start),
+      'ssh-connection' => ssh_connection.method(:start)
 
     protocol_version_exchange
 

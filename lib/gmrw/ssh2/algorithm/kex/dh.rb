@@ -7,15 +7,25 @@
 
 require 'openssl'
 require 'gmrw/extension/all'
-require 'gmrw/utils/loggable'
 
 module GMRW; module SSH2; module Algorithm ; class Kex
   class DH
     include GMRW
-    include Utils::Loggable
 
     def gen_key(s)
       digest(k + h + s)
+    end
+
+    def hash
+      h
+    end
+
+    def handlers
+      {
+        :kexdh_init          => method(:kexdh_init_received),
+        :kex_dh_gex_request  => method(:kex_dh_gex_request_received),
+        :kex_dh_gex_init     => method(:kex_dh_gex_init_received),
+      }
     end
 
     private
@@ -56,7 +66,6 @@ module GMRW; module SSH2; module Algorithm ; class Kex
       end
     -
 
-    public
     #
     # :section: protocol parameters
     #
@@ -79,7 +88,7 @@ module GMRW; module SSH2; module Algorithm ; class Kex
     #
     # :section: DH Key Agreement
     #
-    def kexdh_init_received(message, *)
+    def kexdh_init_received(message)
       h0([[ :string, v_c            ],
           [ :string, v_s            ],
           [ :string, i_c            ],
@@ -103,7 +112,7 @@ module GMRW; module SSH2; module Algorithm ; class Kex
     property :n
     property :min
 
-    def kex_dh_gex_request_received(message, *)
+    def kex_dh_gex_request_received(message)
       max(message[:max])
       n(  message[:n  ])
       min(message[:min])
@@ -111,7 +120,7 @@ module GMRW; module SSH2; module Algorithm ; class Kex
       send_message :kex_dh_gex_group, :p => dh.p, :g => dh.g
     end
 
-    def kex_dh_gex_init_received(message, *)
+    def kex_dh_gex_init_received(message)
       h0([[ :string, v_c            ],
           [ :string, v_s            ],
           [ :string, i_c            ],

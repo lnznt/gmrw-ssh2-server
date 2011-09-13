@@ -6,12 +6,12 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/utils/loggable'
+require 'gmrw/ssh2/loggable'
 require 'gmrw/ssh2/server/connection/session'
 
 module GMRW; module SSH2; module Server; class Connection
   include GMRW
-  include Utils::Loggable
+  include SSH2::Loggable
 
   def_initialize :service
   forward [:logger, :die, :send_message, :at_close] => :service
@@ -19,23 +19,17 @@ module GMRW; module SSH2; module Server; class Connection
   def start(service_name=nil)
     debug( "connection in service: #{service_name}" )
 
-    service.add_observer(:global_request,  &method(:global_request_received))
-    service.add_observer(:channel_open,    &method(:channel_open_received))
-    service.add_observer(:channel_close,         &method(:channel_message_received))
-    service.add_observer(:channel_request,       &method(:channel_message_received))
-    service.add_observer(:channel_data,          &method(:channel_message_received))
-    service.add_observer(:channel_extended_data, &method(:channel_message_received))
-    service.add_observer(:channel_window_adjust, &method(:channel_message_received))
+    service.register :global_request => proc {|message|
+      message[:want_reply] && send_message(:request_failure)
+    },
+    :channel_open           => method(:channel_open_received),
+    :channel_close          => method(:channel_message_received),
+    :channel_request        => method(:channel_message_received),
+    :channel_data           => method(:channel_message_received),
+    :channel_extended_data  => method(:channel_message_received),
+    :channel_window_adjust  => method(:channel_message_received)
 
     service_name && send_message(:service_accept, :service_name => service_name)
-  end
-
-  #
-  # :section: Global Request
-  #
-  def global_request_received(message, *)
-    # NOT SUPPORT
-    message[:want_reply] && send_message(:request_failure)
   end
 
   #

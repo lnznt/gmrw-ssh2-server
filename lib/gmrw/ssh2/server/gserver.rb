@@ -7,7 +7,7 @@
 
 require 'gserver'
 require 'gmrw/extension/all'
-require 'gmrw/utils/loggable'
+require 'gmrw/ssh2/loggable'
 require 'gmrw/ssh2/server/service'
 
 class GMRW::SSH2::Server::GServer < ::GServer
@@ -42,7 +42,7 @@ class GMRW::SSH2::Server::GServer < ::GServer
     end
   end
 
-  class GServerLogger < Utils::Logger
+  class GServerLogger < SSH2::Logger
     private
     def write(logger, *msgs)
       out.debug = (logger.severity == :debug)

@@ -6,13 +6,10 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/utils/loggable'
-#require 'gmrw/ssh2/server/userauth/password_auth'
 
 module GMRW; module SSH2; module Server; class UserAuth
   class User
     include GMRW
-    include Utils::Loggable
 
     def_initialize :service
     forward [:logger, :die] => :service

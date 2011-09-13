@@ -7,7 +7,7 @@
 
 require 'gmrw/extension/all'
 
-module GMRW; module Utils
+module GMRW; module SSH2
   class Logger < Array
     LEVELS = [:none, :debug, :info, :warning, :error, :fatal, :any]
 
@@ -48,7 +48,7 @@ module GMRW; module Utils
 
   module Loggable
     property :logger, :null
-    forward ([:log] + GMRW::Utils::Logger::LEVELS) => :logger
+    forward ([:log] + GMRW::SSH2::Logger::LEVELS) => :logger
   end
 end; end
 

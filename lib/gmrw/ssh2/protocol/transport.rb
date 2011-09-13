@@ -6,24 +6,22 @@
 #
 
 require 'gmrw/extension/all'
-require 'gmrw/utils/loggable'
-require 'gmrw/utils/observable'
+require 'gmrw/ssh2/loggable'
 require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
 require 'gmrw/ssh2/algorithm/kex/dh'
 
 class GMRW::SSH2::Protocol::Transport
   include GMRW
-  include Utils::Loggable
-  include Utils::Observable
+  include SSH2::Loggable
 
   #
-  # :section: connection
+  # :section: Connection
   #
   def_initialize :connection
 
   #
-  # :section: Reader/Writer (=peer/local)
+  # :section: Reader/Writer
   #
   property_ro :reader, 'SSH2::Protocol::Reader.new(self)' ; alias peer  reader
   property_ro :writer, 'SSH2::Protocol::Writer.new(self)' ; alias local writer
@@ -32,31 +30,35 @@ class GMRW::SSH2::Protocol::Transport
   forward [:send_message] => :writer
 
   #
-  # :section: Starting Transport
+  # :section: Event Listener
   #
-  property_ro :at_close, '[]'
+  property_ro :at_close,  '[]'
+  property_ro :listeners, 'Hash.new {|h,key| raise EventError, "#{key}" }'
+  class EventError < RuntimeError ; end
 
+  def register(handlers)
+    handlers.each {|event, handler| listeners[event] = handler }
+  end
+
+  def notify_listener(event, *a, &b)
+    listeners[event].call(*a, &b)
+  end
+
+  #
+  # :section: Start
+  #
   def start
     logger.format {|*s| "[#{connection.object_id}] #{s.map(&:to_s) * ': '}" }
     info( "SSH service start" )
 
-    add_observer(/NOT FOUND/) do |seq_number,|
-      send_message :unimplemented, :sequence_number => seq_number
-    end
-
-    add_observer(:disconnect) do |message,|
-      raise "disconnect message received: #{message[:reason_code]}: #{message[:description]}"
-    end
-
-    add_observer(:service_request, &method(:service_request_message_received))
-    add_observer(:service_accept,  &method(:service_accept_message_received))
-
-    add_observer(:kexinit,  &method(:kexinit_received))
-    add_observer(:newkeys,  &method(:newkeys_received))
-
-    add_observer(:kexdh_init,         &kex.method(:kexdh_init_received))
-    add_observer(:kex_dh_gex_request, &kex.method(:kex_dh_gex_request_received))
-    add_observer(:kex_dh_gex_init,    &kex.method(:kex_dh_gex_init_received))
+    register /NOT FOUND/ => proc {|seq_number|
+        send_message :unimplemented, :sequence_number => seq_number
+      },
+      :disconnect => proc {|message|
+        raise "disconnected: #{message[:reason_code]}: #{message[:description]}"
+      },
+      :kexinit => method(:kexinit_received),
+      :newkeys => method(:newkeys_received)
 
     start_service
 
@@ -73,14 +75,6 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   private
-  def service_request_message_received(message, *)
-    send_message :unimplemented, :sequence_number => 0
-  end
-
-  def service_accept_message_received(message, *)
-    send_message :unimplemented, :sequence_number => 0
-  end
-
   #
   # :section: Protocol Version Exchange
   #
@@ -121,22 +115,24 @@ class GMRW::SSH2::Protocol::Transport
     }.each {|label, ali| names[ali] = negotiate!(label) }
 
     debug( "algorithms: #{names.inspect}" )
+
+    register(kex.handlers)
   end
 
   property_ro :kex, 'SSH2::Algorithm::Kex::DH.new(self)'
-  property_ro :session_id, 'kex.h'
+  property_ro :session_id, 'kex.hash'
 
   #
-  # :section: Keys into use
+  # :section: Keys into Use
   #
   def newkeys_received(*)
     debug( "new keys into use" )
 
-    key = proc do |salt| proc {|len|
+    key = proc {|salt| proc {|len|
       y =  kex.gen_key(salt + session_id)
       y << kex.gen_key(y) while y.length < len
       y[0...len]
-    } end
+    }}
 
     client.keys_into_use :cipher     => names[:enc_c ],
                          :hmac       => names[:mac_c ],
@@ -154,7 +150,7 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   #
-  # :section: error handling
+  # :section: Error Handling
   #
   def die(tag, msg="")
     e = RuntimeError.new "#{tag}: #{msg}"
