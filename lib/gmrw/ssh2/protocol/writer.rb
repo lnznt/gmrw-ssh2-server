@@ -5,7 +5,6 @@
 # License:: Ruby's
 #
 
-require 'openssl'
 require 'gmrw/extension/all'
 require 'gmrw/ssh2/protocol/end'
 require 'gmrw/ssh2/message'
@@ -42,7 +41,7 @@ class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
     total_len   = (zipped_data.length + n1 + n2 + mn).align(block_size)
     pack_len    = total_len - n1
     padd_len    = pack_len - n2 - zipped_data.length 
-    padding     = OpenSSL::Random.random_bytes(padd_len)
+    padding     = ssh.random(padd_len)
     packet      = [pack_len, padd_len].pack("NC") + zipped_data + padding
 
     encrypt[ packet ] + compute_mac(packet)

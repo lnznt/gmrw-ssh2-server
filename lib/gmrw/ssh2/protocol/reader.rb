@@ -15,7 +15,7 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   #
   # :section: Protocol Version
   #
-  property_ro :version, 'gets'
+  property_ro :version, :gets
 
   #
   # :section: Receive Methods
@@ -39,8 +39,8 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
   private
   def payload
     verify! packet = [
-      pack_len    = buffered_read(4).tap{|s| def s.n; unpack("N")[0]; end },
-      padd_len    = buffered_read(1).tap{|s| def s.n; unpack("C")[0]; end },
+      pack_len    = buffered_read(4).tap{|s| def s.n; to.uint32; end },
+      padd_len    = buffered_read(1).tap{|s| def s.n; to.byte  ; end },
       zipped_data = buffered_read(pack_len.n - padd_len.length - padd_len.n),
       padding     = buffered_read(padd_len.n),
     ].join

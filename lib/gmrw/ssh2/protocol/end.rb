@@ -60,47 +60,34 @@ module GMRW; module SSH2; module Protocol
     end
 
     def memo(message)
-      self[message.tag] = message.tap {|m| m.seq = seq_number ; seq_count }
+      label = respond_to?(:send_message) ? '<-- sent' : '--> received'
+      info( "#{label} [#{seq_number}]: #{message.tag}" )
+      debug( "#{message.inspect}" )
+
+      seq_count ; self[message.tag] = message
     end 
 
+    alias sent memo
+
     def received(message)
-      memo(message)
-
-      info( "--> received [#{message.seq}]: #{message.tag}" )
-      debug( "#{message.inspect}" )
-
-      notify_observers(message.tag, message, {})
-      message
-    end
-
-    def sent(message)
-      memo(message)
-
-      info( "<-- sent [#{message.seq}]: #{message.tag}" )
-      debug( "#{message.inspect}" )
-
-      message
+      memo(message).tap {|m| notify_observers(m.tag, m, {}) }
     end
 
     #
     # :section: encryption / mac / compression
     #
     public
-    property :names, 'Hash.new {"none"}'
-    property :keys,  'Hash.new {{}}'
+    property :keys_and_names, 'Hash.new("none")'
+    alias names keys_and_names
+    alias keys  keys_and_names
 
     include SSH2::Algorithm
     property_rwv :cipher,     'Cipher.new(names[:cipher]).tap{|a| a.keys keys}'
     property_rwv :hmac,       'HMAC  .new(names[:hmac  ]).tap{|a| a.keys keys}'
     property_rwv :compressor, 'Compressor.new(names[:compressor])'
 
-    def keys_into_use(keys_and_names)
-      keys(keys_and_names)
-      names(keys_and_names)
-
-      cipher      nil
-      hmac        nil
-      compressor  nil
+    def keys_into_use(k_and_n)
+      keys_and_names(k_and_n) ; cipher(nil) ; hmac(nil) ; compressor(nil)
     end
 
     private

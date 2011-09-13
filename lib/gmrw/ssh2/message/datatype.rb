@@ -49,22 +49,22 @@ module GMRW; module SSH2; module Message
         :mpint    => {  :default  => 0,
                         :is_type  => this.kind_of?(OpenSSL::BN),
                         :encode   => proc { this.to_i.pack.bin.to.packet },
-                        :separate => proc { this[4..-1] / this.unpack("N")[0] },
+                        :separate => proc { this[4..-1] / this.to.uint32 },
                         :decode   => proc {|s| s.to.mpi.to.bn },
         },
         :string   => {  :default  => "",
                         :is_type  => this.is.string?,
                         :encode   => proc { this.bin.to.packet },
-                        :separate => proc { this[4..-1] / this.unpack("N")[0] },
+                        :separate => proc { this[4..-1] / this.to.uint32 },
                         :decode   => proc {|s| s },
         },
         :namelist => {  :default  => [],
                         :is_type  => this.is.array? {|s| name?(s) },
                         :encode   => proc { this.join(",").bin.to.packet },
-                        :separate => proc { this[4..-1] / this.unpack("N")[0] },
+                        :separate => proc { this[4..-1] / this.to.uint32 },
                         :decode   => proc {|s| s.split(",") },
         },
-        :bytes    => {  :default  => [0] * n,
+        :bytes    => {  :default  => ssh.random(n).to.bytes,
                         :is_type  => this.is.array?(n) {|b| b.is.byte? },
                         :encode   => proc { this.pack("C*") },
                         :separate => proc { this / n },
@@ -99,6 +99,10 @@ module GMRW; module SSH2; module Message
       ftypes.reduce([[], s=this]) {|result, ftype|
         v, s = s.ssh.decode(ftype) ; [result[0] << v, s]
       }.flatten(1)
+    end
+
+    def random(n)
+      OpenSSL::Random.random_bytes(n)
     end
   end
 end; end; end

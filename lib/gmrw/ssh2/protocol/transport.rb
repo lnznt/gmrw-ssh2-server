@@ -74,11 +74,11 @@ class GMRW::SSH2::Protocol::Transport
 
   private
   def service_request_message_received(message, *)
-    send_message :unimplemented, :sequence_number => message.seq
+    send_message :unimplemented, :sequence_number => 0
   end
 
   def service_accept_message_received(message, *)
-    send_message :unimplemented, :sequence_number => message.seq
+    send_message :unimplemented, :sequence_number => 0
   end
 
   #
@@ -158,8 +158,7 @@ class GMRW::SSH2::Protocol::Transport
   #
   def die(tag, msg="")
     e = RuntimeError.new "#{tag}: #{msg}"
-    c = class << e ; self ; end
-    c.send(:define_method, :call) do |service|
+    (class << e ; self ; end).send(:define_method, :call) do |service|
       service.send_message :disconnect, :reason_code => tag,
                                         :description => e.to_s
     end

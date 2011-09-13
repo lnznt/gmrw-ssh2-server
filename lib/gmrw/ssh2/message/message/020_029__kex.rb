@@ -5,36 +5,63 @@
 # License:: Ruby's
 #
 
-require 'openssl'
 require 'gmrw/ssh2/message/def_message'
 
 module GMRW::SSH2::Message
-  rnd = proc { OpenSSL::Random.random_bytes(16).unpack("C*") }
-
-  kex = proc { GMRW::SSH2.config.algorithms[:kex_algorithms] }
-  hky = proc { GMRW::SSH2.config.algorithms[:server_host_key_algorithms] }
-  ecs = proc { GMRW::SSH2.config.algorithms[:encryption_algorithms_client_to_server] }
-  esc = proc { GMRW::SSH2.config.algorithms[:encryption_algorithms_server_to_client] }
-  mcs = proc { GMRW::SSH2.config.algorithms[:mac_algorithms_client_to_server] }
-  msc = proc { GMRW::SSH2.config.algorithms[:mac_algorithms_server_to_client] }
-  ccs = proc { GMRW::SSH2.config.algorithms[:compression_algorithms_client_to_server] }
-  csc = proc { GMRW::SSH2.config.algorithms[:compression_algorithms_server_to_client] }
-
   def_message :kexinit, [
-    [ :byte,      :type                                    , 20 ],
-    [ 16,         :cookie                                  ,rnd ],
-    [ :namelist,  :kex_algorithms                          ,kex ],
-    [ :namelist,  :server_host_key_algorithms              ,hky ],
-    [ :namelist,  :encryption_algorithms_client_to_server  ,ecs ],
-    [ :namelist,  :encryption_algorithms_server_to_client  ,esc ],
-    [ :namelist,  :mac_algorithms_client_to_server         ,mcs ],
-    [ :namelist,  :mac_algorithms_server_to_client         ,msc ],
-    [ :namelist,  :compression_algorithms_client_to_server ,ccs ],
-    [ :namelist,  :compression_algorithms_server_to_client ,csc ],
-    [ :namelist,  :languages_client_to_server                   ],
-    [ :namelist,  :languages_server_to_client                   ],
-    [ :boolean,   :first_kex_packet_follows                     ],
-    [ :uint32,    :reserved                                     ],
+    [ :byte,     :type                                  , 20 ],
+    [ 16,        :cookie                                     ],
+
+    [ :namelist, :kex_algorithms,                          %w[
+                     diffie-hellman-group-exchange-sha256
+                     diffie-hellman-group-exchange-sha1
+                     diffie-hellman-group14-sha1
+                     diffie-hellman-group1-sha1             ]],
+ 
+    [ :namelist, :server_host_key_algorithms,              %w[
+                     ssh-dss
+                     ssh-rsa                                ]],
+
+    [ :namelist, :encryption_algorithms_client_to_server,  %w[
+                     aes128-cbc
+                     aes256-cbc
+                     aes192-cbc
+                     blowfish-cbc
+                     cast128-cbc
+                     3des-cbc                               ]],
+
+    [ :namelist, :encryption_algorithms_server_to_client,  %w[
+                     aes128-cbc
+                     aes256-cbc
+                     aes192-cbc
+                     blowfish-cbc
+                     cast128-cbc
+                     3des-cbc                               ]],
+
+    [ :namelist, :mac_algorithms_client_to_server,         %w[
+                     hmac-sha1
+                     hmac-sha1-96
+                     hmac-md5
+                     hmac-md5-96                            ]],
+
+    [ :namelist, :mac_algorithms_server_to_client,         %w[ 
+                     hmac-sha1
+                     hmac-sha1-96
+                     hmac-md5
+                     hmac-md5-96                            ]],
+
+    [ :namelist, :compression_algorithms_client_to_server, %w[
+                    none
+                    zlib                                    ]],
+
+    [ :namelist, :compression_algorithms_server_to_client, %w[
+                    none
+                    zlib                                    ]],
+
+    [ :namelist, :languages_client_to_server                 ],
+    [ :namelist, :languages_server_to_client                 ],
+    [ :boolean,  :first_kex_packet_follows                   ],
+    [ :uint32,   :reserved                                   ],
   ]
 
   def_message :newkeys, [

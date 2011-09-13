@@ -57,7 +57,7 @@ module GMRW; module SSH2; module Message
     end
 
     def value=(val)
-      val = conv[ val.nil? ? default[] : val ]
+      val = conv[ val.nil? ? default : val ]
       val.ssh.type?(type) or raise TypeError, "#{name}: #{val}"
       @value = val
     end
@@ -68,14 +68,9 @@ module GMRW; module SSH2; module Message
     attr_reader :value
 
     private
-    property_ro :default, %-
-      proc do
-        spec[2].nil?               ? ssh.default(type) :
-        spec[2].respond_to?(:call) ? spec[2].call      : spec[2]
-      end
-    -
-    property_ro :conv, 'proc {|v| (spec[3] || Hash.new(v))[v] }'
-    property_ro :cond, 'spec[4] || {}'
+    property_ro :default, 'spec[2].nil? ? ssh.default(type) : spec[2]'
+    property_ro :conv,    'proc {|v| x = (spec[3]||{})[v] ; x.nil? ? v : x }'
+    property_ro :cond,    'spec[4] || {}'
 
     def_initialize :message
   end
@@ -86,8 +81,6 @@ module GMRW; module SSH2; module Message
   def def_message(tag, fields, info={})
     classes[tag] = Class.new do
       define_method(:tag) { tag }
-
-      property :seq
 
       def [](name)
         (field(name) || null).value
