@@ -38,8 +38,8 @@ class TestField < Test::Unit::TestCase
       { ssh.default(:mpint)     =>  OpenSSL::BN.new(0.to_s) },
       { ssh.default(:string)    =>  ""      },
       { ssh.default(:namelist)  =>  []      },
-      { ssh.default(1)          =>  [0]     },
-      { ssh.default(4)          =>  [0] * 4 },
+      { ssh.default(1).length   =>  1       },
+      { ssh.default(4).length   =>  4       },
 
       { ssh.default(0)          =>  nil     },
       { ssh.default(1.0)        =>  nil     },
