@@ -12,7 +12,7 @@ module GMRW::SSH2::Message
     [ :byte,   :type         ,60 ],
     [ :string, :prompt           ],
     [ :string, :language_tag     ],
-  ], :category => ['password']
+  ], :categories => ['password']
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

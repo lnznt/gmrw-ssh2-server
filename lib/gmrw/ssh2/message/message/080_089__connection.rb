@@ -9,14 +9,14 @@ require 'gmrw/ssh2/message/def_message'
 
 module GMRW::SSH2::Message
   def_message :global_request, [
-    [ :byte,    :type,                  80                                            ],
-    [ :string,  :request_name                                                         ],
-    [ :boolean, :want_reply                                                           ],
-    [ :string,  :address_to_bind,       nil, {:request_name => 'tcpip-forward'}       ],
-    [ :uint32,  :port_number_to_bind,   nil, {:request_name => 'tcpip-forward'}       ],
+    [ :byte,    :type,                  80                                                  ],
+    [ :string,  :request_name                                                               ],
+    [ :boolean, :want_reply                                                                 ],
+    [ :string,  :address_to_bind,       nil, nil, {:request_name => 'tcpip-forward'}        ],
+    [ :uint32,  :port_number_to_bind,   nil, nil, {:request_name => 'tcpip-forward'}        ],
 
-    [ :string,  :address_to_cancel,     nil, {:request_name => 'cancel-tcpip-forward'}],
-    [ :uint32,  :port_number_to_cancel, nil, {:request_name => 'cancel-tcpip-forward'}],
+    [ :string,  :address_to_cancel,     nil, nil, {:request_name => 'cancel-tcpip-forward'} ],
+    [ :uint32,  :port_number_to_cancel, nil, nil, {:request_name => 'cancel-tcpip-forward'} ],
   ]
 
   def_message :request_success, [

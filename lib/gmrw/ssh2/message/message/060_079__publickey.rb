@@ -12,7 +12,7 @@ module GMRW::SSH2::Message
     [ :byte,   :type         ,60 ],
     [ :string, :pk_algorithm     ],
     [ :string, :pk_key_blob      ],
-  ], :category => ['publickey']
+  ], :categories => ['publickey']
 end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

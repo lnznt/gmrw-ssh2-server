@@ -16,19 +16,16 @@ module GMRW; module SSH2; module Message
   property_ro :catalog, 'Hash.new {|h,k| h[k] = {}}'
 
   #
-  # :section: catalog search
-  #
-  def search(number)
-    cate = case number
-      when 30..49 ; yield[:kex]
-      when 60..79 ; yield[:auth]
-    end
-    catalog[number][cate]
-  end
-
-  #
   # :section: message build
   #
+  def search(number)
+    case number
+      when 30.. 49 ; catalog[number][yield[:kex]]
+      when 60.. 79 ; catalog[number][yield[:auth]]
+      when  1..127 ; catalog[number][nil]
+    end
+  end
+
   def build(payload, &block)
     number = payload.unpack("C")[0]
     tag    = search(number, &block)
@@ -44,37 +41,39 @@ module GMRW; module SSH2; module Message
   #
   class Field
     def inspect
-      avail? ? "#{@name}:#{@type} => #{@value}" : "(#{@name}:#{@type})"
+      avail? ? "#{name}:#{type} => #{value}" : "(#{name}:#{type})"
     end
 
-    attr_reader :type, :name, :value
-
     def avail?
-      @cond.all? {|f,v| @message[f] == v }
+      cond.all? {|f,v| message[f] == v }
     end
 
     def dump
-      @value.ssh.encode(@type)
+      value.ssh.encode(type)
     end
 
     def value=(val)
-      val = @conv[ val.nil? ? default : val ]
-      val.ssh.type?(@type) or raise TypeError, "#{@name}: #{val}"
+      val = conv[ val.nil? ? default[] : val ]
+      val.ssh.type?(type) or raise TypeError, "#{name}: #{val}"
       @value = val
     end
 
-    private
-    def default
-      @default.nil?               ? ssh.default(@type) :
-      @default.respond_to?(:call) ? @default[ @message ]       : @default
-    end
+    property    :spec
+    property_ro :type, 'spec[0]'
+    property_ro :name, 'spec[1]'
+    attr_reader :value
 
-    def initialize(spec)
-      @type, @name, @default, *opts = *spec[:field]
-      @cond                         = opts.grep(Hash)[0] || {}
-      @conv                         = opts.grep(Proc)[0] || proc {|v| v }
-      @message                      = spec[:message]
-    end
+    private
+    property_ro :default, %-
+      proc do
+        spec[2].nil?               ? ssh.default(type) :
+        spec[2].respond_to?(:call) ? spec[2].call      : spec[2]
+      end
+    -
+    property_ro :conv, 'proc {|v| (spec[3] || Hash.new(v))[v] }'
+    property_ro :cond, 'spec[4] || {}'
+
+    def_initialize :message
   end
 
   #
@@ -82,12 +81,12 @@ module GMRW; module SSH2; module Message
   #
   def def_message(tag, fields, info={})
     number = fields[0][2]
-    (info[:category] || [nil]).each do |cate|
+    (info[:categories] || [nil]).each do |cate|
       catalog[number][cate] = tag
     end
 
     classes[tag] = Class.new do
-      define_method(:tag) { tag }
+      define_method(:tag)        { tag }
 
       property :seq
 
@@ -95,31 +94,26 @@ module GMRW; module SSH2; module Message
         (field(name) || null).value
       end
 
-#      def []=(name, val)
-#        (field(name) || null).value = val
-#      end
-
       def dump
         s = "" ; each_field {|f| s << f.dump } ; s
       end
 
       private
       define_method(:fields) do
-        @fields ||= fields.map {|f| Field.new(:field => f, :message => self) }
+        @fields ||= fields.map {|f| Field.new(self).tap {|this| this.spec(f) } }
       end
 
       def field(name)
-        (f = fields.find {|f| f.name == name }) && f.avail? && f
+        fields.find {|f| f.name == name && f.avail? }
       end
 
       def each_field(&block)
         fields.each {|f| f.avail? && block[f] }
       end
 
-      def initialize(data={})
+      def initialize(s={})
         each_field do |f|
-          f.value, data = data.is.string? ? data.ssh.decode(f.type) :
-                                            [data[f.name], data]
+          f.value, s = s.is.string? ? s.ssh.decode(f.type) : [s[f.name], s]
         end
       end
     end 

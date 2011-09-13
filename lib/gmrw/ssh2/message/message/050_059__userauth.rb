@@ -14,22 +14,22 @@ module GMRW::SSH2::Message
     [ :string,  :service_name                                              ],
     [ :string,  :method_name                                               ],
 
-    [ :boolean, :with_pk_signature, nil, { :method_name => 'publickey' }   ],
-    [ :string,  :pk_algorithm,      nil, { :method_name => 'publickey' }   ],
-    [ :string,  :pk_key_blob,       nil, { :method_name => 'publickey' }   ],
-    [ :string,  :pk_signature,      nil, { :method_name => 'publickey',
-                                           :with_pk_signature => true  }   ],
+    [ :boolean, :with_pk_signature, nil, nil, { :method_name => 'publickey' }   ],
+    [ :string,  :pk_algorithm,      nil, nil, { :method_name => 'publickey' }   ],
+    [ :string,  :pk_key_blob,       nil, nil, { :method_name => 'publickey' }   ],
+    [ :string,  :pk_signature,      nil, nil, { :method_name => 'publickey',
+                                                :with_pk_signature => true  }   ],
 
-    [ :boolean, :with_new_password, nil, { :method_name => 'password'  }   ],
-    [ :string,  :old_password,      nil, { :method_name => 'password'  }   ],
-    [ :string,  :new_password,      nil, { :method_name => 'password',
-                                           :with_new_password => true  }   ],
+    [ :boolean, :with_new_password, nil, nil, { :method_name => 'password'  }   ],
+    [ :string,  :old_password,      nil, nil, { :method_name => 'password'  }   ],
+    [ :string,  :new_password,      nil, nil, { :method_name => 'password',
+                                                :with_new_password => true  }   ],
 
-    [ :string,  :hb_algorithm,      nil, { :method_name => 'hostbased' }   ],
-    [ :string,  :hb_key_blob,       nil, { :method_name => 'hostbased' }   ],
-    [ :string,  :hb_hostname,       nil, { :method_name => 'hostbased' }   ],
-    [ :string,  :hb_username,       nil, { :method_name => 'hostbased' }   ],
-    [ :string,  :hb_signature,      nil, { :method_name => 'hostbased' }   ],
+    [ :string,  :hb_algorithm,      nil, nil, { :method_name => 'hostbased' }   ],
+    [ :string,  :hb_key_blob,       nil, nil, { :method_name => 'hostbased' }   ],
+    [ :string,  :hb_hostname,       nil, nil, { :method_name => 'hostbased' }   ],
+    [ :string,  :hb_username,       nil, nil, { :method_name => 'hostbased' }   ],
+    [ :string,  :hb_signature,      nil, nil, { :method_name => 'hostbased' }   ],
   ]
 
   def_message :userauth_failure, [
