@@ -9,9 +9,10 @@ require 'gmrw/extension/all'
 require 'gmrw/ssh2/message/datatype'
 
 module GMRW; module SSH2; module Message
-  include GMRW
-
   extend self
+
+  class MessageNotFound < RuntimeError ; end
+
   property_ro :classes, '{}'
   property_ro :catalog, 'Hash.new {|h,k| h[k] = {}}'
 
@@ -22,16 +23,19 @@ module GMRW; module SSH2; module Message
     case number
       when 30.. 49 ; catalog[number][yield[:kex]]
       when 60.. 79 ; catalog[number][yield[:auth]]
-      when  1..127 ; catalog[number][nil]
+      else         ; catalog[number][nil]
     end
   end
 
   def build(payload, &block)
     number = payload.unpack("C")[0]
-    tag    = search(number, &block)
-    create(tag, payload)
+    mclass = search(number, &block)
+    mclass && mclass.new(payload) or raise MessageNotFound
   end
 
+  #
+  # :section: message create
+  #
   def create(tag, data={})
     classes.fetch(tag).new(data)
   end
@@ -80,13 +84,8 @@ module GMRW; module SSH2; module Message
   # :section: message
   #
   def def_message(tag, fields, info={})
-    number = fields[0][2]
-    (info[:categories] || [nil]).each do |cate|
-      catalog[number][cate] = tag
-    end
-
     classes[tag] = Class.new do
-      define_method(:tag)        { tag }
+      define_method(:tag) { tag }
 
       property :seq
 
@@ -117,6 +116,10 @@ module GMRW; module SSH2; module Message
         end
       end
     end 
+
+    (info[:categories] || [nil]).each do |cate|
+      catalog[number=fields[0][2]][cate] = classes[tag]
+    end
   end
 end; end; end
 

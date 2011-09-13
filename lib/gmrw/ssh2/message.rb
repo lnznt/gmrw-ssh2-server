@@ -5,11 +5,6 @@
 # License:: Ruby's
 #
 
-module GMRW; module SSH2; module Message
-  class ForbiddenMessage < RuntimeError ; end
-  class MessageNotFound  < RuntimeError ; end
-end; end; end
-
 require 'gmrw/ssh2/message/message/001_019__transport'
 require 'gmrw/ssh2/message/message/020_029__kex'
 require 'gmrw/ssh2/message/message/030_049__dh'

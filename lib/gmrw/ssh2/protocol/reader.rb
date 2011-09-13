@@ -29,10 +29,8 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
 
     received SSH2::Message.build(payload) { service.names }
 
-  rescue SSH2::Message::ForbiddenMessage => e
-    notify_observers([:forbidden], e, :sequence_number => seq_number)
-  rescue SSH2::Message::MessageNotFound => e
-    notify_observers([:not_found], e, :sequence_number => seq_number)
+  rescue SSH2::Message::MessageNotFound
+    notify_observers(/NOT FOUND/, seq_number)
   end
 
   #
