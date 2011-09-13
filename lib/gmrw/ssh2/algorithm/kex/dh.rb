@@ -14,8 +14,9 @@ module GMRW; module SSH2; module Algorithm ; class Kex
     include GMRW
     include Utils::Loggable
 
-    forward [:digest] => :digester
-    property_ro :secret, '[k, h]'
+    def gen_key(s)
+      digest(k + h + s)
+    end
 
     private
     def_initialize :service
@@ -31,6 +32,7 @@ module GMRW; module SSH2; module Algorithm ; class Kex
 
     property_ro :digester_name, 'names[:kex][/sha\d+$/]'
     property_ro :digester,      'OpenSSL::Digest.new(digester_name)'
+    forward    [:digest] => :digester
 
     property_ro :group_tag,     '(names[:kex][/group\d+/]||"_").to_sym'
     property_ro :oakley_groups, 'SSH2.config.oakley_group'

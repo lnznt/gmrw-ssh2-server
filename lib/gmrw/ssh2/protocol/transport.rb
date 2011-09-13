@@ -40,15 +40,11 @@ class GMRW::SSH2::Protocol::Transport
     logger.format {|*s| "[#{connection.object_id}] #{s.map(&:to_s) * ': '}" }
     info( "SSH service start" )
 
-    add_observer([:forbidden]) do |e,|
-      die :PROTOCOL_ERROR, "forbidden message received: #{e}"
+    add_observer(/NOT FOUND/) do |seq_number,|
+      send_message :unimplemented, :sequence_number => seq_number
     end
 
-    add_observer([:not_found]) do |e, hint|
-      send_message :unimplemented, :sequence_number => hint[:sequence_number]
-    end
-
-    add_observer(:disconnect) do |message|
+    add_observer(:disconnect) do |message,|
       raise "disconnect message received: #{message[:reason_code]}: #{message[:description]}"
     end
 
@@ -128,8 +124,7 @@ class GMRW::SSH2::Protocol::Transport
   end
 
   property_ro :kex, 'SSH2::Algorithm::Kex::DH.new(self)'
-
-  attr_reader :session_id
+  property_ro :session_id, 'kex.h'
 
   #
   # :section: Keys into use
@@ -137,11 +132,9 @@ class GMRW::SSH2::Protocol::Transport
   def newkeys_received(*)
     debug( "new keys into use" )
 
-    secret, hash = kex.secret ; @session_id ||= hash
-
     key = proc do |salt| proc {|len|
-      y =  kex.digest(secret + hash + salt + @session_id)
-      y << kex.digest(secret + hash + y) while y.length < len
+      y =  kex.gen_key(salt + session_id)
+      y << kex.gen_key(y) while y.length < len
       y[0...len]
     } end
 
