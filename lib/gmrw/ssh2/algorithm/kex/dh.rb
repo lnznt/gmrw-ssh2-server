@@ -7,6 +7,7 @@
 
 require 'openssl'
 require 'gmrw/extension/all'
+require 'gmrw/ssh2/algorithm/pub_key'
 
 module GMRW; module SSH2; module Algorithm ; class Kex
   class DH
@@ -38,7 +39,7 @@ module GMRW; module SSH2; module Algorithm ; class Kex
     #
     # :section: digester / group / dh
     #
-    property_ro :host_key,      'SSH2::Algorithm::HostKey.get(names[:host_key])'
+    property_ro :host_key,      'SSH2::Algorithm::PubKey.host_key(names[:host_key])'
 
     property_ro :digester_name, 'names[:kex][/sha\d+$/]'
     property_ro :digester,      'OpenSSL::Digest.new(digester_name)'

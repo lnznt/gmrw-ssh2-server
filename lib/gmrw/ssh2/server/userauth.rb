@@ -7,7 +7,7 @@
 
 require 'gmrw/extension/all'
 require 'gmrw/ssh2/loggable'
-require 'gmrw/ssh2/algorithm/host_key'
+require 'gmrw/ssh2/algorithm/pub_key'
 require 'gmrw/ssh2/server/service'
 
 class GMRW::SSH2::Server::UserAuth
@@ -105,7 +105,7 @@ class GMRW::SSH2::Server::UserAuth
     debug( "publickey auth: algorithm = #{algo}" )
     debug( "publickey auth: sig       = #{sig}" )
 
-    key = SSH2::Algorithm::HostKey.algorithms[algo].create(blob) rescue nil
+    key = SSH2::Algorithm::PubKey.algorithms[algo].create(blob) rescue nil
     debug( "publickey auth: key       = #{key}" )
 
     ok = key && sig && key.unpack_and_verify(sig, [ [:string,  service.session_id         ],
