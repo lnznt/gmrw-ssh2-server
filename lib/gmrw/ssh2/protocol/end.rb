@@ -60,17 +60,18 @@ module GMRW; module SSH2; module Protocol
     end
 
     def memo(message)
-      label = respond_to?(:send_message) ? '<-- sent' : '--> received'
-      info( "#{label} [#{seq_number}]: #{message.tag}" )
+      info( "#{yield} [#{seq_number}]: #{message.tag}" )
       debug( "#{message.inspect}" )
 
       seq_count ; self[message.tag] = message
     end 
 
-    alias sent memo
+    def sent(message)
+      memo(message){'<-- sent'}
+    end
 
     def received(message)
-      memo(message).tap {|m| service.notify_listener(m.tag, m) }
+      memo(message){'--> received'}.tap {|m| service.notify(m.tag, m) }
     end
 
     #

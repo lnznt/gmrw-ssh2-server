@@ -11,6 +11,10 @@ require 'gmrw/ssh2/protocol/reader'
 require 'gmrw/ssh2/protocol/writer'
 require 'gmrw/ssh2/algorithm/kex/dh'
 
+module GMRW::SSH2::Protocol
+  class EventError < RuntimeError ; end
+end
+
 class GMRW::SSH2::Protocol::Transport
   include GMRW
   include SSH2::Loggable
@@ -33,14 +37,13 @@ class GMRW::SSH2::Protocol::Transport
   # :section: Event Listener
   #
   property_ro :at_close,  '[]'
-  property_ro :listeners, 'Hash.new {|h,key| raise EventError, "#{key}" }'
-  class EventError < RuntimeError ; end
+  property_ro :listeners, 'Hash.new {|h,key| raise SSH2::Protocol::EventError, "#{key.inspect}" }'
 
   def register(handlers)
     handlers.each {|event, handler| listeners[event] = handler }
   end
 
-  def notify_listener(event, *a, &b)
+  def notify(event, *a, &b)
     listeners[event].call(*a, &b)
   end
 

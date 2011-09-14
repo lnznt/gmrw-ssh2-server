@@ -29,8 +29,8 @@ class GMRW::SSH2::Protocol::Reader < GMRW::SSH2::Protocol::End
 
     received SSH2::Message.build(payload) { service.names }
 
-  rescue SSH2::Message::MessageNotFound
-    notify_listener(/NOT FOUND/, seq_number)
+  rescue SSH2::Protocol::EventError
+    notify(/NOT FOUND/, seq_number)
   end
 
   #

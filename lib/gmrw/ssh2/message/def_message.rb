@@ -11,8 +11,6 @@ require 'gmrw/ssh2/message/datatype'
 module GMRW; module SSH2; module Message
   extend self
 
-  class MessageNotFound < RuntimeError ; end
-
   property_ro :classes, '{}'
   property_ro :catalog, 'Hash.new {|h,k| h[k] = {}}'
 
@@ -20,17 +18,18 @@ module GMRW; module SSH2; module Message
   # :section: message build
   #
   def search(number)
-    case number
-      when 30.. 49 ; catalog[number][yield[:kex]]
-      when 60.. 79 ; catalog[number][yield[:auth]]
-      else         ; catalog[number][nil]
-    end
+    is_kex      = proc {|n| (30..49).include?(n) }
+    is_userauth = proc {|n| (60..79).include?(n) }
+
+    is_kex     [number] ? catalog[number][yield[:kex     ]] :
+    is_userauth[number] ? catalog[number][yield[:userauth]] :
+                          catalog[number][true]
   end
 
   def build(payload, &block)
     number = payload.unpack("C")[0]
     mclass = search(number, &block)
-    mclass && mclass.new(payload) or raise MessageNotFound
+    mclass && mclass.new(payload) or Object.new.send(:null)
   end
 
   #
@@ -58,7 +57,7 @@ module GMRW; module SSH2; module Message
 
     def value=(val)
       val = conv[ val.nil? ? default : val ]
-      val.ssh.type?(type) or raise TypeError, "#{name}: #{val}"
+      val.ssh.type?(type) or raise TypeError, "#{type}: #{name}: #{val}"
       @value = val
     end
 
@@ -110,9 +109,9 @@ module GMRW; module SSH2; module Message
       end
     end 
 
-    (info[:categories] || [nil]).each do |cate|
-      catalog[number=fields[0][2]][cate] = classes[tag]
-    end
+    mclass = classes[tag]
+    number = fields[0][2]
+    (info[:categories] || [true]).each {|c| catalog[number][c] = mclass }
   end
 end; end; end
 

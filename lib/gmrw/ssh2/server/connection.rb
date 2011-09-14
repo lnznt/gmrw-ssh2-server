@@ -16,8 +16,8 @@ module GMRW; module SSH2; module Server; class Connection
   def_initialize :service
   forward [:logger, :die, :send_message, :at_close] => :service
 
-  def start(service_name=nil)
-    debug( "connection in service: #{service_name}" )
+  def start
+    debug( "connection in service" )
 
     service.register :global_request => proc {|message|
       message[:want_reply] && send_message(:request_failure)
@@ -28,8 +28,6 @@ module GMRW; module SSH2; module Server; class Connection
     :channel_data           => method(:channel_message_received),
     :channel_extended_data  => method(:channel_message_received),
     :channel_window_adjust  => method(:channel_message_received)
-
-    service_name && send_message(:service_accept, :service_name => service_name)
   end
 
   #

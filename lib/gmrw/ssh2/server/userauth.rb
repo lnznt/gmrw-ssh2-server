@@ -8,72 +8,93 @@
 require 'gmrw/extension/all'
 require 'gmrw/ssh2/loggable'
 require 'gmrw/ssh2/algorithm/host_key'
-require 'gmrw/ssh2/server/userauth/user'
+require 'gmrw/ssh2/server/service'
 
-module GMRW; module SSH2; module Server; class UserAuth
+class GMRW::SSH2::Server::UserAuth
   include GMRW
   include SSH2::Loggable
 
-  def_initialize :service
-  forward [:logger, :die, :send_message] => :service
-  
-  property_ro :user, 'User.new(self)'
+  def start
+    debug( "userauth in service" )
 
-  def start(service_name=nil)
-    debug( "userauth in service: #{service_name}" )
-
-    service.register :userauth_request => method(:userauth_request_received)
-
-    service_name && send_message(:service_accept, :service_name => service_name)
+    service.register :userauth_request         => method(:userauth_request_received),
+                    {:userauth => 'password' } => method(:password_authenticate),
+                    {:userauth => 'publickey'} => method(:publickey_authenticate)
   end
 
   private
-  #
-  # :section: message handlers
-  #
-  def userauth_request_received(message)
-    user.name_check!(message)
+  def_initialize :service
+  forward [:logger, :die, :send_message] => :service
 
-    case service.names[:auth] = message[:method_name]
-      when 'password'  ; password_authenticate(message)
-      when 'publickey' ; publickey_authenticate(message)
-      else             ; please_retry
-    end
+  #
+  # :section: Time & Count
+  #
+  property :time,  'Time.now + 600'
+  property :count, '20'
+
+  def time_check!
+    (time - Time.now) > 0 or die :NO_MORE_AUTH_METHODS_AVAILABLE, "timeout"
+  end
+
+  def count_check!
+    count(count - 1) >= 0 or die :NO_MORE_AUTH_METHODS_AVAILABLE, "retry count over"
   end
 
   #
-  # :section: reply message
+  # :section: userauth_request
   #
-  def welcome(message)
-    service.notify_listener(message[:service_name])
+  property :user_name
+  property :service_name
+  property :method_name
 
-    send_message :userauth_banner,
-                 :message => "\r\nWelcome to GMRW SSH2 Server\r\n\r\n"
+  def userauth_request_received(message)
+    time_check!
+
+    user_name    message[:user_name   ]
+    service_name message[:service_name]
+    method_name  message[:method_name ]; service.names[:userauth] = method_name
+
+    service.notify({:userauth => method_name}, message)
+
+  rescue SSH2::Protocol::EventError => e
+    debug( "userauth: event error: #{e}" )
+    please_retry
+  end
+
+  #
+  # :section: welcome / retry
+  #
+  property_ro :banner, '"\r\nWelcome to GMRW SSH2 Server\r\n\r\n"'
+
+  def welcome
+    service.notify(service_name)
+
+    send_message :userauth_banner, :message => banner
     send_message :userauth_success
   end
 
-  def please_retry
-    user.count_check!
+  property_ro :auths_list, 'SSH2.config.authentication'
 
-    send_message :userauth_failure,
-                 :auths_can_continue => SSH2.config.authentication
+  def please_retry
+    count_check!
+
+    send_message :userauth_failure, :auths_can_continue => auths_list
   end
 
   #
-  # :section: authenticate
+  # :section: authentication
   #
   property_ro :users, 'SSH2.config.users'
 
   def password_authenticate(message)
-    user = message[:user_name]
     pass = message[:old_password]
     chpw = message[:with_new_password]
 
-    ok = !chpw && (users[user] || {})[:password] == pass
+    ok = !chpw && (users[user_name] || {})[:password] == pass
 
     debug( "password auth : #{ok}" )
 
-    ok ? welcome(message) : please_retry
+    ok ? welcome : please_retry
   end
 
   def publickey_authenticate(message)
@@ -97,11 +118,10 @@ module GMRW; module SSH2; module Server; class UserAuth
                                                     [:string,  message[:pk_key_blob      ]] ].ssh.pack)
     debug( "publickey auth: #{ok}" )
 
-    ok          ? welcome(message) :
-    key && !sig ? send_message(:userauth_pk_ok,
-                               :pk_algorithm => algo, :pk_key_blob  => blob) :
+    ok          ? welcome                                                                    :
+    key && !sig ? send_message(:userauth_pk_ok, :pk_algorithm => algo, :pk_key_blob => blob) :
                   please_retry
   end
-end; end; end; end
+end
 
 # vim:set ts=2 sw=2 et fenc=utf-8:

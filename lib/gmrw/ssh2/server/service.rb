@@ -30,14 +30,15 @@ class GMRW::SSH2::Server::Service < GMRW::SSH2::Protocol::Transport
     SSH2.config(SSH2::Server::Config)
 
     register :service_request => proc {|message|
-        notify_listener(message[:service_name], message[:service_name])
+        notify(message[:service_name])
+        send_message :service_accept, :service_name => message[:service_name]
       },
       'ssh-userauth'   => ssh_userauth.method(:start),
       'ssh-connection' => ssh_connection.method(:start)
 
     protocol_version_exchange
 
-    send_message(:kexinit)
+    send_message :kexinit
 
     loop { poll_message }
   end

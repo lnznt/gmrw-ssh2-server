@@ -45,7 +45,6 @@ module GMRW::Extension
     define_property :property_rwva, [:va_arg, :default, :nvl, :set_val, :end, :attr_w]
 
     alias property property_rwa
-    alias const property_ro
   end
 end
 
