@@ -14,20 +14,23 @@ module GMRW; module SSH2; module Server; class Connection
   include SSH2::Loggable
 
   def_initialize :service
-  forward [:logger, :die, :send_message, :at_close] => :service
+  forward [:logger, :die, :send_message, :register, :notify, :at_close] => :service
+
+  property :session, 'SessionFactory.new(self)'
 
   def start
     debug( "connection in service" )
 
-    service.register :global_request => proc {|message|
+    register :global_request => proc {|message|
       message[:want_reply] && send_message(:request_failure)
     },
     :channel_open           => method(:channel_open_received),
     :channel_close          => method(:channel_message_received),
     :channel_request        => method(:channel_message_received),
     :channel_data           => method(:channel_message_received),
-    :channel_extended_data  => method(:channel_message_received),
-    :channel_window_adjust  => method(:channel_message_received)
+    :channel_window_adjust  => method(:channel_message_received),
+
+    [:connection,'session'] => session.method(:open)
   end
 
   #
@@ -45,20 +48,22 @@ module GMRW; module SSH2; module Server; class Connection
     send_message :channel_close, :recipient_channel => channel.peer.channel
   end
 
-  property_ro :channels, '{ "session" => Session }'
+  def channel_open_received(message)
+    notify([:connection, message[:channel_type]], message) 
 
-  def channel_open_received(message, *)
-    channel = channels[message[:channel_type]]
-    channel ? channel.new(self).channel_open_received(message) :
-              send_message(:channel_open_failure,
-                           :reason_code => :UNKNOWN_CHANNEL_TYPE,
-                           :description => :UNKNOWN_CHANNEL_TYPE,
-                           :recipient_channel => message[:sender_channel])
+  rescue SSH2::Protocol::EventError => e
+    error( "channel open error: #{e}" )
+    send_message(:channel_open_failure,
+                 :reason_code => :UNKNOWN_CHANNEL_TYPE,
+                 :description => :UNKNOWN_CHANNEL_TYPE,
+                 :recipient_channel => message[:sender_channel])
   end
 
-  def channel_message_received(message, *)
-    channel = slot[message[:recipient_channel]]
-    channel && channel.send("#{message.tag}_received".to_sym, message)
+  def channel_message_received(message)
+    notify([:channel, message[:recipient_channel], message.tag], message) 
+  rescue SSH2::Protocol::EventError => e
+    error( "channel not found: #{e}" )
+    message[:want_reply] && reply(:channel_failure)
   end
 end; end; end; end
 

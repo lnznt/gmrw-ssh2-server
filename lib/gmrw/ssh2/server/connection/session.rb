@@ -10,6 +10,16 @@ require 'gmrw/ssh2/loggable'
 require 'gmrw/ssh2/server/connection/session/exec'
 
 module GMRW; module SSH2; module Server; class Connection
+  class SessionFactory
+    include GMRW
+    def_initialize :service
+    def open(message)
+      session = SSH2::Server::Connection::Session.new(service)
+      session.channel_open_received(message)
+      session
+    end
+  end
+
   class Session
     include GMRW
     include SSH2::Loggable
@@ -54,22 +64,16 @@ module GMRW; module SSH2; module Server; class Connection
 
     def channel_open_received(message)
       end_point = Struct.new(:channel, :maximum_packet_size, :window) do
-        private
-
-        def send_unit(s)
-          sleep 1 while window.short?(s.length)
-          window >> s.length
-
-          yield s
-        end
-
-        def unit_size
-          [maximum_packet_size, window.size].min
-        end
-
         public
-        def send_data(data, &block)
-          data.bin.scan(/.{1,#{unit_size}}/m).each {|s| send_unit(s, &block) }
+        def send_data(data)
+          unit_size = [maximum_packet_size, window.size].min
+
+          data.bin.scan(/.{1,#{unit_size}}/m).each do |s|
+            sleep 1 while window.short?(s.length)
+            window >> s.length
+
+            yield s
+          end
         end
 
         def window_adjust(size=window.want_size)
@@ -87,9 +91,18 @@ module GMRW; module SSH2; module Server; class Connection
                          message[:maximum_packet_size],
                          Window.new(:init => message[:initial_window_size]))
 
+      register :channel_request       => :channel_request_received,
+               :channel_window_adjust => :channel_window_adjust_received,
+               :channel_data          => :channel_data_received,
+               :channel_close         => :channel_close_received
+
       reply :channel_open_confirmation,
             :initial_window_size => local.window.size,
             :maximum_packet_size => local.maximum_packet_size
+    end
+
+    def register(hash)
+      hash.each {|tag, met| service.register [:channel, local.channel, tag] => method(met) }
     end
 
     #
@@ -138,10 +151,12 @@ module GMRW; module SSH2; module Server; class Connection
         local.window_adjust {|size| reply :channel_window_adjust, :bytes_to_add => size }
     end
     
-    alias channel_extended_data_received channel_data_received
-
     def channel_window_adjust_received(message, *)
       peer.window_adjust(messgae[:bytes_to_add])
+    end
+
+    def channel_close_received(message)
+      close_channel(self)
     end
 
     #

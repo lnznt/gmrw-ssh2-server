@@ -17,14 +17,14 @@ class GMRW::SSH2::Server::UserAuth
   def start
     debug( "userauth in service" )
 
-    service.register :userauth_request         => method(:userauth_request_received),
-                    {:userauth => 'password' } => method(:password_authenticate),
-                    {:userauth => 'publickey'} => method(:publickey_authenticate)
+    service.register :userauth_request       => method(:userauth_request_received),
+                    [:userauth, 'password' ] => method(:password_authenticate),
+                    [:userauth, 'publickey'] => method(:publickey_authenticate)
   end
 
   private
   def_initialize :service
-  forward [:logger, :die, :send_message] => :service
+  forward [:logger, :die, :send_message, :notify] => :service
 
   #
   # :section: Time & Count
@@ -54,7 +54,7 @@ class GMRW::SSH2::Server::UserAuth
     service_name message[:service_name]
     method_name  message[:method_name ]; service.names[:userauth] = method_name
 
-    service.notify({:userauth => method_name}, message)
+    notify([:userauth, method_name], message)
 
   rescue SSH2::Protocol::EventError => e
     debug( "userauth: event error: #{e}" )

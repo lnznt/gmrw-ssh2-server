@@ -19,7 +19,7 @@ module GMRW; module SSH2; module Protocol
 
     private
     def_initialize :service
-    forward [:connection, :logger, :die] => :service
+    forward [:connection, :logger, :die, :notify] => :service
 
     #
     # :section: connection read/write
@@ -71,7 +71,7 @@ module GMRW; module SSH2; module Protocol
     end
 
     def received(message)
-      memo(message){'--> received'}.tap {|m| service.notify(m.tag, m) }
+      memo(message){'--> received'}.tap {|m| notify(m.tag, m) }
     end
 
     #
