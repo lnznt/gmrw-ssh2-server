@@ -52,6 +52,8 @@ module GMRW; module SSH2; module Server; class Connection
       :channel_request       => method(:request),
       :channel_window_adjust => method(:window_adjust),
       :channel_data          => method(:write_data),
+      :channel_extended_data => method(:write_data),
+      :channel_eof           => method(:close),
       :channel_close         => method(:close),
     }'
 
