@@ -47,6 +47,10 @@ class GMRW::SSH2::Protocol::Transport
     listeners[event].call(*a, &b)
   end
 
+  def cancel(event)
+    listeners.delete(event)
+  end
+
   #
   # :section: Start
   #
