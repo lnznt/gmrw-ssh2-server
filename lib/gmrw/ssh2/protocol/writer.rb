@@ -24,8 +24,12 @@ class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
     self[tag] || send_message(tag, params)
   end
 
+  property :mutex, 'Mutex.new'
+
   def send_message(tag, params={})
-    sent SSH2::Message.create(tag, params).tap {|m| write pack(m.dump) }
+    mutex.synchronize do
+      sent SSH2::Message.create(tag, params).tap {|m| write pack(m.dump) }
+    end
   end
 
   #

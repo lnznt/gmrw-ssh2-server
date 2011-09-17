@@ -24,12 +24,13 @@ module GMRW; module SSH2; module Server; class Connection; class Session
     property :wait_thread, :null
 
     def start(command, opts={})
-      debug( "program: command: #{command} #{opts.inspect}" )
+      command = (command || ENV['SHELL'] || 'bash')
+      info( "program: #{command}" )
 
       service.at_close << method(:shutdown)
 
       wait_thread Thread.fork {
-        PTY.spawn(command || ENV['SHELL'] || 'bash') do |r, w, pid|
+        PTY.spawn(command) do |r, w, pid|
           debug( "program: wait_thread start" )
 
           to_program(w) ; from_program(r) ; program_pid(pid)
@@ -37,6 +38,7 @@ module GMRW; module SSH2; module Server; class Connection; class Session
           begin
             loop do
               n = service.window.pop 
+              debug( "program: window pop : #{n}" )
               while n > 0
                 debug( "program: wait read ... : max = #{n}bytes" )
                 data = r.readpartial(n)
@@ -44,15 +46,11 @@ module GMRW; module SSH2; module Server; class Connection; class Session
                 n -= data.length
               end
             end
-          rescue PTY::ChildExited => e
-            info( "program: pty exception: #{e}" )
-            status = e.status
           rescue => e
             info( "program: read exception: #{e}" )
-            _, status = Process.waitpid2(pid)
           ensure
+            Process.waitpid2(pid) rescue nil
             reply :channel_eof
-            reply_exit(status)
             service.close
             debug( "program.wait_thread: terminated" )
           end
@@ -60,33 +58,14 @@ module GMRW; module SSH2; module Server; class Connection; class Session
       }
     end
 
-    def reply_exit(status)
-      debug( "program: exit status: #{status}" )
-      status.signaled? ? reply_exit_signal(status) :
-                         reply_exit_status(status)
-    end
-
-    def reply_exit_status(status)
-      reply :channel_request, 
-            :request_type      => 'exit-status',
-            :exit_status       => status.exitstatus
-    end
-
-    def reply_exit_signal(status)
-      reply :channel_request,
-            :request_type      => 'exit-signal',
-            :exit_signal       => Signal.list.key(status.termsig||0).dup,
-            :core_dumped       => status.coredump?,
-            :error_message     => status.to_s
-    end
-
     def shutdown
       debug( "program killed" )
-      Process.kill(:TERM, program_pid) rescue nil
-      Process.kill(:KILL, program_pid) rescue nil
-      Thread.kill(wait_thread)         rescue nil
       from_program.close               rescue nil
       to_program.close                 rescue nil
+      Thread.kill(wait_thread)         rescue nil
+      debug(" kill #{program_pid}" )
+      Process.kill(:TERM, program_pid) rescue nil
+      Process.kill(:KILL, program_pid) rescue nil
     end
   end
 end; end; end; end; end

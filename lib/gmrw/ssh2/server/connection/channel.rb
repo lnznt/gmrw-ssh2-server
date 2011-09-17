@@ -44,6 +44,8 @@ module GMRW; module SSH2; module Server; class Connection
             :sender_channel      => local_channel,
             :initial_window_size => initial_window_size,
             :maximum_packet_size => maximum_packet_size
+
+      info( "channel open: (remote)[#{remote_channel}]---[#{local_channel}](local)" )
     end
 
     property :handlers, '{
@@ -59,6 +61,7 @@ module GMRW; module SSH2; module Server; class Connection
     end
 
     def close(*)
+      info( "channel close: (remote)[#{remote_channel}]---[#{local_channel}](local)" )
       reply :channel_close
       service.cancel event
       service.channels.push local_channel
