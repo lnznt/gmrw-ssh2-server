@@ -47,56 +47,56 @@ class TestFields < Test::Unit::TestCase
 
   def test_to_packet
     try_assert_equal [
-      { "hello".to.packet           =>  [5, "hello"].pack("Na*")    },
-      { "hello".to.packet(:uint32)  =>  [5, "hello"].pack("Na*")    },
-      { "hello".to.packet(:none)    =>  "hello"                     },
-      { "hello".to.packet(:octet)   =>  [5, "hello"].pack("Ca*")    },
-      { "hello".to.packet(:uint64)  =>  [0,5, "hello"].pack("NNa*") },
+      { "hello".to_packet           =>  [5, "hello"].pack("Na*")    },
+      { "hello".to_packet(:uint32)  =>  [5, "hello"].pack("Na*")    },
+      { "hello".to_packet(:none)    =>  "hello"                     },
+      { "hello".to_packet(:uint8)   =>  [5, "hello"].pack("Ca*")    },
+      { "hello".to_packet(:uint64)  =>  [0,5, "hello"].pack("NNa*") },
     ]
   end
 
-  def test_to_mpi
+  def test_to_bin_to_i
     try_assert_equal [
-      { "".to.mpi                           =>  0      },
-      { [0x1].pack("C*").to.mpi             =>  0x1    },
-      { [0x12].pack("C*").to.mpi            =>  0x12   },
-      { [0x12,0x34].pack("C*").to.mpi       =>  0x1234 },
-      { [0xed,0xcc].pack("C*").to.mpi       => -0x1234 },
-      { [0x00,0x80,0x00].pack("C*").to.mpi  =>  0x8000 },
-      { [0xff,0x41,0x11].pack("C*").to.mpi  => -0xbeef },
+      { "".to_bin.to_i                           =>  0      },
+      { [0x1].pack("C*").to_bin.to_i             =>  0x1    },
+      { [0x12].pack("C*").to_bin.to_i            =>  0x12   },
+      { [0x12,0x34].pack("C*").to_bin.to_i       =>  0x1234 },
+      { [0xed,0xcc].pack("C*").to_bin.to_i       => -0x1234 },
+      { [0x00,0x80,0x00].pack("C*").to_bin.to_i  =>  0x8000 },
+      { [0xff,0x41,0x11].pack("C*").to_bin.to_i  => -0xbeef },
     ]
   end
 
   def test_to_bytes
     try_assert_equal [
-      { "".to.bytes     =>  []                },
-      { "ABC".to.bytes  =>  [0x41,0x42,0x43]  },
+      { "".to_bytes     =>  []                },
+      { "ABC".to_bytes  =>  [0x41,0x42,0x43]  },
     ]
   end
 
   def test_to_bin
     try_assert_equal [
-      { "".to.bin     =>  [].pack("C*")                },
-      { "ABC".to.bin  =>  [0x41,0x42,0x43].pack("C*")  },
+      { "".to_bin     =>  [].pack("C*")                },
+      { "ABC".to_bin  =>  [0x41,0x42,0x43].pack("C*")  },
     ]
   end
 
-  def test_to_bn
+  def test_to_BN
     try_assert_equal [
-      { "10".to.bn                           =>  10  },
-      { "10".to.bn(:dec)                     =>  10  },
-      { "10".to.bn(:decimal)                 =>  10  },
-      { "10".to.bn(10)                       =>  10  },
-      { "10".to.bn(:hex)                     =>  16  },
-      { "10".to.bn(:hexadecimal)             =>  16  },
-      { "10".to.bn(16)                       =>  16  },
-      { "\x10".to.bn(:bin)                   =>  16  },
-      { "\x10".to.bn(:binary)                =>  16  },
-      { "\x10".to.bn(2)                      =>  16  },
-      { "\x00\x00\x00\x01\x10".to.bn(:mpi)   =>  16  },
-      { "\x00\x00\x00\x01\x10".to.bn(:mpint) =>  16  },
-      { "\x00\x00\x00\x01\x10".to.bn(0)      =>  16  },
-      { "\x00\x00\x00\x00".to.bn(:mpi)       =>  0   },
+      { "10".to_BN                           =>  10  },
+      { "10".to_BN(:dec)                     =>  10  },
+      { "10".to_BN(:decimal)                 =>  10  },
+      { "10".to_BN(10)                       =>  10  },
+      { "10".to_BN(:hex)                     =>  16  },
+      { "10".to_BN(:hexadecimal)             =>  16  },
+      { "10".to_BN(16)                       =>  16  },
+      { "\x10".to_BN(:bin)                   =>  16  },
+      { "\x10".to_BN(:binary)                =>  16  },
+      { "\x10".to_BN(2)                      =>  16  },
+      { "\x00\x00\x00\x01\x10".to_BN(:mpi)   =>  16  },
+      { "\x00\x00\x00\x01\x10".to_BN(:mpint) =>  16  },
+      { "\x00\x00\x00\x01\x10".to_BN(0)      =>  16  },
+      { "\x00\x00\x00\x00".to_BN(:mpi)       =>  0   },
     ]
   end
 

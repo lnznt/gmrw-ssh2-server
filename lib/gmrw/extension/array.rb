@@ -6,7 +6,6 @@
 #
 
 require 'gmrw/extension/extension'
-require 'gmrw/extension/attribute/array_to'
 
 module GMRW::Extension
   mixin Array do
@@ -22,7 +21,13 @@ module GMRW::Extension
       cons *(len > length ? [pad] * (len - length) : [])
     end
 
-    attribute :to, Attribute::ArrayTo
+    def to_asn1
+      OpenSSL::ASN1::Sequence.new(self)
+    end
+
+    def to_der
+      to_asn1.to_der
+    end
   end
 end
 

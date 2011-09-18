@@ -9,13 +9,13 @@ require 'gmrw/extension/extension'
 require 'gmrw/extension/module'
 require 'gmrw/extension/attribute'
 require 'gmrw/extension/attribute/is'
-require 'gmrw/extension/null'
+
+require 'singleton'
 
 module GMRW::Extension
-  compatibility Object do
-    def try(*a, &b)
-      nil? ? nil : send(*a, &b)
-    end
+  class Null
+    include Singleton
+    private ; def method_missing(*) ; end
   end
 
   mixin Object do

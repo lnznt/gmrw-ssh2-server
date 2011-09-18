@@ -357,66 +357,60 @@ class TestFields < Test::Unit::TestCase
 
   def test_pack_byte
     try_assert_equal [
-      {  0.pack.byte    =>  [0].pack("C")          },
-      {  1.pack.byte    =>  [1].pack("C")          },
-      {  255.pack.byte  =>  [0xff].pack("C")       },
+      {  0.pack_byte    =>  [0].pack("C")          },
+      {  1.pack_byte    =>  [1].pack("C")          },
+      {  255.pack_byte  =>  [0xff].pack("C")       },
     ]
   end
 
   def test_pack_octet
     try_assert_equal [
-      {  0.pack.octet    =>  [0].pack("C")         },
-      {  1.pack.octet    =>  [1].pack("C")         },
-      {  255.pack.octet  =>  [0xff].pack("C")      },
+      {  0.pack_octet    =>  [0].pack("C")         },
+      {  1.pack_octet    =>  [1].pack("C")         },
+      {  255.pack_octet  =>  [0xff].pack("C")      },
     ]
   end
 
   def test_pack_uint8
     try_assert_equal [
-      {  0.pack.uint8    =>  [0].pack("C")        },
-      {  1.pack.uint8    =>  [1].pack("C")        },
-      {  255.pack.uint8  =>  [0xff].pack("C")     },
+      {  0.pack_uint8    =>  [0].pack("C")        },
+      {  1.pack_uint8    =>  [1].pack("C")        },
+      {  255.pack_uint8  =>  [0xff].pack("C")     },
     ]
   end
 
   def test_pack_uint16
     try_assert_equal [
-      {  0.pack.uint16       =>  [0].pack("n")      },
-      {  1.pack.uint16       =>  [1].pack("n")      },
-      {  0xffff.pack.uint16  =>  [0xffff].pack("n") },
+      {  0.pack_uint16       =>  [0].pack("n")      },
+      {  1.pack_uint16       =>  [1].pack("n")      },
+      {  0xffff.pack_uint16  =>  [0xffff].pack("n") },
     ]
   end
 
   def test_pack_uint32
     try_assert_equal [
-      {  0.pack.uint32            =>  [0].pack("N")           },
-      {  1.pack.uint32            =>  [1].pack("N")           },
-      {  0xffff_ffff.pack.uint32  =>  [0xffff_ffff].pack("N") },
+      {  0.pack_uint32            =>  [0].pack("N")           },
+      {  1.pack_uint32            =>  [1].pack("N")           },
+      {  0xffff_ffff.pack_uint32  =>  [0xffff_ffff].pack("N") },
     ]
   end
 
   def test_pack_uint64
     try_assert_equal [
-      {  0.pack.uint64                      =>  [0,0].pack("NN")                     },
-      {  1.pack.uint64                      =>  [0,1].pack("NN")                     },
-      {  0xffff_ffff_ffff_ffff.pack.uint64  =>  [0xffff_ffff,0xffff_ffff].pack("NN") },
+      {  0.pack_uint64                      =>  [0,0].pack("NN")                     },
+      {  1.pack_uint64                      =>  [0,1].pack("NN")                     },
+      {  0xffff_ffff_ffff_ffff.pack_uint64  =>  [0xffff_ffff,0xffff_ffff].pack("NN") },
     ]
   end
 
   def test_pack_bin
     try_assert_equal [
-      {  0.pack.bin        =>  [].pack("C*")                },
-      {  1.pack.bin        =>  [1].pack("C*")               },
-      {  0x1234.pack.bin   =>  [0x12,0x34].pack("C*")       },
-      {  0x8000.pack.bin   =>  [0x00,0x80,0x00].pack("C*")  },
-      {  -0x1234.pack.bin  =>  [0xed,0xcc].pack("C*")       },
-      {  -0xbeef.pack.bin  =>  [0xff,0x41,0x11].pack("C*")  },
-    ]
-  end
-  def test_to_bn
-    try_assert_equal [
-      {  0.to.bn        =>  0                },
-      { 10.to.bn        =>  10               },
+      {  0.pack_bin        =>  [].pack("C*")                },
+      {  1.pack_bin        =>  [1].pack("C*")               },
+      {  0x1234.pack_bin   =>  [0x12,0x34].pack("C*")       },
+      {  0x8000.pack_bin   =>  [0x00,0x80,0x00].pack("C*")  },
+      {  -0x1234.pack_bin  =>  [0xed,0xcc].pack("C*")       },
+      {  -0xbeef.pack_bin  =>  [0xff,0x41,0x11].pack("C*")  },
     ]
   end
 end
