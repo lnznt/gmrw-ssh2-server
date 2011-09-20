@@ -93,12 +93,12 @@ module GMRW; module SSH2; module Server; class Connection
       property    :size, '0'
 
       def consume(n)
-        size(size - n) >= unit or charge
+        size(size - n)
+        size >= unit or size(size + want)
       end
 
-      def charge
-        service.reply :channel_window_adjust, :bytes_to_add => init - size
-        size(init)
+      def want
+        (init - size).tap {|n| service.reply :channel_window_adjust, :bytes_to_add => n }
       end
     end
   end
