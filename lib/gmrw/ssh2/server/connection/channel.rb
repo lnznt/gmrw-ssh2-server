@@ -13,7 +13,34 @@ module GMRW; module SSH2; module Server; class Connection
     include SSH2::Loggable
     forward [:die, :logger, :at_close] => :service
 
-    property :remote_channel
+    class RWin < Queue
+      property :unit_size
+
+      def push(size)
+        n, m = size.divmod(unit_size)
+        n.times { super(unit_size) } ; super(m)
+      end
+    end
+
+    class SWin
+      def_initialize :service
+      property_ro :init, '1024 * 1024'
+      property_ro :unit, '  16 * 1024'
+      property    :size, '0'
+
+      def consume(n)
+        size(size - n)
+        size >= unit or size(size + want)
+      end
+
+      def want
+        (init - size).tap {|n| service.reply :channel_window_adjust, :bytes_to_add => n }
+      end
+    end
+
+    property    :remote_channel
+    property_ro :rwin, 'RWin.new'
+    property_ro :swin, 'SWin.new(self)'
 
     def reply(tag, params={})
       service.send_message tag, { :recipient_channel => remote_channel }.merge(params)
@@ -21,9 +48,9 @@ module GMRW; module SSH2; module Server; class Connection
 
     def open(message)
       local_channel  = service.channels.pop
-      remote_channel   message[:sender_channel]
-      window.unit_size message[:maximum_packet_size]
-      window.push      message[:initial_window_size]
+      remote_channel message[:sender_channel]
+      rwin.unit_size message[:maximum_packet_size]
+      rwin.push      message[:initial_window_size]
 
       info( "channel open: ##{local_channel} -- remote##{remote_channel}" )
 
@@ -39,8 +66,8 @@ module GMRW; module SSH2; module Server; class Connection
 
       reply :channel_open_confirmation,
             :sender_channel      => local_channel,
-            :initial_window_size => local_window_size.init,
-            :maximum_packet_size => local_window_size.unit
+            :initial_window_size => swin.init,
+            :maximum_packet_size => swin.unit
     end
 
     property :closing
@@ -52,7 +79,7 @@ module GMRW; module SSH2; module Server; class Connection
     def message_received(message)
       handler = {
         :channel_request       => method(:request),
-        :channel_window_adjust => proc {|msg| window.push msg[:bytes_to_add] },
+        :channel_window_adjust => proc {|msg| rwin.push msg[:bytes_to_add] },
         :channel_data          => method(:write_data),
         :channel_extended_data => method(:write_data),
         :channel_eof           => method(:close),
@@ -63,43 +90,11 @@ module GMRW; module SSH2; module Server; class Connection
     end
 
     #
-    # :section: window size adjust
-    #
-    property_ro :window, 'Window.new'
-
-    class Window < Queue
-      property :unit_size
-
-      def push(size)
-        n, m = size.divmod(unit_size)
-        n.times { super(unit_size) } ; super(m)
-      end
-    end
-
-    #
     # :section: receive data
     #
     def write_data(message)
       program.write message[:data]
-      local_window_size.consume(message[:data].length)
-    end
-
-    property :local_window_size, 'LocalWindowSize.new(self)'
-
-    class LocalWindowSize
-      def_initialize :service
-      property_ro :init, '1024 * 1024'
-      property_ro :unit, '  16 * 1024'
-      property    :size, '0'
-
-      def consume(n)
-        size(size - n)
-        size >= unit or size(size + want)
-      end
-
-      def want
-        (init - size).tap {|n| service.reply :channel_window_adjust, :bytes_to_add => n }
-      end
+      swin.consume(message[:data].length)
     end
   end
 end; end; end; end
