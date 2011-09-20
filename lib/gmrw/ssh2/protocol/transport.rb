@@ -27,8 +27,8 @@ class GMRW::SSH2::Protocol::Transport
   #
   # :section: Reader/Writer
   #
-  property_ro :reader, 'SSH2::Protocol::Reader.new(self)' ; alias peer  reader
-  property_ro :writer, 'SSH2::Protocol::Writer.new(self)' ; alias local writer
+  property_ro :reader, 'SSH2::Protocol::Reader.new(self)'                    ; alias peer  reader
+  property_ro :writer, 'SSH2::Protocol::Writer.new(self).tap {|w| w.start }' ; alias local writer
 
   forward [:poll_message] => :reader
   forward [:send_message] => :writer
@@ -76,6 +76,7 @@ class GMRW::SSH2::Protocol::Transport
 
   ensure
     at_close.each(&:call)
+    writer.stop
     connection.shutdown
     connection.close
     info( "SSH service terminated" )

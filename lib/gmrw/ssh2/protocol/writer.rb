@@ -5,6 +5,7 @@
 # License:: Ruby's
 #
 
+require 'thread'
 require 'gmrw/extension/all'
 require 'gmrw/ssh2/protocol/end'
 require 'gmrw/ssh2/message'
@@ -24,12 +25,26 @@ class GMRW::SSH2::Protocol::Writer < GMRW::SSH2::Protocol::End
     self[tag] || send_message(tag, params)
   end
 
-  property :mutex, 'Mutex.new'
+  property :q, 'Queue.new'
 
   def send_message(tag, params={})
-    mutex.synchronize do
-      sent SSH2::Message.create(tag, params).tap {|m| write pack(m.dump) }
+    q.push [tag, params]
+  end
+
+  def start
+    @thread = Thread.fork do
+      debug( "writer start" )
+      begin
+        loop { sent SSH2::Message.create(*q.pop).tap {|m| write pack(m.dump) } }
+      rescue => e
+        error( "writer error: #{e}" )
+      end
     end
+  end
+
+  def stop
+    debug( "writer stop" )
+    @thread.kill rescue nil
   end
 
   #
