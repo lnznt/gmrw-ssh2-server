@@ -59,7 +59,6 @@ module GMRW; module SSH2; module Server; class Connection
         reply :channel_close
         service.cancel [:channel, local_channel]
         service.channels.push local_channel
-        program.shutdown
       end
 
       service.register [:channel, local_channel] => method(:message_received)
@@ -70,10 +69,14 @@ module GMRW; module SSH2; module Server; class Connection
             :maximum_packet_size => swin.unit
     end
 
-    property :closing
+    property :closing, 'proc {|*|}'
 
     def close(*)
       closing.call
+    end
+
+    def kill(*)
+      program.kill
     end
 
     def message_received(message)
@@ -82,8 +85,8 @@ module GMRW; module SSH2; module Server; class Connection
         :channel_window_adjust => proc {|msg| rwin.push msg[:bytes_to_add] },
         :channel_data          => method(:write_data),
         :channel_extended_data => method(:write_data),
-        :channel_eof           => method(:close),
-        :channel_close         => method(:close),
+        :channel_eof           => method(:kill),
+        :channel_close         => method(:kill),
       }[message.tag]
 
       handler ? handler[message] : error( "message not handling #{message.tag}" )

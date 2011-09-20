@@ -16,7 +16,7 @@ class GMRW::SSH2::Server::Connection
     include Channel
 
     def_initialize :service
-    property :program, :null
+    property :program, 'Program.new(self)'
     property :term, '{}'
     property :env,  '{}'
 
@@ -24,7 +24,7 @@ class GMRW::SSH2::Server::Connection
       "env"     => :env_request_received,
       "pty-req" => :pty_req_request_received,
       "exec"    => :exec_request_received,
-      "shell"   => :exec_request_received,
+      "shell"   => :shell_request_received,
     }'
 
     def request(message)
@@ -52,7 +52,12 @@ class GMRW::SSH2::Server::Connection
     end
 
     def exec_request_received(message)
-      program(Program.new(self)).start(message[:command])
+      program.start(message[:command])
+      yield( :channel_success )
+    end
+
+    def shell_request_received(message)
+      program.start
       yield( :channel_success )
     end
   end
