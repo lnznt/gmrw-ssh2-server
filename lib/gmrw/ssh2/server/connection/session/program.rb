@@ -37,7 +37,7 @@ module GMRW; module SSH2; module Server; class Connection; class Session
 
           begin
             loop do
-              n = service.window.pop 
+              n = service.rwin.pop 
               debug( "program: window pop : #{n}" )
               while n > 0
                 debug( "program: wait read ... : max = #{n}bytes" )
