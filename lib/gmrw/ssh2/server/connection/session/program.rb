@@ -16,7 +16,7 @@ module GMRW; module SSH2; module Server; class Connection; class Session
     include SSH2::Loggable
 
     def_initialize :service
-    forward [:logger, :die, :reply] => :service
+    forward [:logger, :die] => :service
 
     property :wq, 'Queue.new'
 
@@ -37,12 +37,12 @@ module GMRW; module SSH2; module Server; class Connection; class Session
       while n = service.rwin.pop 
         while n > 0
           data = r.readpartial(n)
-          reply :channel_data, :data => data
+          service.reply :channel_data, :data => data
           n -= data.length
         end
       end
     rescue => e
-      reply :channel_eof
+      service.reply :channel_eof
     ensure
       r.close
       w.close

@@ -21,11 +21,15 @@ module GMRW; module SSH2
     property :severity, :threshold
     property :format, 'proc {|*msgs| msgs.map(&:to_s) * ": " }'
 
-    def log(sev=nil, *msgs, &block)
-      severity(sev || severity)
+    property_ro :mutex, 'Mutex.new'
 
-      (active? && block       )? block[self, *msgs] :
-      (active? && !msgs.empty?)? write(self, *msgs) : nil
+    def log(sev=nil, *msgs, &block)
+      mutex.synchronize do
+        severity(sev || severity)
+
+        (active? && block       )? block[self, *msgs] :
+        (active? && !msgs.empty?)? write(self, *msgs) : nil
+      end
     end
 
     def <<(msg)
