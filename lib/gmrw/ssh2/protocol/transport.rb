@@ -41,15 +41,11 @@ class GMRW::SSH2::Protocol::Transport
 
   def register(handlers)
     handlers.each {|event, handler| listeners[event] = handler }
-    proc { handlers.keys.each {|event| unregister(event) } }
+    proc { handlers.keys.each {|event| listeners.delete(event) } }
   end
 
   def notify(event, *a, &b)
     listeners[event].call(*a, &b)
-  end
-
-  def unregister(event)
-    listeners.delete(event)
   end
 
   #
