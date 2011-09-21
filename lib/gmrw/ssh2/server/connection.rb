@@ -17,6 +17,12 @@ module GMRW; module SSH2; module Server; class Connection
   def_initialize :service
   forward [:logger, :die, :send_message, :register, :notify, :cancel, :at_close] => :service
 
+  def dispatch(message)
+    notify([:channel, message.tag, message[:recipient_channel]], message) 
+  rescue SSH2::Protocol::EventError => e
+    error( "channel not found: #{e}" )
+  end
+
   def start
     debug( "connection in service" )
 
@@ -24,12 +30,12 @@ module GMRW; module SSH2; module Server; class Connection
       message[:want_reply] && send_message(:request_failure)
     },
     :channel_open           => method(:channel_open_received),
-    :channel_close          => method(:channel_message_received),
-    :channel_request        => method(:channel_message_received),
-    :channel_eof            => method(:channel_message_received),
-    :channel_data           => method(:channel_message_received),
-    :channel_extended_data  => method(:channel_message_received),
-    :channel_window_adjust  => method(:channel_message_received)
+    :channel_close          => method(:dispatch),
+    :channel_request        => method(:dispatch),
+    :channel_eof            => method(:dispatch),
+    :channel_data           => method(:dispatch),
+    :channel_extended_data  => method(:dispatch),
+    :channel_window_adjust  => method(:dispatch)
   end
 
   #
@@ -38,19 +44,14 @@ module GMRW; module SSH2; module Server; class Connection
   property :channels, 'Queue.new.tap {|q| 100.times {|ch| q.push(ch) } }'
 
   def channel_open_received(message)
-    { "session" => Session }.fetch(message[:channel_type]).new(self).open(message)
+    channel = { "session" => Session }.fetch(message[:channel_type]).new(self)
+    channel.open(message)
   rescue => e
     error( "channel open error: #{e}" )
     send_message :channel_open_failure,
            :reason_code       => :UNKNOWN_CHANNEL_TYPE,
            :description       => 'not support',
            :recipient_channel => message[:sender_channel]
-  end
-
-  def channel_message_received(message)
-    notify([:channel, message[:recipient_channel]], message) 
-  rescue SSH2::Protocol::EventError => e
-    error( "channel not found: #{e}" )
   end
 end; end; end; end
 

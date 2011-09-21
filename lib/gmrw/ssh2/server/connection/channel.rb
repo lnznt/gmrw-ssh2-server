@@ -54,14 +54,19 @@ module GMRW; module SSH2; module Server; class Connection
 
       info( "channel open: ##{local_channel} -- remote##{remote_channel}" )
 
+      unregister = service.register [:channel, :channel_request, local_channel] => method(:request),
+        [:channel, :channel_window_adjust, local_channel] => proc {|msg| rwin.push msg[:bytes_to_add] },
+        [:channel, :channel_data,          local_channel] => method(:write_data),
+        [:channel, :channel_extended_data, local_channel] => method(:write_data),
+        [:channel, :channel_eof,           local_channel] => method(:kill),
+        [:channel, :channel_close,         local_channel] => method(:kill)
+
       closing do
         info( "channel close: ##{local_channel}" )
         reply :channel_close
-        service.cancel [:channel, local_channel]
+        unregister.call
         service.channels.push local_channel
       end
-
-      service.register [:channel, local_channel] => method(:message_received)
 
       reply :channel_open_confirmation,
             :sender_channel      => local_channel,
@@ -77,19 +82,6 @@ module GMRW; module SSH2; module Server; class Connection
 
     def kill(*)
       program.kill
-    end
-
-    def message_received(message)
-      handler = {
-        :channel_request       => method(:request),
-        :channel_window_adjust => proc {|msg| rwin.push msg[:bytes_to_add] },
-        :channel_data          => method(:write_data),
-        :channel_extended_data => method(:write_data),
-        :channel_eof           => method(:kill),
-        :channel_close         => method(:kill),
-      }[message.tag]
-
-      handler ? handler[message] : error( "message not handling #{message.tag}" )
     end
 
     #
