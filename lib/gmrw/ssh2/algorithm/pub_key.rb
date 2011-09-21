@@ -70,7 +70,7 @@ module GMRW; module SSH2; module Algorithm
       def unpack_and_verify(s, data)
         id, sig, = s.ssh.unpack [:string, :string]
 
-        sig = sig.unpack("a20 a20").map {|v| v.to_bin.to_i.to_der }.to_der
+        sig = sig.unpack("a20 a20").map {|v| v.mpi.to_der }.to_der
 
         id == 'ssh-dss' && verify('dss1', sig, data)
       end

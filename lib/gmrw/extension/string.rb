@@ -24,7 +24,7 @@ module GMRW::Extension
     alias / div
 
     module BinaryString
-      def to_i
+      def to_int
         negative = (to_bytes[0] || 0).bit.set?(msb=7)
         n        = to_bytes.reduce(0) {|n,m| n << 8 | m }
         negative ? -(n.bit.complement + 1) : n
@@ -33,6 +33,10 @@ module GMRW::Extension
 
     def to_bin
       to_bytes.pack("C*").extend(BinaryString)
+    end
+
+    def mpi
+      to_bin.to_int
     end
 
     def to_bytes

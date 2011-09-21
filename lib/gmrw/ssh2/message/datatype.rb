@@ -50,7 +50,7 @@ module GMRW; module SSH2; module Message
                         :is_type  => this.kind_of?(OpenSSL::BN),
                         :encode   => proc { this.to_i.pack_bin.to_packet },
                         :separate => proc { this[4..-1] / this.to_uint32 },
-                        :decode   => proc {|s| s.to_bin.to_i.to_BN },
+                        :decode   => proc {|s| s.mpi.to_BN },
         },
         :string   => {  :default  => "",
                         :is_type  => this.is.string?,
