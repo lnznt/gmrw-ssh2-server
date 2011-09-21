@@ -58,13 +58,13 @@ module GMRW; module SSH2; module Message
     def value=(val)
       val = conv[ val.nil? ? default : val ]
       val.ssh.type?(type) or raise TypeError, "#{type}: #{name}: #{val}"
-      @value = val
+      value(val)
     end
 
     property    :spec
     property_ro :type, 'spec[0]'
     property_ro :name, 'spec[1]'
-    attr_reader :value
+    property_rw :value
 
     private
     property_ro :default, 'spec[2].nil? ? ssh.default(type) : spec[2]'
