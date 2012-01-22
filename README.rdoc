@@ -1,7 +1,5 @@
 = gmrw-ssh2-server : Ruby SSH2 Server
 
- *現在、開発中です*
-
 == Description
 
 gmrw-ssh2-server は Ruby 実装の SSH2 サーバです。
